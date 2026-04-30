@@ -1,0 +1,50 @@
+Design a ultra-premium, high-end SaaS landing page hero section for a GMAO platform called “Swan”.
+The design must feel like Apple, Vercel, Stripe-level quality: minimal, refined, deeply professional, and realistic as if designed by a top-tier product design studio.
+
+The background is a dark, elegant gradient with subtle depth, soft ambient lighting, and extremely minimal abstract data patterns (no clutter, no noise).
+The atmosphere is calm, controlled, and industrial-tech — not futuristic fantasy.
+
+The Swan logo is elegant, centered or left-aligned depending on layout, glowing subtly with controlled blue accent (#0A6DFF), integrated naturally into the composition without overpowering the UI.
+
+Include a clean typography system with a bold, confident headline:
+“Smarter Maintenance. Stronger Assets.”
+
+The layout must feel like Apple product pages:
+
+large whitespace
+perfect grid alignment
+balanced visual hierarchy
+precise spacing
+
+Add a secondary subtitle describing:
+“A next-generation GMAO platform for industrial maintenance, asset reliability, and operational control.”
+
+Include a minimal UI dashboard preview floating subtly in the background or right side, with realistic data visualization (charts, KPIs, work orders), designed like a real enterprise SaaS product — not decorative.
+
+Use glassmorphism very subtly (almost invisible), with sharp but soft-edged cards, thin borders, and no heavy shadows.
+
+Color palette:
+deep navy, black, subtle steel blue, controlled cyan accents, minimal white text.
+
+Add a single primary CTA button:
+“Request a Demo”
+styled like Apple/Vercel: clean, slightly rounded, soft hover glow.
+
+The composition should feel:
+
+premium enterprise SaaS
+minimal but powerful
+emotionally calm
+technically precise
+
+Lighting should be cinematic but extremely subtle, with focus on depth, not glow effects.
+
+No futuristic sci-fi elements, no excessive gradients, no cartoonish UI, no clutter.
+
+The final result must look like a real product launch page from a top-tier tech company, suitable for enterprise industrial clients in Algeria and global markets.
+
+⚡ Optional Negative Prompt (VERY IMPORTANT)
+
+If your tool supports it, add this:
+
+no cartoon style, no exaggerated neon, no fake AI UI, no messy layout, no oversaturated colors, no sci-fi fantasy elements, no mobile app mockup clutter, no random icons, no noisy background, no playful design
