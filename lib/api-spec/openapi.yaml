@@ -1,22 +1,35 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: SWAN GMAO API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: dashboard
+    description: Dashboard & KPIs
+  - name: assets
+    description: Asset management
+  - name: workorders
+    description: Work order management
+  - name: preventive
+    description: Preventive maintenance
+  - name: inventory
+    description: Inventory & spare parts
+  - name: technicians
+    description: Human resource management
+  - name: reports
+    description: Reports & analytics
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +37,493 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [dashboard]
+      summary: Get dashboard KPI stats
+      responses:
+        "200":
+          description: Dashboard statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+  /dashboard/activity:
+    get:
+      operationId: getDashboardActivity
+      tags: [dashboard]
+      summary: Get recent activity feed
+      responses:
+        "200":
+          description: Recent activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityItem"
+
+  /dashboard/chart-data:
+    get:
+      operationId: getDashboardChartData
+      tags: [dashboard]
+      summary: Get chart data for dashboard
+      responses:
+        "200":
+          description: Chart data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChartData"
+
+  /assets:
+    get:
+      operationId: getAssets
+      tags: [assets]
+      summary: List all assets
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of assets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Asset"
+    post:
+      operationId: createAsset
+      tags: [assets]
+      summary: Create a new asset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAssetBody"
+      responses:
+        "201":
+          description: Created asset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Asset"
+
+  /assets/{id}:
+    get:
+      operationId: getAsset
+      tags: [assets]
+      summary: Get asset by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Asset details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Asset"
+    put:
+      operationId: updateAsset
+      tags: [assets]
+      summary: Update an asset
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAssetBody"
+      responses:
+        "200":
+          description: Updated asset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Asset"
+    delete:
+      operationId: deleteAsset
+      tags: [assets]
+      summary: Delete an asset
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /workorders:
+    get:
+      operationId: getWorkOrders
+      tags: [workorders]
+      summary: List all work orders
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: priority
+          in: query
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of work orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkOrder"
+    post:
+      operationId: createWorkOrder
+      tags: [workorders]
+      summary: Create a new work order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWorkOrderBody"
+      responses:
+        "201":
+          description: Created work order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrder"
+
+  /workorders/{id}:
+    get:
+      operationId: getWorkOrder
+      tags: [workorders]
+      summary: Get work order by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Work order details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrder"
+    put:
+      operationId: updateWorkOrder
+      tags: [workorders]
+      summary: Update a work order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWorkOrderBody"
+      responses:
+        "200":
+          description: Updated work order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrder"
+    delete:
+      operationId: deleteWorkOrder
+      tags: [workorders]
+      summary: Delete a work order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /preventive:
+    get:
+      operationId: getPreventivePlans
+      tags: [preventive]
+      summary: List all preventive maintenance plans
+      responses:
+        "200":
+          description: List of preventive plans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PreventivePlan"
+    post:
+      operationId: createPreventivePlan
+      tags: [preventive]
+      summary: Create a preventive plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePreventivePlanBody"
+      responses:
+        "201":
+          description: Created plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PreventivePlan"
+
+  /preventive/{id}:
+    put:
+      operationId: updatePreventivePlan
+      tags: [preventive]
+      summary: Update a preventive plan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePreventivePlanBody"
+      responses:
+        "200":
+          description: Updated plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PreventivePlan"
+    delete:
+      operationId: deletePreventivePlan
+      tags: [preventive]
+      summary: Delete a preventive plan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /inventory:
+    get:
+      operationId: getInventoryItems
+      tags: [inventory]
+      summary: List all inventory items
+      parameters:
+        - name: lowStock
+          in: query
+          schema:
+            type: boolean
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of inventory items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InventoryItem"
+    post:
+      operationId: createInventoryItem
+      tags: [inventory]
+      summary: Create an inventory item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInventoryItemBody"
+      responses:
+        "201":
+          description: Created item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryItem"
+
+  /inventory/{id}:
+    put:
+      operationId: updateInventoryItem
+      tags: [inventory]
+      summary: Update an inventory item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInventoryItemBody"
+      responses:
+        "200":
+          description: Updated item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryItem"
+    delete:
+      operationId: deleteInventoryItem
+      tags: [inventory]
+      summary: Delete an inventory item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /technicians:
+    get:
+      operationId: getTechnicians
+      tags: [technicians]
+      summary: List all technicians
+      responses:
+        "200":
+          description: List of technicians
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Technician"
+    post:
+      operationId: createTechnician
+      tags: [technicians]
+      summary: Create a technician
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTechnicianBody"
+      responses:
+        "201":
+          description: Created technician
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Technician"
+
+  /technicians/{id}:
+    put:
+      operationId: updateTechnician
+      tags: [technicians]
+      summary: Update a technician
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTechnicianBody"
+      responses:
+        "200":
+          description: Updated technician
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Technician"
+    delete:
+      operationId: deleteTechnician
+      tags: [technicians]
+      summary: Delete a technician
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /reports/kpis:
+    get:
+      operationId: getKpiReport
+      tags: [reports]
+      summary: Get MTBF, MTTR and availability KPIs
+      responses:
+        "200":
+          description: KPI report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KpiReport"
+
+  /reports/costs:
+    get:
+      operationId: getCostReport
+      tags: [reports]
+      summary: Get maintenance cost breakdown
+      responses:
+        "200":
+          description: Cost report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CostReport"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +534,480 @@ components:
       required:
         - status
 
+    DashboardStats:
+      type: object
+      properties:
+        totalAssets:
+          type: integer
+        activeWorkOrders:
+          type: integer
+        criticalAlerts:
+          type: integer
+        availabilityRate:
+          type: number
+        mtbf:
+          type: number
+        mttr:
+          type: number
+        lowStockItems:
+          type: integer
+        plannedMaintenanceThisMonth:
+          type: integer
+      required:
+        - totalAssets
+        - activeWorkOrders
+        - criticalAlerts
+        - availabilityRate
+        - mtbf
+        - mttr
+        - lowStockItems
+        - plannedMaintenanceThisMonth
+
+    ActivityItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [workorder, alert, maintenance, inventory]
+        message:
+          type: string
+        timestamp:
+          type: string
+        severity:
+          type: string
+          enum: [info, warning, critical, success]
+        assetName:
+          type: string
+      required:
+        - id
+        - type
+        - message
+        - timestamp
+        - severity
+
+    ChartData:
+      type: object
+      properties:
+        maintenanceByMonth:
+          type: array
+          items:
+            type: object
+            properties:
+              month:
+                type: string
+              corrective:
+                type: integer
+              preventive:
+                type: integer
+            required: [month, corrective, preventive]
+        assetsByCategory:
+          type: array
+          items:
+            type: object
+            properties:
+              category:
+                type: string
+              count:
+                type: integer
+            required: [category, count]
+        workOrdersByStatus:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                type: string
+              count:
+                type: integer
+            required: [status, count]
+      required:
+        - maintenanceByMonth
+        - assetsByCategory
+        - workOrdersByStatus
+
+    Asset:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        category:
+          type: string
+        serialNumber:
+          type: string
+        location:
+          type: string
+        status:
+          type: string
+          enum: [operational, maintenance, breakdown, decommissioned]
+        manufacturer:
+          type: string
+        model:
+          type: string
+        installDate:
+          type: string
+        lastMaintenanceDate:
+          type: string
+        mtbf:
+          type: number
+        mttr:
+          type: number
+        availabilityRate:
+          type: number
+        criticality:
+          type: string
+          enum: [low, medium, high, critical]
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - category
+        - status
+        - criticality
+        - createdAt
+
+    CreateAssetBody:
+      type: object
+      properties:
+        name:
+          type: string
+        category:
+          type: string
+        serialNumber:
+          type: string
+        location:
+          type: string
+        status:
+          type: string
+          enum: [operational, maintenance, breakdown, decommissioned]
+        manufacturer:
+          type: string
+        model:
+          type: string
+        installDate:
+          type: string
+        criticality:
+          type: string
+          enum: [low, medium, high, critical]
+      required:
+        - name
+        - category
+        - status
+        - criticality
+
+    WorkOrder:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum: [corrective, preventive, predictive, inspection]
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+        status:
+          type: string
+          enum: [open, in_progress, completed, cancelled, on_hold]
+        assetId:
+          type: integer
+        assetName:
+          type: string
+        technicianId:
+          type: integer
+        technicianName:
+          type: string
+        estimatedHours:
+          type: number
+        actualHours:
+          type: number
+        scheduledDate:
+          type: string
+        completedDate:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - title
+        - type
+        - priority
+        - status
+        - createdAt
+
+    CreateWorkOrderBody:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum: [corrective, preventive, predictive, inspection]
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+        status:
+          type: string
+          enum: [open, in_progress, completed, cancelled, on_hold]
+        assetId:
+          type: integer
+        technicianId:
+          type: integer
+        estimatedHours:
+          type: number
+        scheduledDate:
+          type: string
+      required:
+        - title
+        - type
+        - priority
+        - status
+
+    PreventivePlan:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        assetId:
+          type: integer
+        assetName:
+          type: string
+        frequency:
+          type: string
+          enum: [daily, weekly, monthly, quarterly, annually]
+        lastExecuted:
+          type: string
+        nextDue:
+          type: string
+        status:
+          type: string
+          enum: [active, inactive, overdue]
+        estimatedDuration:
+          type: number
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - frequency
+        - status
+        - createdAt
+
+    CreatePreventivePlanBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        assetId:
+          type: integer
+        frequency:
+          type: string
+          enum: [daily, weekly, monthly, quarterly, annually]
+        nextDue:
+          type: string
+        estimatedDuration:
+          type: number
+      required:
+        - name
+        - frequency
+
+    InventoryItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        reference:
+          type: string
+        category:
+          type: string
+        quantity:
+          type: integer
+        minQuantity:
+          type: integer
+        unit:
+          type: string
+        location:
+          type: string
+        supplier:
+          type: string
+        unitCost:
+          type: number
+        totalValue:
+          type: number
+        isLowStock:
+          type: boolean
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - quantity
+        - minQuantity
+        - isLowStock
+        - createdAt
+
+    CreateInventoryItemBody:
+      type: object
+      properties:
+        name:
+          type: string
+        reference:
+          type: string
+        category:
+          type: string
+        quantity:
+          type: integer
+        minQuantity:
+          type: integer
+        unit:
+          type: string
+        location:
+          type: string
+        supplier:
+          type: string
+        unitCost:
+          type: number
+      required:
+        - name
+        - quantity
+        - minQuantity
+
+    Technician:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        specialization:
+          type: string
+        skills:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [available, busy, off, leave]
+        activeWorkOrders:
+          type: integer
+        completedThisMonth:
+          type: integer
+        avgRating:
+          type: number
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - email
+        - specialization
+        - status
+        - createdAt
+
+    CreateTechnicianBody:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        specialization:
+          type: string
+        skills:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [available, busy, off, leave]
+      required:
+        - name
+        - email
+        - specialization
+
+    KpiReport:
+      type: object
+      properties:
+        mtbf:
+          type: number
+        mttr:
+          type: number
+        availabilityRate:
+          type: number
+        maintenanceCostRatio:
+          type: number
+        plannedVsUnplanned:
+          type: number
+        topFailingAssets:
+          type: array
+          items:
+            type: object
+            properties:
+              assetName:
+                type: string
+              failures:
+                type: integer
+            required: [assetName, failures]
+      required:
+        - mtbf
+        - mttr
+        - availabilityRate
+        - maintenanceCostRatio
+        - plannedVsUnplanned
+        - topFailingAssets
+
+    CostReport:
+      type: object
+      properties:
+        totalLaborCost:
+          type: number
+        totalPartsCost:
+          type: number
+        totalDowntimeCost:
+          type: number
+        totalCost:
+          type: number
+        byMonth:
+          type: array
+          items:
+            type: object
+            properties:
+              month:
+                type: string
+              labor:
+                type: number
+              parts:
+                type: number
+              downtime:
+                type: number
+            required: [month, labor, parts, downtime]
+      required:
+        - totalLaborCost
+        - totalPartsCost
+        - totalDowntimeCost
+        - totalCost
+        - byMonth

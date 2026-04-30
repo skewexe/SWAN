@@ -1,0 +1,259 @@
+you are an expert in coding , and also expert in maintenance , you are now developping a saas plateforme called SWAN , SWAN is a GMAO saas for algerian market , (i gave you the logo of swan ) , now you should make a pro clean saas from 0 to hero , from a to z from landing page to login to dashboard to everything even about us and faq page , make it in french and make it pro and clean , i need pro animations , serious not chlidish , pro font , and pro colors , and atteractive , full gmao plateforme ,use libraries like three js , use others lfor pro and clean and entrprise level icons , use others libraries for pro animations , and the landing oage also should be atteractive and dark and with animations , i need it like apple or vercel landing page ...
+all functions of gmao i need are
+1. Asset Management (Gestion des équipements)
+Registration and classification of all physical assets (machines, vehicles, infrastructure).
+Tracking technical specifications, history, and lifecycle.
+Monitoring performance indicators (MTBF, MTTR).
+2. Work Order Management (Gestion des ordres de travail)
+Creation, assignment, and tracking of maintenance tasks.
+Prioritization of interventions (corrective, preventive, predictive).
+Recording labor time, tools used, and intervention reports.
+3. Preventive Maintenance (Maintenance préventive)
+Scheduling recurring maintenance tasks based on:
+Time intervals (daily, weekly, monthly)
+Usage metrics (hours of operation, cycles)
+Automatic alerts and notifications.
+4. Corrective Maintenance (Maintenance corrective)
+Management of breakdowns and failures.
+Incident reporting and root cause analysis.
+Tracking resolution times and downtime.
+5. Inventory & Spare Parts Management (Gestion des stocks)
+Tracking spare parts availability in real time.
+Automatic stock updates after interventions.
+Alerts for low stock levels.
+Supplier and procurement management.
+6. Planning and Scheduling (Planification)
+Resource allocation (technicians, tools).
+Optimization of maintenance calendars.
+Conflict and overload management.
+7. Human Resource Management (Gestion du personnel)
+Technician profiles and skill tracking.
+Assignment of tasks based on expertise.
+Monitoring productivity and performance.
+8. Reporting & Analytics (Tableaux de bord et reporting)
+KPI dashboards:
+MTTR (Mean Time To Repair)
+MTBF (Mean Time Between Failures)
+Equipment availability rate
+Custom reports and data visualization.
+9. Document Management (Gestion documentaire)
+Storage of manuals, technical sheets, procedures.
+Linking documents to specific assets or tasks.
+10. Budget & Cost Management (Gestion financière)
+Tracking maintenance costs (labor, parts, downtime).
+Budget planning and cost optimization.
+ROI analysis of maintenance strategies.
+11. Mobility & IoT Integration
+Mobile access for technicians (apps/tablets).
+Integration with IoT sensors for:
+Real-time monitoring
+Predictive maintenance (AI-based)
+12. Compliance & Traceability
+Full history of interventions.
+Compliance with industrial standards and audits.
+Traceability of actions for safety and regulations.
+Primary (Already aligned with your logo)
+
+Swan Blue → #0A6DFF
+
+Deep Core Blue → #0B132B
+
+Midnight Surface → #0F1C2E
+
+Secondary (for hierarchy, not decoration)
+
+Steel Blue → #1F3A5F
+
+Cold Cyan Accent → #38BDF8
+
+Functional Colors (very important for GMAO credibility)
+
+Success → #22C55E
+
+Warning → #F59E0B
+
+Critical / Failure → #EF4444
+
+Neutrals (make it premium)
+
+Text Primary → #E6EDF3
+
+Text Secondary → #94A3B8
+
+Borders → #1E293B
+
+Rule:
+
+80% dark neutral + 15% blue + 5% accent
+This is what makes it feel serious, not “designed”
+
+3. Typography System
+
+Primary Font
+
+Inter (safe, modern, SaaS standard)
+OR
+
+Söhne / Neue Haas Grotesk (if you want premium Apple-level feel)
+
+Hierarchy
+
+H1 → 56–64px / Medium
+
+H2 → 32–40px / Medium
+
+Body → 16–18px / Regular
+
+Data → 14px / Mono optional (JetBrains Mono)
+
+Style Rules
+
+Tight tracking on headlines
+
+No exaggerated weights
+
+Avoid ALL CAPS except labels
+
+4. Layout System (what makes it feel “high-end”)
+
+Grid
+
+12-column grid
+
+Max width: 1200–1320px
+
+Generous spacing (not cramped like cheap SaaS)
+
+Spacing Scale
+
+Use an 8pt system:
+8 / 16 / 24 / 32 / 48 / 64 / 96
+
+Containers
+
+Rounded corners: 12px–16px
+
+Subtle borders, not shadows
+
+5. Background System (your key differentiator)
+
+You already started this well.
+
+Core style:
+
+Dark gradient base:
+radial-gradient(circle at 30% 20%, #0A6DFF20, transparent)
+
+Add:
+
+subtle noise
+
+wave/grid patterns (very faint)
+
+data particles (minimal)
+
+Think:
+
+“industrial intelligence”, not “futuristic sci-fi”
+
+6. UI Components Style
+
+Cards
+
+Background: #0F1C2E
+
+Border: 1px solid #1E293B
+
+No heavy shadows
+
+Buttons
+
+Primary → solid blue
+
+Secondary → ghost (border only)
+
+Hover → brightness +5%, not glow
+
+Inputs
+
+Flat, dark
+
+Focus = thin blue outline (not neon)
+
+7. Data Visualization Style (CRITICAL for GMAO)
+
+This is where most SaaS fail.
+
+Rules:
+
+No rainbow charts
+
+Max 3 colors per graph
+
+Use:
+
+Blue → primary data
+
+Green → good
+
+Red → problem
+
+Charts:
+
+Thin lines
+
+Soft gradients
+
+Minimal grid lines
+
+8. Iconography
+
+Style:
+
+Outline icons
+
+1.5px stroke
+
+Slightly rounded
+
+Avoid:
+
+filled icons
+
+cartoon shapes
+
+9. Logo Usage System
+
+Do:
+
+Use symbol alone for app / favicon
+
+Use full lockup for marketing
+
+Don't:
+
+stretch it
+
+add glow effects
+
+place on bright backgrounds
+
+10. Motion & Interaction (this is “Vercel-level”)
+
+Principles:
+
+Fast (150–250ms)
+
+Smooth easing (ease-out)
+
+Examples:
+
+Hover → subtle lift (2–4px)
+
+Charts → animate on load
+
+Background → very slow movement
+
+No flashy animations.
+
+Calm = premium.
