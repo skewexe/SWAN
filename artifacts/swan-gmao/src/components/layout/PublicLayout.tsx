@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import swanLogo from "@assets/21778_1777542129715.png";
+import swanLogoNew from "@assets/ChatGPT Image 30 avr. 2026, 11_39_45.png";
 import { Button } from "@/components/ui/button";
 
 export function PublicLayout({ children }: { children: React.ReactNode }) {
@@ -10,7 +11,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
       <header className="border-b border-border/50 bg-background/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 transition-opacity hover:opacity-80">
-            <img src={swanLogo} alt="SWAN Logo" className="h-8 w-auto" />
+            <img src={swanLogoNew} alt="SWAN Logo" className="h-8 w-auto" />
             <span className="font-semibold tracking-wide text-lg text-primary">SWAN GMAO</span>
           </Link>
           
