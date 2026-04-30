@@ -9,9 +9,8 @@ import {
   Users, 
   LineChart,
   LogOut,
-  Bell
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { NotificationsDropdown } from "@/components/NotificationsDropdown";
 
 const navItems = [
   { path: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
@@ -86,10 +85,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             {navItems.find(i => location.startsWith(i.path))?.label || "GMAO"}
           </div>
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground">
-              <Bell className="h-5 w-5" strokeWidth={1.5} />
-              <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-destructive"></span>
-            </Button>
+            <NotificationsDropdown />
           </div>
         </header>
 

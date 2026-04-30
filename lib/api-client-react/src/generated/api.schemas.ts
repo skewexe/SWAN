@@ -382,7 +382,46 @@ export interface CostReport {
   totalPartsCost: number;
   totalDowntimeCost: number;
   totalCost: number;
-  byMonth: CostReportByMonthItem[];
+  byMonth?: CostReportByMonthItem[];
+}
+
+export interface WorkOrderPart {
+  id: number;
+  workOrderId: number;
+  inventoryItemId: number;
+  quantityUsed: number;
+  unitCostAtTime?: number;
+  note?: string;
+  createdAt: string;
+  itemName: string;
+  itemReference?: string;
+  itemUnit?: string;
+  totalCost?: number;
+  newStockLevel?: number;
+}
+
+export interface AddWorkOrderPartBody {
+  inventoryItemId: number;
+  quantityUsed: number;
+  note?: string;
+}
+
+export type NotificationType =
+  (typeof NotificationType)[keyof typeof NotificationType];
+
+export const NotificationType = {
+  critical: "critical",
+  warning: "warning",
+  info: "info",
+} as const;
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
 }
 
 export type GetAssetsParams = {

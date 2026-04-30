@@ -2,7 +2,9 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   useGetWorkOrders, useCreateWorkOrder, useUpdateWorkOrder, useDeleteWorkOrder,
-  useGetAssets, useGetTechnicians, getGetWorkOrdersQueryKey
+  useGetAssets, useGetTechnicians, useGetInventoryItems,
+  useGetWorkOrderParts, useAddWorkOrderPart, useRemoveWorkOrderPart,
+  getGetWorkOrdersQueryKey, getGetWorkOrderPartsQueryKey, getGetInventoryItemsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, Trash2, AlertTriangle, Package, X, AlertCircle } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 
@@ -54,6 +56,241 @@ interface WOFormData {
   scheduledDate?: string;
 }
 
+function PartsDialog({
+  workOrder,
+  open,
+  onClose,
+}: {
+  workOrder: any;
+  open: boolean;
+  onClose: () => void;
+}) {
+  const [selectedItemId, setSelectedItemId] = useState<string>("");
+  const [quantityInput, setQuantityInput] = useState<string>("1");
+  const [noteInput, setNoteInput] = useState<string>("");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const { data: parts, isLoading: partsLoading } = useGetWorkOrderParts(
+    { id: workOrder?.id },
+    { query: { enabled: !!workOrder, queryKey: getGetWorkOrderPartsQueryKey({ id: workOrder?.id }) } }
+  );
+
+  const { data: inventoryItems } = useGetInventoryItems(
+    {},
+    { query: { queryKey: getGetInventoryItemsQueryKey({}) } }
+  );
+
+  const addPart = useAddWorkOrderPart();
+  const removePart = useRemoveWorkOrderPart();
+
+  const totalPartsCost = parts?.reduce((sum, p) => sum + (p.totalCost ?? 0), 0) ?? 0;
+
+  const handleAddPart = () => {
+    if (!selectedItemId || !workOrder) return;
+    const qty = Number(quantityInput);
+    if (qty <= 0) { toast({ title: "Quantité invalide", variant: "destructive" }); return; }
+
+    addPart.mutate(
+      { params: { id: workOrder.id }, data: { inventoryItemId: Number(selectedItemId), quantityUsed: qty, note: noteInput || undefined } },
+      {
+        onSuccess: (result) => {
+          toast({ title: `${result.itemName} ajouté — stock: ${result.newStockLevel ?? "?"} restant(s)` });
+          setSelectedItemId("");
+          setQuantityInput("1");
+          setNoteInput("");
+          queryClient.invalidateQueries({ queryKey: getGetWorkOrderPartsQueryKey({ id: workOrder.id }) });
+          queryClient.invalidateQueries({ queryKey: getGetInventoryItemsQueryKey({}) });
+        },
+        onError: (err: any) => {
+          const msg = err?.response?.data?.error || "Erreur lors de l'ajout";
+          toast({ title: msg, variant: "destructive" });
+        },
+      }
+    );
+  };
+
+  const handleRemovePart = (partId: number) => {
+    if (!workOrder) return;
+    removePart.mutate(
+      { params: { id: workOrder.id, partId } },
+      {
+        onSuccess: () => {
+          toast({ title: "Pièce retirée — stock restauré" });
+          queryClient.invalidateQueries({ queryKey: getGetWorkOrderPartsQueryKey({ id: workOrder.id }) });
+          queryClient.invalidateQueries({ queryKey: getGetInventoryItemsQueryKey({}) });
+        },
+        onError: () => toast({ title: "Erreur", variant: "destructive" }),
+      }
+    );
+  };
+
+  const availableItems = inventoryItems?.filter(i => i.quantity > 0) ?? [];
+  const selectedItem = inventoryItems?.find(i => i.id.toString() === selectedItemId);
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl bg-card border-border">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5 text-primary" strokeWidth={1.5} />
+            Pièces & matériaux — {workOrder?.title}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-5">
+          {/* Add part form */}
+          <div className="bg-background/50 border border-border/50 rounded-xl p-4 space-y-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ajouter une pièce</p>
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <Select value={selectedItemId} onValueChange={setSelectedItemId}>
+                  <SelectTrigger data-testid="select-part-item" className="text-sm">
+                    <SelectValue placeholder="Choisir un article du stock..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableItems.length === 0 ? (
+                      <SelectItem value="none" disabled>Aucun article disponible</SelectItem>
+                    ) : (
+                      availableItems.map(item => (
+                        <SelectItem key={item.id} value={item.id.toString()}>
+                          <span className="font-medium">{item.name}</span>
+                          <span className="ml-2 text-muted-foreground text-xs">({item.quantity} {item.unit || "unités"})</span>
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="w-24">
+                <Input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={quantityInput}
+                  onChange={e => setQuantityInput(e.target.value)}
+                  placeholder="Qté"
+                  data-testid="input-part-quantity"
+                  className="text-sm"
+                />
+              </div>
+              <Button
+                onClick={handleAddPart}
+                disabled={!selectedItemId || addPart.isPending}
+                size="sm"
+                data-testid="button-add-part"
+                className="gap-1.5"
+              >
+                <Plus className="h-3.5 w-3.5" strokeWidth={2} />
+                Ajouter
+              </Button>
+            </div>
+
+            {/* Stock info for selected item */}
+            {selectedItem && (
+              <div className="flex items-center gap-2 text-xs">
+                {selectedItem.isLowStock ? (
+                  <AlertCircle className="h-3.5 w-3.5 text-red-400" strokeWidth={1.5} />
+                ) : null}
+                <span className="text-muted-foreground">
+                  Stock disponible: <span className={`font-semibold ${selectedItem.isLowStock ? "text-red-400" : "text-foreground"}`}>
+                    {selectedItem.quantity} {selectedItem.unit || "unités"}
+                  </span>
+                  {selectedItem.unitCost != null && (
+                    <span className="ml-2">— {selectedItem.unitCost.toLocaleString("fr-DZ")} DA/unité</span>
+                  )}
+                </span>
+              </div>
+            )}
+
+            <Input
+              placeholder="Note (optionnel)"
+              value={noteInput}
+              onChange={e => setNoteInput(e.target.value)}
+              data-testid="input-part-note"
+              className="text-sm"
+            />
+          </div>
+
+          {/* Parts list */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Pièces utilisées ({parts?.length ?? 0})
+              </p>
+              {totalPartsCost > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  Coût total pièces: <span className="font-semibold text-foreground">{totalPartsCost.toLocaleString("fr-DZ")} DA</span>
+                </span>
+              )}
+            </div>
+
+            {partsLoading ? (
+              <div className="space-y-2">
+                {[1, 2].map(i => <Skeleton key={i} className="h-14" />)}
+              </div>
+            ) : parts && parts.length > 0 ? (
+              <div className="space-y-2">
+                {parts.map((part) => (
+                  <motion.div
+                    key={part.id}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center gap-3 bg-background/50 border border-border/40 rounded-xl px-4 py-3"
+                    data-testid={`part-row-${part.id}`}
+                  >
+                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <Package className="h-4 w-4 text-primary" strokeWidth={1.5} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-foreground">{part.itemName}</span>
+                        {part.itemReference && (
+                          <span className="text-xs text-muted-foreground font-mono">{part.itemReference}</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 mt-0.5">
+                        <span className="text-xs text-muted-foreground">
+                          Qté: <span className="font-semibold text-foreground">{part.quantityUsed} {part.itemUnit || "unités"}</span>
+                        </span>
+                        {part.totalCost != null && (
+                          <span className="text-xs text-muted-foreground">
+                            Coût: <span className="font-semibold text-foreground">{part.totalCost.toLocaleString("fr-DZ")} DA</span>
+                          </span>
+                        )}
+                        {part.note && (
+                          <span className="text-xs text-muted-foreground italic">{part.note}</span>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleRemovePart(part.id)}
+                      className="shrink-0 h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                      disabled={removePart.isPending}
+                      data-testid={`button-remove-part-${part.id}`}
+                    >
+                      <X className="h-4 w-4" strokeWidth={1.5} />
+                    </button>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-sm text-muted-foreground border border-border/30 rounded-xl bg-background/30">
+                <Package className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" strokeWidth={1} />
+                Aucune pièce ajoutée pour le moment
+              </div>
+            )}
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Fermer</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function WorkOrdersPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
@@ -61,6 +298,7 @@ export default function WorkOrdersPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editWO, setEditWO] = useState<any>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<any>(null);
+  const [partsWO, setPartsWO] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -229,11 +467,30 @@ export default function WorkOrdersPage() {
                       {wo.scheduledDate ? new Date(wo.scheduledDate).toLocaleDateString("fr-DZ") : "—"}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 justify-end">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => openEdit(wo)} data-testid={`button-edit-wo-${wo.id}`}>
+                      <div className="flex items-center gap-1 justify-end">
+                        <Button
+                          variant="ghost" size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-primary"
+                          onClick={() => setPartsWO(wo)}
+                          title="Gérer les pièces"
+                          data-testid={`button-parts-wo-${wo.id}`}
+                        >
+                          <Package className="h-4 w-4" strokeWidth={1.5} />
+                        </Button>
+                        <Button
+                          variant="ghost" size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                          onClick={() => openEdit(wo)}
+                          data-testid={`button-edit-wo-${wo.id}`}
+                        >
                           <Pencil className="h-4 w-4" strokeWidth={1.5} />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setDeleteConfirm(wo)} data-testid={`button-delete-wo-${wo.id}`}>
+                        <Button
+                          variant="ghost" size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          onClick={() => setDeleteConfirm(wo)}
+                          data-testid={`button-delete-wo-${wo.id}`}
+                        >
                           <Trash2 className="h-4 w-4" strokeWidth={1.5} />
                         </Button>
                       </div>
@@ -248,7 +505,10 @@ export default function WorkOrdersPage() {
         )}
       </motion.div>
 
-      {/* Dialog */}
+      {/* Parts Dialog */}
+      <PartsDialog workOrder={partsWO} open={!!partsWO} onClose={() => setPartsWO(null)} />
+
+      {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg bg-card border-border">
           <DialogHeader>

@@ -279,6 +279,87 @@ paths:
         "204":
           description: Deleted
 
+  /workorders/{id}/parts:
+    get:
+      operationId: getWorkOrderParts
+      tags: [workorders]
+      summary: List parts used in a work order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of parts used
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkOrderPart"
+    post:
+      operationId: addWorkOrderPart
+      tags: [workorders]
+      summary: Add a part to a work order (deducts from inventory)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddWorkOrderPartBody"
+      responses:
+        "201":
+          description: Part added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrderPart"
+        "400":
+          description: Insufficient stock or invalid request
+
+  /workorders/{id}/parts/{partId}:
+    delete:
+      operationId: removeWorkOrderPart
+      tags: [workorders]
+      summary: Remove a part from a work order (restores inventory)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: partId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Part removed
+
+  /notifications:
+    get:
+      operationId: getNotifications
+      tags: [dashboard]
+      summary: Get live notifications (low stock, breakdowns, overdue plans)
+      responses:
+        "200":
+          description: List of notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Notification"
+
   /preventive:
     get:
       operationId: getPreventivePlans
@@ -1010,4 +1091,75 @@ components:
         - totalPartsCost
         - totalDowntimeCost
         - totalCost
-        - byMonth
+
+    WorkOrderPart:
+      type: object
+      properties:
+        id:
+          type: integer
+        workOrderId:
+          type: integer
+        inventoryItemId:
+          type: integer
+        quantityUsed:
+          type: number
+        unitCostAtTime:
+          type: number
+        note:
+          type: string
+        createdAt:
+          type: string
+        itemName:
+          type: string
+        itemReference:
+          type: string
+        itemUnit:
+          type: string
+        totalCost:
+          type: number
+        newStockLevel:
+          type: number
+      required:
+        - id
+        - workOrderId
+        - inventoryItemId
+        - quantityUsed
+        - createdAt
+        - itemName
+
+    AddWorkOrderPartBody:
+      type: object
+      properties:
+        inventoryItemId:
+          type: integer
+        quantityUsed:
+          type: number
+        note:
+          type: string
+      required:
+        - inventoryItemId
+        - quantityUsed
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [critical, warning, info]
+        title:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+        read:
+          type: boolean
+      required:
+        - id
+        - type
+        - title
+        - message
+        - timestamp
+        - read

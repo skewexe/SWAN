@@ -348,6 +348,65 @@ export const DeleteWorkOrderParams = zod.object({
 });
 
 /**
+ * @summary List parts used in a work order
+ */
+export const GetWorkOrderPartsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetWorkOrderPartsResponseItem = zod.object({
+  id: zod.number(),
+  workOrderId: zod.number(),
+  inventoryItemId: zod.number(),
+  quantityUsed: zod.number(),
+  unitCostAtTime: zod.number().optional(),
+  note: zod.string().optional(),
+  createdAt: zod.string(),
+  itemName: zod.string(),
+  itemReference: zod.string().optional(),
+  itemUnit: zod.string().optional(),
+  totalCost: zod.number().optional(),
+  newStockLevel: zod.number().optional(),
+});
+export const GetWorkOrderPartsResponse = zod.array(
+  GetWorkOrderPartsResponseItem,
+);
+
+/**
+ * @summary Add a part to a work order (deducts from inventory)
+ */
+export const AddWorkOrderPartParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const AddWorkOrderPartBody = zod.object({
+  inventoryItemId: zod.number(),
+  quantityUsed: zod.number(),
+  note: zod.string().optional(),
+});
+
+/**
+ * @summary Remove a part from a work order (restores inventory)
+ */
+export const RemoveWorkOrderPartParams = zod.object({
+  id: zod.coerce.number(),
+  partId: zod.coerce.number(),
+});
+
+/**
+ * @summary Get live notifications (low stock, breakdowns, overdue plans)
+ */
+export const GetNotificationsResponseItem = zod.object({
+  id: zod.string(),
+  type: zod.enum(["critical", "warning", "info"]),
+  title: zod.string(),
+  message: zod.string(),
+  timestamp: zod.string(),
+  read: zod.boolean(),
+});
+export const GetNotificationsResponse = zod.array(GetNotificationsResponseItem);
+
+/**
  * @summary List all preventive maintenance plans
  */
 export const GetPreventivePlansResponseItem = zod.object({
@@ -592,12 +651,14 @@ export const GetCostReportResponse = zod.object({
   totalPartsCost: zod.number(),
   totalDowntimeCost: zod.number(),
   totalCost: zod.number(),
-  byMonth: zod.array(
-    zod.object({
-      month: zod.string(),
-      labor: zod.number(),
-      parts: zod.number(),
-      downtime: zod.number(),
-    }),
-  ),
+  byMonth: zod
+    .array(
+      zod.object({
+        month: zod.string(),
+        labor: zod.number(),
+        parts: zod.number(),
+        downtime: zod.number(),
+      }),
+    )
+    .optional(),
 });

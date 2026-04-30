@@ -18,6 +18,7 @@ import type {
 
 import type {
   ActivityItem,
+  AddWorkOrderPartBody,
   Asset,
   ChartData,
   CostReport,
@@ -33,9 +34,11 @@ import type {
   HealthStatus,
   InventoryItem,
   KpiReport,
+  Notification,
   PreventivePlan,
   Technician,
   WorkOrder,
+  WorkOrderPart,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -1220,6 +1223,340 @@ export const useDeleteWorkOrder = <
 > => {
   return useMutation(getDeleteWorkOrderMutationOptions(options));
 };
+
+/**
+ * @summary List parts used in a work order
+ */
+export const getGetWorkOrderPartsUrl = (id: number) => {
+  return `/api/workorders/${id}/parts`;
+};
+
+export const getWorkOrderParts = async (
+  id: number,
+  options?: RequestInit,
+): Promise<WorkOrderPart[]> => {
+  return customFetch<WorkOrderPart[]>(getGetWorkOrderPartsUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetWorkOrderPartsQueryKey = (id: number) => {
+  return [`/api/workorders/${id}/parts`] as const;
+};
+
+export const getGetWorkOrderPartsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getWorkOrderParts>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getWorkOrderParts>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetWorkOrderPartsQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getWorkOrderParts>>
+  > = ({ signal }) => getWorkOrderParts(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getWorkOrderParts>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetWorkOrderPartsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getWorkOrderParts>>
+>;
+export type GetWorkOrderPartsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List parts used in a work order
+ */
+
+export function useGetWorkOrderParts<
+  TData = Awaited<ReturnType<typeof getWorkOrderParts>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getWorkOrderParts>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetWorkOrderPartsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Add a part to a work order (deducts from inventory)
+ */
+export const getAddWorkOrderPartUrl = (id: number) => {
+  return `/api/workorders/${id}/parts`;
+};
+
+export const addWorkOrderPart = async (
+  id: number,
+  addWorkOrderPartBody: AddWorkOrderPartBody,
+  options?: RequestInit,
+): Promise<WorkOrderPart> => {
+  return customFetch<WorkOrderPart>(getAddWorkOrderPartUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(addWorkOrderPartBody),
+  });
+};
+
+export const getAddWorkOrderPartMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addWorkOrderPart>>,
+    TError,
+    { id: number; data: BodyType<AddWorkOrderPartBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof addWorkOrderPart>>,
+  TError,
+  { id: number; data: BodyType<AddWorkOrderPartBody> },
+  TContext
+> => {
+  const mutationKey = ["addWorkOrderPart"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof addWorkOrderPart>>,
+    { id: number; data: BodyType<AddWorkOrderPartBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return addWorkOrderPart(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AddWorkOrderPartMutationResult = NonNullable<
+  Awaited<ReturnType<typeof addWorkOrderPart>>
+>;
+export type AddWorkOrderPartMutationBody = BodyType<AddWorkOrderPartBody>;
+export type AddWorkOrderPartMutationError = ErrorType<void>;
+
+/**
+ * @summary Add a part to a work order (deducts from inventory)
+ */
+export const useAddWorkOrderPart = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addWorkOrderPart>>,
+    TError,
+    { id: number; data: BodyType<AddWorkOrderPartBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof addWorkOrderPart>>,
+  TError,
+  { id: number; data: BodyType<AddWorkOrderPartBody> },
+  TContext
+> => {
+  return useMutation(getAddWorkOrderPartMutationOptions(options));
+};
+
+/**
+ * @summary Remove a part from a work order (restores inventory)
+ */
+export const getRemoveWorkOrderPartUrl = (id: number, partId: number) => {
+  return `/api/workorders/${id}/parts/${partId}`;
+};
+
+export const removeWorkOrderPart = async (
+  id: number,
+  partId: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getRemoveWorkOrderPartUrl(id, partId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getRemoveWorkOrderPartMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof removeWorkOrderPart>>,
+    TError,
+    { id: number; partId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof removeWorkOrderPart>>,
+  TError,
+  { id: number; partId: number },
+  TContext
+> => {
+  const mutationKey = ["removeWorkOrderPart"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof removeWorkOrderPart>>,
+    { id: number; partId: number }
+  > = (props) => {
+    const { id, partId } = props ?? {};
+
+    return removeWorkOrderPart(id, partId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RemoveWorkOrderPartMutationResult = NonNullable<
+  Awaited<ReturnType<typeof removeWorkOrderPart>>
+>;
+
+export type RemoveWorkOrderPartMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Remove a part from a work order (restores inventory)
+ */
+export const useRemoveWorkOrderPart = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof removeWorkOrderPart>>,
+    TError,
+    { id: number; partId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof removeWorkOrderPart>>,
+  TError,
+  { id: number; partId: number },
+  TContext
+> => {
+  return useMutation(getRemoveWorkOrderPartMutationOptions(options));
+};
+
+/**
+ * @summary Get live notifications (low stock, breakdowns, overdue plans)
+ */
+export const getGetNotificationsUrl = () => {
+  return `/api/notifications`;
+};
+
+export const getNotifications = async (
+  options?: RequestInit,
+): Promise<Notification[]> => {
+  return customFetch<Notification[]>(getGetNotificationsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetNotificationsQueryKey = () => {
+  return [`/api/notifications`] as const;
+};
+
+export const getGetNotificationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getNotifications>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getNotifications>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetNotificationsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getNotifications>>
+  > = ({ signal }) => getNotifications({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getNotifications>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetNotificationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getNotifications>>
+>;
+export type GetNotificationsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get live notifications (low stock, breakdowns, overdue plans)
+ */
+
+export function useGetNotifications<
+  TData = Awaited<ReturnType<typeof getNotifications>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getNotifications>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetNotificationsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary List all preventive maintenance plans
