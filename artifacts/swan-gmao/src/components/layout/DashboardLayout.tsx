@@ -81,7 +81,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Header */}
         <header className="h-16 border-b border-border/50 bg-background/80 backdrop-blur-sm flex items-center justify-between px-8 sticky top-0 z-40 shrink-0">
-          <div className="font-medium text-lg capitalize tracking-tight text-foreground">
+          <div className="font-medium text-lg tracking-tight text-foreground">
             {navItems.find(i => location.startsWith(i.path))?.label || "GMAO"}
           </div>
           <div className="flex items-center gap-4">

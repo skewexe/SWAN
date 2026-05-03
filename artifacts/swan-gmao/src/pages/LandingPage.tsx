@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Activity, ShieldCheck, Settings, Users, BarChart3, Box } from "lucide-react";
+import { ArrowRight, Activity, ShieldCheck, Settings, Users, BarChart3, Box, Check, Zap, Building2, Headphones } from "lucide-react";
 import swanLogo from "@assets/ChatGPT Image 30 avr. 2026, 11_42_07.png";
 
 const fadeInUp = {
@@ -17,6 +17,65 @@ const staggerContainer = {
     }
   }
 };
+
+const PLANS = [
+  {
+    name: "Starter",
+    price: "15 000",
+    period: "DA / mois",
+    description: "Idéal pour les PME et ateliers de petite taille.",
+    icon: Zap,
+    color: "#38BDF8",
+    features: [
+      "Jusqu'à 50 équipements",
+      "5 techniciens",
+      "Ordres de travail illimités",
+      "Maintenance préventive",
+      "Gestion du stock",
+      "Support par email",
+    ],
+    cta: "Démarrer",
+    highlighted: false,
+  },
+  {
+    name: "Industriel",
+    price: "45 000",
+    period: "DA / mois",
+    description: "Pour les unités de production et sites industriels.",
+    icon: Building2,
+    color: "#0A6DFF",
+    features: [
+      "Équipements illimités",
+      "20 techniciens",
+      "Tout ce qui est dans Starter",
+      "Rapports & KPIs avancés",
+      "Gestion multi-sites",
+      "API & intégrations ERP",
+      "Support prioritaire 5j/7",
+    ],
+    cta: "Choisir ce plan",
+    highlighted: true,
+  },
+  {
+    name: "Entreprise",
+    price: "Sur mesure",
+    period: "",
+    description: "Solution complète pour les grands groupes industriels.",
+    icon: Headphones,
+    color: "#22C55E",
+    features: [
+      "Tout ce qui est dans Industriel",
+      "Techniciens illimités",
+      "Déploiement on-premise disponible",
+      "Formation & accompagnement",
+      "SLA garanti 99.9%",
+      "Account manager dédié",
+      "Support 24/7",
+    ],
+    cta: "Nous contacter",
+    highlighted: false,
+  },
+];
 
 export default function LandingPage() {
   return (
@@ -110,8 +169,94 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Pricing Section */}
+      <section className="py-24 bg-card border-t border-border/50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16 max-w-2xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+            >
+              <p className="text-sm font-semibold text-primary uppercase tracking-widest mb-3">Tarification</p>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">Des offres adaptées à chaque industrie</h2>
+              <p className="text-muted-foreground text-lg">Essai gratuit 30 jours · Sans engagement · Mise en production en 48h</p>
+            </motion.div>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {PLANS.map((plan, i) => {
+              const Icon = plan.icon;
+              return (
+                <motion.div
+                  key={plan.name}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: i * 0.1 }}
+                  className={`relative flex flex-col rounded-2xl p-6 border transition-all ${
+                    plan.highlighted
+                      ? "border-primary/60 bg-primary/5 shadow-[0_0_40px_-8px_rgba(10,109,255,0.3)]"
+                      : "border-border bg-background hover:border-border/80"
+                  }`}
+                >
+                  {plan.highlighted && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      <span className="bg-primary text-primary-foreground text-xs font-bold px-4 py-1 rounded-full">
+                        LE PLUS POPULAIRE
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="h-10 w-10 rounded-lg flex items-center justify-center" style={{ background: `${plan.color}18` }}>
+                      <Icon className="h-5 w-5" style={{ color: plan.color }} strokeWidth={1.5} />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground">{plan.name}</h3>
+                  </div>
+
+                  <div className="mb-2">
+                    <span className="text-3xl font-bold text-foreground tracking-tight">{plan.price}</span>
+                    {plan.period && <span className="text-sm text-muted-foreground ml-1">{plan.period}</span>}
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-6">{plan.description}</p>
+
+                  <ul className="space-y-3 flex-1 mb-8">
+                    {plan.features.map(feat => (
+                      <li key={feat} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                        <Check className="h-4 w-4 shrink-0 mt-0.5" style={{ color: plan.color }} strokeWidth={2.5} />
+                        {feat}
+                      </li>
+                    ))}
+                  </ul>
+
+                  <Link href="/register">
+                    <Button
+                      className="w-full h-11 font-semibold"
+                      variant={plan.highlighted ? "default" : "outline"}
+                    >
+                      {plan.cta}
+                    </Button>
+                  </Link>
+                </motion.div>
+              );
+            })}
+          </div>
+
+          <motion.p
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            className="text-center text-sm text-muted-foreground mt-10"
+          >
+            Tous les prix sont HT · Paiement en dinars algériens (DZD) · Facturation mensuelle ou annuelle
+          </motion.p>
+        </div>
+      </section>
+
       {/* CTA Section */}
-      <section className="py-24 bg-card border-t border-border">
+      <section className="py-24 border-t border-border">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">Prêt à moderniser votre maintenance ?</h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto mb-10">

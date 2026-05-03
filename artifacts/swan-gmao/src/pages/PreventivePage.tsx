@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   useGetPreventivePlans, useCreatePreventivePlan, useUpdatePreventivePlan, useDeletePreventivePlan,
-  useGetAssets, getGetPreventivePlansQueryKey
+  useGetAssets, getGetPreventivePlansQueryKey, getGetWorkOrdersQueryKey
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, AlertTriangle, CalendarClock } from "lucide-react";
+import { Plus, Pencil, Trash2, AlertTriangle, CalendarClock, Play } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 
@@ -43,6 +43,7 @@ export default function PreventivePage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editPlan, setEditPlan] = useState<any>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<any>(null);
+  const [executingId, setExecutingId] = useState<number | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -69,6 +70,25 @@ export default function PreventivePage() {
       frequency: plan.frequency, nextDue: plan.nextDue, estimatedDuration: plan.estimatedDuration,
     });
     setDialogOpen(true);
+  };
+
+  const executePlan = async (plan: any) => {
+    setExecutingId(plan.id);
+    try {
+      const res = await fetch(`/api/preventive/${plan.id}/execute`, { method: "POST" });
+      if (!res.ok) throw new Error("Failed");
+      const data = await res.json();
+      toast({
+        title: "Intervention planifiée",
+        description: data.message,
+      });
+      queryClient.invalidateQueries({ queryKey: getGetPreventivePlansQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetWorkOrdersQueryKey() });
+    } catch {
+      toast({ title: "Erreur lors de l'exécution", variant: "destructive" });
+    } finally {
+      setExecutingId(null);
+    }
   };
 
   const onSubmit = (data: PlanFormData) => {
@@ -99,6 +119,8 @@ export default function PreventivePage() {
     });
   };
 
+  const overdueCount = plans?.filter(p => p.status === "overdue").length || 0;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -112,7 +134,18 @@ export default function PreventivePage() {
         </Button>
       </div>
 
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-card border border-border/60 rounded-2xl overflow-hidden">
+      {overdueCount > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-sm"
+        >
+          <AlertTriangle className="h-4 w-4 shrink-0" strokeWidth={1.5} />
+          <span><span className="font-semibold">{overdueCount} plan{overdueCount > 1 ? "s" : ""}</span> en retard — cliquez sur <span className="font-semibold">Exécuter</span> pour lancer l'intervention.</span>
+        </motion.div>
+      )}
+
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-card border border-border/60 rounded-2xl overflow-x-auto">
         {isLoading ? (
           <div className="p-6 space-y-3">
             {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14" />)}
@@ -133,6 +166,7 @@ export default function PreventivePage() {
             <tbody>
               {plans && plans.length > 0 ? plans.map((plan, idx) => {
                 const status = STATUS_MAP[plan.status] || STATUS_MAP.inactive;
+                const isExecuting = executingId === plan.id;
                 return (
                   <motion.tr
                     key={plan.id}
@@ -144,8 +178,8 @@ export default function PreventivePage() {
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                          <CalendarClock className="h-4 w-4 text-primary" strokeWidth={1.5} />
+                        <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${plan.status === "overdue" ? "bg-amber-500/15" : "bg-primary/10"}`}>
+                          <CalendarClock className={`h-4 w-4 ${plan.status === "overdue" ? "text-amber-400" : "text-primary"}`} strokeWidth={1.5} />
                         </div>
                         <div>
                           <div className="font-medium text-foreground">{plan.name}</div>
@@ -160,7 +194,11 @@ export default function PreventivePage() {
                       </span>
                     </td>
                     <td className="px-4 py-4 text-muted-foreground text-xs">
-                      {plan.nextDue ? new Date(plan.nextDue).toLocaleDateString("fr-DZ") : "—"}
+                      {plan.nextDue ? (
+                        <span className={plan.status === "overdue" ? "text-amber-400 font-medium" : ""}>
+                          {new Date(plan.nextDue).toLocaleDateString("fr-DZ")}
+                        </span>
+                      ) : "—"}
                     </td>
                     <td className="px-4 py-4 text-muted-foreground text-xs">
                       {plan.estimatedDuration ? `${plan.estimatedDuration}h` : "—"}
@@ -171,7 +209,18 @@ export default function PreventivePage() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 justify-end">
+                      <div className="flex items-center gap-1.5 justify-end">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-3 gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                          onClick={() => executePlan(plan)}
+                          disabled={isExecuting}
+                          data-testid={`button-execute-plan-${plan.id}`}
+                        >
+                          <Play className="h-3.5 w-3.5" strokeWidth={1.5} />
+                          {isExecuting ? "..." : "Exécuter"}
+                        </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => openEdit(plan)} data-testid={`button-edit-plan-${plan.id}`}>
                           <Pencil className="h-4 w-4" strokeWidth={1.5} />
                         </Button>

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, preventivePlansTable, assetsTable } from "@workspace/db";
+import { db, preventivePlansTable, assetsTable, workOrdersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import {
   CreatePreventivePlanBody,
@@ -69,6 +69,55 @@ router.delete("/preventive/:id", async (req, res) => {
     res.status(204).send();
   } catch (err) {
     req.log.error({ err }, "Error deleting preventive plan");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/preventive/:id/execute", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+
+    const [plan] = await db.select().from(preventivePlansTable).where(eq(preventivePlansTable.id, id));
+    if (!plan) return res.status(404).json({ error: "Plan not found" });
+
+    const asset = plan.assetId
+      ? (await db.select().from(assetsTable).where(eq(assetsTable.id, plan.assetId)))[0]
+      : null;
+
+    const today = new Date();
+    const todayStr = today.toISOString().split("T")[0];
+
+    const frequencyDays: Record<string, number> = {
+      daily: 1, weekly: 7, monthly: 30, quarterly: 91, annually: 365
+    };
+    const daysToAdd = frequencyDays[plan.frequency] || 30;
+    const nextDue = new Date(today.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
+    const nextDueStr = nextDue.toISOString().split("T")[0];
+
+    const [wo] = await db.insert(workOrdersTable).values({
+      title: plan.name,
+      description: plan.description || `Exécution du plan préventif: ${plan.name}`,
+      type: "preventive",
+      priority: "medium",
+      status: "open",
+      assetId: plan.assetId || null,
+      estimatedHours: plan.estimatedDuration || null,
+      scheduledDate: todayStr,
+    }).returning();
+
+    await db.update(preventivePlansTable).set({
+      lastExecuted: todayStr,
+      nextDue: nextDueStr,
+      status: "active",
+    }).where(eq(preventivePlansTable.id, id));
+
+    res.status(201).json({
+      workOrder: wo,
+      message: `Ordre de travail créé pour "${plan.name}"`,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Error executing preventive plan");
     res.status(500).json({ error: "Internal server error" });
   }
 });
