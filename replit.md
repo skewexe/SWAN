@@ -92,5 +92,21 @@ SWAN is a professional GMAO (Computerized Maintenance Management System) SaaS pl
 - `DashboardLayout` — sidebar nav, notification bell header
 - `PublicLayout` — public nav/footer
 - `NotificationsDropdown` — real-time bell with polling, dismiss support
+- `WorkOrderDetailSheet` — right-side panel: status progression, parts list, WO details (opens on row click or detail button)
+- `AssetDetailSheet` — right-side panel: KPI pills (availability/MTBF/MTTR), asset info, WO history via `GET /api/assets/:id/workorders`
+
+## Dashboard Sections
+
+- 8 KPI cards (totals, availability, MTBF, MTTR, stock alert, planned maintenance)
+- Bar chart: interventions by month (corrective vs preventive)
+- Pie chart: assets by category
+- **Agenda de la semaine**: upcoming WOs in next 7 days with priority dot + status badge
+- **Plans en retard**: overdue preventive plans with due date
+- Activity feed: recent platform events
+
+## Backend Notes
+
+- `PUT /workorders/:id` uses `.partial()` Zod validation — allows partial status-only updates
+- `GET /assets/:id/workorders` — returns WOs filtered by asset, enriched with technicianName
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.

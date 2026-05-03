@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, assetsTable } from "@workspace/db";
+import { db, assetsTable, workOrdersTable, techniciansTable } from "@workspace/db";
 import { eq, ilike, and } from "drizzle-orm";
 import {
   CreateAssetBody,
@@ -75,6 +75,25 @@ router.put("/assets/:id", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Error updating asset");
     res.status(400).json({ error: "Invalid request" });
+  }
+});
+
+router.get("/assets/:id/workorders", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: "Invalid id" });
+    const technicians = await db.select().from(techniciansTable);
+    const workOrders = await db.select().from(workOrdersTable)
+      .where(eq(workOrdersTable.assetId, id));
+    const enriched = workOrders.map(wo => ({
+      ...wo,
+      createdAt: wo.createdAt.toISOString(),
+      technicianName: technicians.find(t => t.id === wo.technicianId)?.name,
+    }));
+    res.json(enriched);
+  } catch (err) {
+    req.log.error({ err }, "Error fetching asset work orders");
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 

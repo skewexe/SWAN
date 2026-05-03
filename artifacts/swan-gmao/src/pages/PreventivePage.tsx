@@ -30,11 +30,13 @@ const STATUS_MAP: Record<string, { label: string; className: string }> = {
   overdue: { label: "En retard", className: "bg-red-500/10 text-red-400 border-red-500/30" },
 };
 
+type PlanFrequency = "daily" | "weekly" | "monthly" | "quarterly" | "annually";
+
 interface PlanFormData {
   name: string;
   description?: string;
   assetId?: number;
-  frequency: string;
+  frequency: PlanFrequency;
   nextDue?: string;
   estimatedDuration?: number;
 }
@@ -95,7 +97,7 @@ export default function PreventivePage() {
     const invalidate = () => queryClient.invalidateQueries({ queryKey: getGetPreventivePlansQueryKey() });
     const body = { ...data, assetId: data.assetId || undefined };
     if (editPlan) {
-      updatePlan.mutate({ params: { id: editPlan.id }, data: body }, {
+      updatePlan.mutate({ id: editPlan.id, data: body }, {
         onSuccess: () => { toast({ title: "Plan mis à jour" }); setDialogOpen(false); invalidate(); },
         onError: () => toast({ title: "Erreur", variant: "destructive" }),
       });
@@ -109,7 +111,7 @@ export default function PreventivePage() {
 
   const confirmDelete = () => {
     if (!deleteConfirm) return;
-    deletePlan.mutate({ params: { id: deleteConfirm.id } }, {
+    deletePlan.mutate({ id: deleteConfirm.id }, {
       onSuccess: () => {
         toast({ title: "Plan supprimé" });
         setDeleteConfirm(null);

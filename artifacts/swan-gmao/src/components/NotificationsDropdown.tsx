@@ -25,7 +25,7 @@ export function NotificationsDropdown() {
   const ref = useRef<HTMLDivElement>(null);
 
   const { data: allNotifications, isLoading } = useGetNotifications({
-    query: { refetchInterval: 30000 },
+    query: { queryKey: ["notifications"], refetchInterval: 30000 },
   });
 
   const notifications = (allNotifications || []).filter(n => !dismissed.has(n.id));

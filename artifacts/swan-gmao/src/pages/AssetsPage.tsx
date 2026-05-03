@@ -4,6 +4,7 @@ import {
   useGetAssets, useCreateAsset, useUpdateAsset, useDeleteAsset,
   getGetAssetsQueryKey
 } from "@workspace/api-client-react";
+import { AssetDetailSheet } from "@/components/AssetDetailSheet";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -50,6 +51,7 @@ export default function AssetsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editAsset, setEditAsset] = useState<any>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<any>(null);
+  const [detailAsset, setDetailAsset] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -91,7 +93,7 @@ export default function AssetsPage() {
   const onSubmit = (data: AssetFormData) => {
     const invalidate = () => queryClient.invalidateQueries({ queryKey: getGetAssetsQueryKey() });
     if (editAsset) {
-      updateAsset.mutate({ params: { id: editAsset.id }, data }, {
+      updateAsset.mutate({ id: editAsset.id, data }, {
         onSuccess: () => { toast({ title: "Équipement mis à jour" }); setDialogOpen(false); invalidate(); },
         onError: () => toast({ title: "Erreur", description: "Mise à jour échouée", variant: "destructive" }),
       });
@@ -105,7 +107,7 @@ export default function AssetsPage() {
 
   const confirmDelete = () => {
     if (!deleteConfirm) return;
-    deleteAsset.mutate({ params: { id: deleteConfirm.id } }, {
+    deleteAsset.mutate({ id: deleteConfirm.id }, {
       onSuccess: () => {
         toast({ title: "Équipement supprimé" });
         setDeleteConfirm(null);
@@ -183,7 +185,8 @@ export default function AssetsPage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: idx * 0.03 }}
-                    className="border-b border-border/40 last:border-0 hover:bg-muted/30 transition-colors"
+                    className="border-b border-border/40 last:border-0 hover:bg-muted/30 transition-colors cursor-pointer"
+                    onClick={() => setDetailAsset(asset)}
                     data-testid={`row-asset-${asset.id}`}
                   >
                     <td className="px-6 py-4">
@@ -209,7 +212,7 @@ export default function AssetsPage() {
                       ) : "—"}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 justify-end">
+                      <div className="flex items-center gap-2 justify-end" onClick={e => e.stopPropagation()}>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => openEdit(asset)} data-testid={`button-edit-asset-${asset.id}`}>
                           <Pencil className="h-4 w-4" strokeWidth={1.5} />
                         </Button>
@@ -227,6 +230,9 @@ export default function AssetsPage() {
           </table>
         )}
       </motion.div>
+
+      {/* Asset Detail Sheet */}
+      <AssetDetailSheet asset={detailAsset} open={!!detailAsset} onClose={() => setDetailAsset(null)} />
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

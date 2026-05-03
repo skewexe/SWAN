@@ -14,9 +14,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, AlertTriangle, Package, X, AlertCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, AlertTriangle, Package, X, AlertCircle, ExternalLink } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { WorkOrderDetailSheet } from "@/components/WorkOrderDetailSheet";
 
 type WOType = "corrective" | "preventive" | "predictive" | "inspection";
 type WOPriority = "low" | "medium" | "high" | "critical";
@@ -74,7 +75,7 @@ function PartsDialog({
   const workOrderId = workOrder?.id ?? 0;
   const { data: parts, isLoading: partsLoading } = useGetWorkOrderParts(
     workOrderId,
-    { query: { enabled: !!workOrder } }
+    { query: { queryKey: getGetWorkOrderPartsQueryKey(workOrderId), enabled: !!workOrder } }
   );
 
   const { data: inventoryItems } = useGetInventoryItems(
@@ -93,7 +94,7 @@ function PartsDialog({
     if (qty <= 0) { toast({ title: "Quantité invalide", variant: "destructive" }); return; }
 
     addPart.mutate(
-      { params: { id: workOrder.id }, data: { inventoryItemId: Number(selectedItemId), quantityUsed: qty, note: noteInput || undefined } },
+      { id: workOrder.id, data: { inventoryItemId: Number(selectedItemId), quantityUsed: qty, note: noteInput || undefined } },
       {
         onSuccess: (result) => {
           toast({ title: `${result.itemName} ajouté — stock: ${result.newStockLevel ?? "?"} restant(s)` });
@@ -114,7 +115,7 @@ function PartsDialog({
   const handleRemovePart = (partId: number) => {
     if (!workOrder) return;
     removePart.mutate(
-      { params: { id: workOrder.id, partId } },
+      { id: workOrder.id, partId },
       {
         onSuccess: () => {
           toast({ title: "Pièce retirée — stock restauré" });
@@ -300,6 +301,7 @@ export default function WorkOrdersPage() {
   const [editWO, setEditWO] = useState<any>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<any>(null);
   const [partsWO, setPartsWO] = useState<any>(null);
+  const [detailWO, setDetailWO] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -344,7 +346,7 @@ export default function WorkOrdersPage() {
     const invalidate = () => queryClient.invalidateQueries({ queryKey: getGetWorkOrdersQueryKey() });
     const body = { ...data, assetId: data.assetId || undefined, technicianId: data.technicianId || undefined };
     if (editWO) {
-      updateWO.mutate({ params: { id: editWO.id }, data: body }, {
+      updateWO.mutate({ id: editWO.id, data: body }, {
         onSuccess: () => { toast({ title: "OT mis à jour" }); setDialogOpen(false); invalidate(); },
         onError: () => toast({ title: "Erreur", variant: "destructive" }),
       });
@@ -358,7 +360,7 @@ export default function WorkOrdersPage() {
 
   const confirmDelete = () => {
     if (!deleteConfirm) return;
-    deleteWO.mutate({ params: { id: deleteConfirm.id } }, {
+    deleteWO.mutate({ id: deleteConfirm.id }, {
       onSuccess: () => {
         toast({ title: "OT supprimé" });
         setDeleteConfirm(null);
@@ -447,7 +449,8 @@ export default function WorkOrdersPage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: idx * 0.03 }}
-                    className="border-b border-border/40 last:border-0 hover:bg-muted/30 transition-colors"
+                    className="border-b border-border/40 last:border-0 hover:bg-muted/30 transition-colors cursor-pointer"
+                    onClick={() => setDetailWO(wo)}
                     data-testid={`row-workorder-${wo.id}`}
                   >
                     <td className="px-6 py-4">
@@ -468,7 +471,16 @@ export default function WorkOrdersPage() {
                       {wo.scheduledDate ? new Date(wo.scheduledDate).toLocaleDateString("fr-DZ") : "—"}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-1 justify-end">
+                      <div className="flex items-center gap-1 justify-end" onClick={e => e.stopPropagation()}>
+                        <Button
+                          variant="ghost" size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-primary"
+                          onClick={() => setDetailWO(wo)}
+                          title="Voir le détail"
+                          data-testid={`button-detail-wo-${wo.id}`}
+                        >
+                          <ExternalLink className="h-4 w-4" strokeWidth={1.5} />
+                        </Button>
                         <Button
                           variant="ghost" size="icon"
                           className="h-8 w-8 text-muted-foreground hover:text-primary"
@@ -505,6 +517,9 @@ export default function WorkOrdersPage() {
           </table>
         )}
       </motion.div>
+
+      {/* Work Order Detail Sheet */}
+      <WorkOrderDetailSheet workOrder={detailWO} open={!!detailWO} onClose={() => setDetailWO(null)} />
 
       {/* Parts Dialog */}
       <PartsDialog workOrder={partsWO} open={!!partsWO} onClose={() => setPartsWO(null)} />

@@ -1,12 +1,12 @@
 import { motion } from "framer-motion";
-import { useGetDashboardStats, useGetDashboardActivity, useGetDashboardChartData } from "@workspace/api-client-react";
+import { useGetDashboardStats, useGetDashboardActivity, useGetDashboardChartData, useGetWorkOrders, useGetPreventivePlans } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid
 } from "recharts";
 import {
-  Activity, AlertTriangle, Package, Wrench, Clock, TrendingUp, CalendarCheck, Gauge
+  Activity, AlertTriangle, Package, Wrench, Clock, TrendingUp, CalendarCheck, Gauge, CalendarDays, ChevronRight
 } from "lucide-react";
 
 const fadeIn = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 } };
@@ -67,10 +67,40 @@ function ActivitySeverityBadge({ severity }: { severity: string }) {
   return <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${className}`}>{label}</span>;
 }
 
+const WO_STATUS_MAP: Record<string, { label: string; bg: string }> = {
+  open: { label: "Ouvert", bg: "bg-primary/10 text-primary border-primary/30" },
+  in_progress: { label: "En cours", bg: "bg-cyan-500/10 text-cyan-400 border-cyan-500/30" },
+  completed: { label: "Terminé", bg: "bg-green-500/10 text-green-400 border-green-500/30" },
+  cancelled: { label: "Annulé", bg: "bg-muted text-muted-foreground border-border" },
+  on_hold: { label: "En attente", bg: "bg-yellow-500/10 text-yellow-400 border-yellow-500/30" },
+};
+
+const PRIORITY_DOT: Record<string, string> = {
+  critical: "#EF4444",
+  high: "#F59E0B",
+  medium: "#38BDF8",
+  low: "#94A3B8",
+};
+
 export default function DashboardPage() {
   const { data: stats, isLoading: statsLoading } = useGetDashboardStats();
   const { data: activity, isLoading: activityLoading } = useGetDashboardActivity();
   const { data: chartData, isLoading: chartLoading } = useGetDashboardChartData();
+  const { data: allWOs, isLoading: wosLoading } = useGetWorkOrders({});
+  const { data: preventivePlans } = useGetPreventivePlans({});
+
+  const today = new Date();
+  const weekEnd = new Date(today);
+  weekEnd.setDate(today.getDate() + 7);
+
+  const upcomingWOs = (allWOs || []).filter(wo => {
+    if (wo.status === "completed" || wo.status === "cancelled") return false;
+    if (!wo.scheduledDate) return false;
+    const d = new Date(wo.scheduledDate);
+    return d >= today && d <= weekEnd;
+  }).sort((a, b) => new Date(a.scheduledDate!).getTime() - new Date(b.scheduledDate!).getTime()).slice(0, 6);
+
+  const overduePlans = (preventivePlans || []).filter(p => p.status === "overdue");
 
   return (
     <div className="space-y-8">
@@ -164,9 +194,105 @@ export default function DashboardPage() {
         </motion.div>
       </div>
 
+      {/* Agenda de la semaine + Plans en retard */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Upcoming WOs */}
+        <motion.div
+          variants={fadeIn} initial="initial" animate="animate" transition={{ duration: 0.5, delay: 0.48 }}
+          className="lg:col-span-2 bg-card border border-border/60 rounded-2xl p-6"
+          data-testid="upcoming-workorders"
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <CalendarDays className="h-4 w-4 text-primary" strokeWidth={1.5} />
+            <h3 className="text-sm font-semibold text-foreground">Agenda de la semaine</h3>
+          </div>
+          <p className="text-xs text-muted-foreground mb-5">Interventions planifiées dans les 7 prochains jours</p>
+          {wosLoading ? (
+            <div className="space-y-2">
+              {[1, 2, 3].map(i => <Skeleton key={i} className="h-14 rounded-xl" />)}
+            </div>
+          ) : upcomingWOs.length > 0 ? (
+            <div className="space-y-2">
+              {upcomingWOs.map((wo, idx) => {
+                const statusInfo = WO_STATUS_MAP[wo.status] || WO_STATUS_MAP.open;
+                const dotColor = PRIORITY_DOT[wo.priority] || "#94A3B8";
+                const date = new Date(wo.scheduledDate!);
+                const isToday = date.toDateString() === today.toDateString();
+                return (
+                  <motion.div
+                    key={wo.id}
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.04 }}
+                    className="flex items-center gap-4 bg-background/50 border border-border/40 rounded-xl px-4 py-3"
+                  >
+                    <div className="h-2 w-2 rounded-full shrink-0" style={{ background: dotColor }} />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-foreground truncate">{wo.title}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">{wo.assetName || "—"} · {wo.technicianName || "—"}</div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${statusInfo.bg}`}>
+                        {statusInfo.label}
+                      </span>
+                      <span className={`text-xs font-medium tabular-nums ${isToday ? "text-primary font-semibold" : "text-muted-foreground"}`}>
+                        {isToday ? "Aujourd'hui" : date.toLocaleDateString("fr-DZ", { day: "2-digit", month: "short" })}
+                      </span>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-sm text-muted-foreground border border-border/30 rounded-xl bg-background/30">
+              <CalendarDays className="h-6 w-6 mx-auto mb-2 text-muted-foreground/30" strokeWidth={1} />
+              Aucune intervention planifiée cette semaine
+            </div>
+          )}
+        </motion.div>
+
+        {/* Overdue plans */}
+        <motion.div
+          variants={fadeIn} initial="initial" animate="animate" transition={{ duration: 0.5, delay: 0.52 }}
+          className="bg-card border border-border/60 rounded-2xl p-6"
+          data-testid="overdue-plans"
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <AlertTriangle className="h-4 w-4 text-yellow-400" strokeWidth={1.5} />
+            <h3 className="text-sm font-semibold text-foreground">Plans en retard</h3>
+          </div>
+          <p className="text-xs text-muted-foreground mb-5">Maintenances préventives dépassées</p>
+          {overduePlans.length > 0 ? (
+            <div className="space-y-2">
+              {overduePlans.slice(0, 5).map((plan, idx) => (
+                <motion.div
+                  key={plan.id}
+                  initial={{ opacity: 0, x: 6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.04 }}
+                  className="bg-yellow-500/5 border border-yellow-500/20 rounded-xl px-4 py-3"
+                >
+                  <div className="text-sm font-medium text-foreground leading-snug truncate">{plan.name}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    Prévu: <span className="text-yellow-400 font-medium">
+                      {plan.nextDue ? new Date(plan.nextDue).toLocaleDateString("fr-DZ", { day: "2-digit", month: "short" }) : "—"}
+                    </span>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-sm text-muted-foreground border border-border/30 rounded-xl bg-background/30">
+              <CalendarCheck className="h-6 w-6 mx-auto mb-2 text-green-400/50" strokeWidth={1} />
+              <span className="text-green-400 font-medium">Tout est à jour</span>
+            </div>
+          )}
+        </motion.div>
+      </div>
+
       {/* Activity Feed */}
       <motion.div
-        variants={fadeIn} initial="initial" animate="animate" transition={{ duration: 0.5, delay: 0.5 }}
+        variants={fadeIn} initial="initial" animate="animate" transition={{ duration: 0.5, delay: 0.58 }}
         className="bg-card border border-border/60 rounded-2xl p-6"
         data-testid="activity-feed"
       >

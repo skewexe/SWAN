@@ -69,7 +69,7 @@ export default function TechniciansPage() {
       skills: data.skills ? data.skills.split(",").map(s => s.trim()).filter(Boolean) : [],
     };
     if (editTech) {
-      updateTech.mutate({ params: { id: editTech.id }, data: body }, {
+      updateTech.mutate({ id: editTech.id, data: body }, {
         onSuccess: () => { toast({ title: "Technicien mis à jour" }); setDialogOpen(false); invalidate(); },
         onError: () => toast({ title: "Erreur", variant: "destructive" }),
       });
@@ -83,7 +83,7 @@ export default function TechniciansPage() {
 
   const confirmDelete = () => {
     if (!deleteConfirm) return;
-    deleteTech.mutate({ params: { id: deleteConfirm.id } }, {
+    deleteTech.mutate({ id: deleteConfirm.id }, {
       onSuccess: () => {
         toast({ title: "Technicien supprimé" });
         setDeleteConfirm(null);

@@ -83,7 +83,7 @@ router.get("/workorders/:id", async (req, res) => {
 router.put("/workorders/:id", async (req, res) => {
   try {
     const { id } = UpdateWorkOrderParams.parse({ id: Number(req.params.id) });
-    const body = UpdateWorkOrderBody.parse(req.body);
+    const body = UpdateWorkOrderBody.partial().parse(req.body);
     const [wo] = await db.update(workOrdersTable).set(body).where(eq(workOrdersTable.id, id)).returning();
     if (!wo) return res.status(404).json({ error: "Work order not found" });
     const assets = await db.select().from(assetsTable);

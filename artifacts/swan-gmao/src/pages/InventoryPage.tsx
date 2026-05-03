@@ -71,7 +71,7 @@ export default function InventoryPage() {
   const onSubmit = (data: ItemFormData) => {
     const invalidate = () => queryClient.invalidateQueries({ queryKey: getGetInventoryItemsQueryKey() });
     if (editItem) {
-      updateItem.mutate({ params: { id: editItem.id }, data }, {
+      updateItem.mutate({ id: editItem.id, data }, {
         onSuccess: () => { toast({ title: "Article mis à jour" }); setDialogOpen(false); invalidate(); },
         onError: () => toast({ title: "Erreur", variant: "destructive" }),
       });
@@ -85,7 +85,7 @@ export default function InventoryPage() {
 
   const confirmDelete = () => {
     if (!deleteConfirm) return;
-    deleteItem.mutate({ params: { id: deleteConfirm.id } }, {
+    deleteItem.mutate({ id: deleteConfirm.id }, {
       onSuccess: () => {
         toast({ title: "Article supprimé" });
         setDeleteConfirm(null);
