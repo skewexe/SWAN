@@ -28,7 +28,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/">
-        <PublicLayout><LandingPage /></PublicLayout>
+        <LandingPage />
       </Route>
       <Route path="/login">
         <PublicLayout><LoginPage /></PublicLayout>
