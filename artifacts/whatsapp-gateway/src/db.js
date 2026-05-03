@@ -1,17 +1,7 @@
 'use strict';
 
-const pg = require('pg');
-const { drizzle } = require('drizzle-orm/node-postgres');
+const { db, whatsappAllowedNumbersTable, whatsappGatewayStateTable, whatsappMessagesTable } = require('../../../lib/db/src/index.ts');
 const { eq, desc } = require('drizzle-orm');
-const { whatsappAllowedNumbersTable, whatsappGatewayStateTable, whatsappMessagesTable } = require('../../../lib/db/src/schema/whatsapp.ts');
-
-if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL is required for WhatsApp Gateway');
-}
-
-const { Pool } = pg;
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-const db = drizzle(pool, { schema: { whatsappAllowedNumbersTable, whatsappGatewayStateTable, whatsappMessagesTable } });
 
 async function listAllowedNumbers() {
   return db.select().from(whatsappAllowedNumbersTable).where(eq(whatsappAllowedNumbersTable.isActive, true)).orderBy(desc(whatsappAllowedNumbersTable.addedAt));

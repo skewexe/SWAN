@@ -16,8 +16,12 @@ app.listen(port, () => {
   console.log(`  Status:   http://localhost:${port}/whatsapp/status`);
   console.log(`  Admin UI: http://localhost:${port}/whatsapp/healthz`);
   console.log('');
-  console.log('[Gateway] Starting WhatsApp client...');
-  initClient();
+  console.log('[Gateway] Starting WhatsApp client in background...');
+  setImmediate(() => {
+    initClient().catch((error) => {
+      console.error('[Gateway] WhatsApp client failed to start:', error.message);
+    });
+  });
 });
 
 process.on('SIGTERM', () => {
