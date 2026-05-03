@@ -58,7 +58,7 @@ type DashboardWidget = {
   title: string;
   subtitle: string;
   kind: "kpis" | "bar" | "pie" | "status" | "priority" | "trend" | "agenda" | "alerts" | "activity";
-  span: "full" | "half" | "third";
+  span: "full" | "half" | "third" | "quarter";
 };
 
 const DASHBOARD_STORAGE_KEY = "swan_dashboard_widgets_v1";
@@ -73,6 +73,18 @@ const DEFAULT_WIDGETS: DashboardWidget[] = [
   { id: "alerts", title: "Retards", subtitle: "Préventif", kind: "alerts", span: "third" },
   { id: "activity", title: "Activité", subtitle: "Événements", kind: "activity", span: "full" },
 ];
+
+const WIDGET_LIBRARY: Record<DashboardWidget["kind"], DashboardWidget> = {
+  kpis: { id: "kpis", title: "KPI", subtitle: "Cartes clés", kind: "kpis", span: "full" },
+  bar: { id: "monthly", title: "Interventions par mois", subtitle: "Barres", kind: "bar", span: "half" },
+  pie: { id: "category", title: "Par catégorie", subtitle: "Répartition", kind: "pie", span: "third" },
+  status: { id: "status", title: "Statut OT", subtitle: "Pilotage", kind: "status", span: "half" },
+  priority: { id: "priority", title: "Priorité OT", subtitle: "Criticité", kind: "priority", span: "half" },
+  trend: { id: "availability", title: "Disponibilité", subtitle: "Tendance", kind: "trend", span: "full" },
+  agenda: { id: "agenda", title: "Agenda", subtitle: "Semaine", kind: "agenda", span: "half" },
+  alerts: { id: "alerts", title: "Retards", subtitle: "Préventif", kind: "alerts", span: "third" },
+  activity: { id: "activity", title: "Activité", subtitle: "Événements", kind: "activity", span: "full" },
+};
 
 function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }) {
   return (
@@ -182,6 +194,17 @@ export default function DashboardPage() {
   const [editMode, setEditMode] = useState(false);
   const [widgets, setWidgets] = useState<DashboardWidget[]>(DEFAULT_WIDGETS);
   const [draggedId, setDraggedId] = useState<DashboardWidgetId | null>(null);
+  const [draftSizes, setDraftSizes] = useState<Record<DashboardWidgetId, DashboardWidget["span"]>>({
+    kpis: "full",
+    monthly: "half",
+    category: "third",
+    status: "half",
+    priority: "half",
+    availability: "full",
+    agenda: "half",
+    alerts: "third",
+    activity: "full",
+  });
 
   useEffect(() => {
     try {
@@ -203,21 +226,14 @@ export default function DashboardPage() {
     setFilters(f => ({ ...f, [key]: f[key] === value ? null : value }));
 
   const clearAllFilters = () => setFilters({ category: null, status: null, month: null, priority: null });
-  const resetDashboard = () => persistWidgets(DEFAULT_WIDGETS);
+  const resetDashboard = () => {
+    persistWidgets(DEFAULT_WIDGETS);
+    setDraftSizes(DEFAULT_WIDGETS.reduce((acc, widget) => ({ ...acc, [widget.id]: widget.span }), {} as Record<DashboardWidgetId, DashboardWidget["span"]>));
+  };
   const addWidget = (kind: DashboardWidget["kind"]) => {
-    const presets: Record<DashboardWidget["kind"], DashboardWidget> = {
-      kpis: { id: "kpis", title: "KPI", subtitle: "Cartes clés", kind: "kpis", span: "full" },
-      bar: { id: "monthly", title: "Interventions par mois", subtitle: "Barres", kind: "bar", span: "half" },
-      pie: { id: "category", title: "Par catégorie", subtitle: "Répartition", kind: "pie", span: "third" },
-      status: { id: "status", title: "Statut OT", subtitle: "Pilotage", kind: "status", span: "half" },
-      priority: { id: "priority", title: "Priorité OT", subtitle: "Criticité", kind: "priority", span: "half" },
-      trend: { id: "availability", title: "Disponibilité", subtitle: "Tendance", kind: "trend", span: "full" },
-      agenda: { id: "agenda", title: "Agenda", subtitle: "Semaine", kind: "agenda", span: "half" },
-      alerts: { id: "alerts", title: "Retards", subtitle: "Préventif", kind: "alerts", span: "third" },
-      activity: { id: "activity", title: "Activité", subtitle: "Événements", kind: "activity", span: "full" },
-    };
     if (widgets.some(w => w.id === kind)) return;
-    persistWidgets([...widgets, presets[kind]]);
+    persistWidgets([...widgets, WIDGET_LIBRARY[kind]]);
+    setDraftSizes(prev => ({ ...prev, [WIDGET_LIBRARY[kind].id]: WIDGET_LIBRARY[kind].span }));
   };
   const removeWidget = (id: DashboardWidgetId) => persistWidgets(widgets.filter(w => w.id !== id));
   const moveWidget = (from: number, to: number) => {
@@ -226,6 +242,10 @@ export default function DashboardPage() {
     const [item] = next.splice(from, 1);
     next.splice(to, 0, item);
     persistWidgets(next);
+  };
+  const updateWidgetSize = (id: DashboardWidgetId, span: DashboardWidget["span"]) => {
+    setDraftSizes(prev => ({ ...prev, [id]: span }));
+    persistWidgets(widgets.map(w => (w.id === id ? { ...w, span } : w)));
   };
 
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
@@ -378,7 +398,7 @@ export default function DashboardPage() {
                 <RotateCcw className="h-4 w-4" />
                 Réinitialiser
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setWidgets(DEFAULT_WIDGETS)} className="gap-2">
+              <Button variant="outline" size="sm" onClick={resetDashboard} className="gap-2">
                 <Save className="h-4 w-4" />
                 Sauver
               </Button>
@@ -420,13 +440,25 @@ export default function DashboardPage() {
                   <GripVertical className="h-4 w-4" />
                   Glisser pour réordonner
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => removeWidget(widget.id)} className="h-8 px-2 text-muted-foreground hover:text-destructive">
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={draftSizes[widget.id] || widget.span}
+                    onChange={(e) => updateWidgetSize(widget.id, e.target.value as DashboardWidget["span"])}
+                    className="h-8 rounded-md border border-border bg-background px-2 text-xs"
+                  >
+                    <option value="quarter">Petit</option>
+                    <option value="third">Moyen</option>
+                    <option value="half">Large</option>
+                    <option value="full">Plein</option>
+                  </select>
+                  <Button variant="ghost" size="sm" onClick={() => removeWidget(widget.id)} className="h-8 px-2 text-muted-foreground hover:text-destructive">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             )}
             {widget.kind === "kpis" && (
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className={`grid gap-4 ${widget.span === "quarter" ? "grid-cols-2 lg:grid-cols-4" : widget.span === "third" ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : widget.span === "half" ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-4" : "grid-cols-1 md:grid-cols-2 xl:grid-cols-4"}`}>
                 {statsLoading ? Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-2xl" />) : filteredStats ? (
                   <>
                     <KpiCard label="Équipements" value={filteredStats.totalAssets} icon={Wrench} color="#0A6DFF" delay={0} trend={2} />
@@ -442,11 +474,11 @@ export default function DashboardPage() {
               </div>
             )}
             {widget.kind === "bar" && (
-              <div className="bg-card border border-border/60 rounded-2xl p-6">
+              <div className="bg-card border border-border/60 rounded-2xl p-6 min-h-[360px]">
                 <h3 className="text-sm font-semibold text-foreground mb-1">Interventions par mois</h3>
                 <p className="text-xs text-muted-foreground mb-4">Corrective vs préventive{filters.month ? ` · Filtre: ${filters.month}` : " · Cliquez pour filtrer"}</p>
                 {chartLoading ? <Skeleton className="h-52 mt-4" /> : filteredChartData ? (
-                  <ResponsiveContainer width="100%" height={220}>
+                    <ResponsiveContainer width="100%" height={widget.span === "full" ? 280 : 220}>
                     <BarChart data={filteredChartData.maintenanceByMonth} barCategoryGap={12} barGap={4} onClick={(data) => { if (data?.activeLabel) setFilter("month", data.activeLabel); }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" vertical={false} />
                       <XAxis dataKey="month" tick={{ fill: "#94A3B8", fontSize: 11 }} axisLine={false} tickLine={false} />
@@ -465,12 +497,12 @@ export default function DashboardPage() {
               </div>
             )}
             {widget.kind === "pie" && (
-              <div className="bg-card border border-border/60 rounded-2xl p-6">
+              <div className="bg-card border border-border/60 rounded-2xl p-6 min-h-[360px]">
                 <h3 className="text-sm font-semibold text-foreground mb-0.5">Par catégorie</h3>
                 <p className="text-xs text-muted-foreground mb-4">Cliquez pour filtrer</p>
                 {chartLoading ? <Skeleton className="h-52" /> : filteredChartData ? (
                   <div className="flex flex-col items-center gap-3">
-                    <ResponsiveContainer width="100%" height={150}>
+                    <ResponsiveContainer width="100%" height={widget.span === "full" ? 180 : 150}>
                       <PieChart>
                         <Pie data={filteredChartData.assetsByCategory} dataKey="count" nameKey="category" cx="50%" cy="50%" innerRadius={38} outerRadius={65} strokeWidth={0} cursor="pointer" onClick={(data) => setFilter("category", data.category)}>
                           {filteredChartData.assetsByCategory.map((entry: any, idx: number) => <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} opacity={entry.selected || !filters.category ? 1 : 0.35} stroke={entry.selected ? "#fff" : "none"} strokeWidth={entry.selected ? 2 : 0} />)}
@@ -505,7 +537,7 @@ export default function DashboardPage() {
               </div>
             )}
             {widget.kind === "trend" && (
-              <div className="bg-card border border-border/60 rounded-2xl p-6">
+              <div className="bg-card border border-border/60 rounded-2xl p-6 min-h-[300px]">
                 <div className="flex items-start justify-between mb-5">
                   <div>
                     <h3 className="text-sm font-semibold text-foreground">Tendance de disponibilité</h3>
@@ -513,7 +545,7 @@ export default function DashboardPage() {
                   </div>
                   {filteredStats && <div className="text-right"><div className="text-2xl font-semibold tabular-nums" style={{ color: "#22C55E" }}>{filteredStats.availabilityRate.toFixed(1)}%</div><div className="text-xs text-muted-foreground mt-0.5">Actuel</div></div>}
                 </div>
-                {chartLoading ? <Skeleton className="h-36" /> : filteredChartData ? (() => { const trendData = filteredChartData.maintenanceByMonth.map((item: any) => { const total = item.corrective + item.preventive; const corrRatio = total > 0 ? item.corrective / total : 0; const avail = Math.max(72, Math.min(99, 96 - corrRatio * 28 + item.preventive * 0.4)); return { month: item.month, disponibilite: Math.round(avail * 10) / 10, objectif: 95 }; }); return <ResponsiveContainer width="100%" height={140}><AreaChart data={trendData} margin={{ top: 4, right: 4, left: -18, bottom: 0 }}><defs><linearGradient id="gradAvail" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#22C55E" stopOpacity={0.25} /><stop offset="95%" stopColor="#22C55E" stopOpacity={0} /></linearGradient><linearGradient id="gradObj" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#0A6DFF" stopOpacity={0.10} /><stop offset="95%" stopColor="#0A6DFF" stopOpacity={0} /></linearGradient></defs><CartesianGrid strokeDasharray="3 3" stroke="#1E293B" vertical={false} /><XAxis dataKey="month" tick={{ fill: "#94A3B8", fontSize: 11 }} axisLine={false} tickLine={false} /><YAxis domain={[60, 100]} tick={{ fill: "#94A3B8", fontSize: 11 }} axisLine={false} tickLine={false} width={32} tickFormatter={(v) => `${v}%`} /><Tooltip content={({ active, payload, label }) => { if (!active || !payload?.length) return null; return <div className="bg-[#0F1C2E] border border-border/80 rounded-xl p-3 text-xs shadow-xl"><div className="font-semibold text-foreground mb-2">{label}</div>{payload.map((p: any) => <div key={p.name} className="flex items-center gap-2 py-0.5"><div className="h-2 w-2 rounded-full" style={{ background: p.stroke }} /><span className="text-muted-foreground">{p.name === "disponibilite" ? "Disponibilité" : "Objectif"}:</span><span className="font-semibold text-foreground">{p.value}%</span></div>)}</div>; }} /><Area type="monotone" dataKey="objectif" stroke="#0A6DFF" strokeWidth={1.5} strokeDasharray="4 3" fill="url(#gradObj)" dot={false} name="objectif" /><Area type="monotone" dataKey="disponibilite" stroke="#22C55E" strokeWidth={2} fill="url(#gradAvail)" dot={{ fill: "#22C55E", strokeWidth: 0, r: 3 }} activeDot={{ r: 5 }} name="disponibilite" /></AreaChart></ResponsiveContainer>; })() : null}
+                {chartLoading ? <Skeleton className="h-36" /> : filteredChartData ? (() => { const trendData = filteredChartData.maintenanceByMonth.map((item: any) => { const total = item.corrective + item.preventive; const corrRatio = total > 0 ? item.corrective / total : 0; const avail = Math.max(72, Math.min(99, 96 - corrRatio * 28 + item.preventive * 0.4)); return { month: item.month, disponibilite: Math.round(avail * 10) / 10, objectif: 95 }; }); return <ResponsiveContainer width="100%" height={widget.span === "full" ? 180 : 140}><AreaChart data={trendData} margin={{ top: 4, right: 4, left: -18, bottom: 0 }}><defs><linearGradient id="gradAvail" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#22C55E" stopOpacity={0.25} /><stop offset="95%" stopColor="#22C55E" stopOpacity={0} /></linearGradient><linearGradient id="gradObj" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#0A6DFF" stopOpacity={0.10} /><stop offset="95%" stopColor="#0A6DFF" stopOpacity={0} /></linearGradient></defs><CartesianGrid strokeDasharray="3 3" stroke="#1E293B" vertical={false} /><XAxis dataKey="month" tick={{ fill: "#94A3B8", fontSize: 11 }} axisLine={false} tickLine={false} /><YAxis domain={[60, 100]} tick={{ fill: "#94A3B8", fontSize: 11 }} axisLine={false} tickLine={false} width={32} tickFormatter={(v) => `${v}%`} /><Tooltip content={({ active, payload, label }) => { if (!active || !payload?.length) return null; return <div className="bg-[#0F1C2E] border border-border/80 rounded-xl p-3 text-xs shadow-xl"><div className="font-semibold text-foreground mb-2">{label}</div>{payload.map((p: any) => <div key={p.name} className="flex items-center gap-2 py-0.5"><div className="h-2 w-2 rounded-full" style={{ background: p.stroke }} /><span className="text-muted-foreground">{p.name === "disponibilite" ? "Disponibilité" : "Objectif"}:</span><span className="font-semibold text-foreground">{p.value}%</span></div>)}</div>; }} /><Area type="monotone" dataKey="objectif" stroke="#0A6DFF" strokeWidth={1.5} strokeDasharray="4 3" fill="url(#gradObj)" dot={false} name="objectif" /><Area type="monotone" dataKey="disponibilite" stroke="#22C55E" strokeWidth={2} fill="url(#gradAvail)" dot={{ fill: "#22C55E", strokeWidth: 0, r: 3 }} activeDot={{ r: 5 }} name="disponibilite" /></AreaChart></ResponsiveContainer>; })() : null}
               </div>
             )}
             {widget.kind === "agenda" && (
