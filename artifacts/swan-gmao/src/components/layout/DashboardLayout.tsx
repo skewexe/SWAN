@@ -85,10 +85,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             </Link>
           )}
 
-          <a href="#" onClick={handleLogout} className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-destructive">
+          <button type="button" onClick={handleLogout} className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-destructive">
             <LogOut className="h-5 w-5" strokeWidth={1.5} />
             Déconnexion
-          </a>
+          </button>
         </div>
       </aside>
 
