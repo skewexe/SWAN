@@ -11,9 +11,11 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, AlertTriangle, Star, Briefcase } from "lucide-react";
+import { Plus, Pencil, Trash2, AlertTriangle, Star, Briefcase, KeyRound, Eye, EyeOff, CheckCircle2, UserX } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { useRBAC } from "@/context/RBACContext";
+import { useAuth } from "@/context/AuthContext";
 
 const STATUS_MAP: Record<string, { label: string; dot: string }> = {
   available: { label: "Disponible", dot: "bg-green-400" },
@@ -31,12 +33,26 @@ interface TechFormData {
   status: "available" | "busy" | "off" | "leave";
 }
 
+interface PwDialogState {
+  techName: string;
+  techEmail: string;
+  techRole?: string;
+  techId?: number;
+}
+
 export default function TechniciansPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editTech, setEditTech] = useState<any>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<any>(null);
+  const [pwDialog, setPwDialog] = useState<PwDialogState | null>(null);
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [showPw, setShowPw] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user: rbacUser } = useRBAC();
+  const { setPasswordForUser, allUsers, refreshUsers } = useAuth();
+  const isAdmin = rbacUser.role === "admin";
 
   const { data: technicians, isLoading } = useGetTechnicians();
   const createTech = useCreateTechnician();
@@ -93,6 +109,41 @@ export default function TechniciansPage() {
     });
   };
 
+  const openPwDialog = (tech: any) => {
+    setPwDialog({ techName: tech.name, techEmail: tech.email, techId: tech.id });
+    setNewPw("");
+    setConfirmPw("");
+    setShowPw(false);
+  };
+
+  const handleSetPassword = () => {
+    if (!pwDialog) return;
+    if (newPw.length < 4) {
+      toast({ title: "Mot de passe trop court", description: "Minimum 4 caractères.", variant: "destructive" });
+      return;
+    }
+    if (newPw !== confirmPw) {
+      toast({ title: "Les mots de passe ne correspondent pas", variant: "destructive" });
+      return;
+    }
+    const result = setPasswordForUser(pwDialog.techEmail, newPw, {
+      name: pwDialog.techName,
+      role: "technicien",
+      team: "Équipe maintenance",
+      site: "Usine Centrale",
+      technicianId: pwDialog.techId,
+    });
+    if (result.success) {
+      toast({ title: "Mot de passe enregistré", description: `Compte de ${pwDialog.techName} mis à jour.` });
+      setPwDialog(null);
+      refreshUsers();
+    } else {
+      toast({ title: "Erreur", description: result.error, variant: "destructive" });
+    }
+  };
+
+  const hasAccount = (email: string) => allUsers.some(u => u.email.toLowerCase() === email.toLowerCase());
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -106,7 +157,6 @@ export default function TechniciansPage() {
         </Button>
       </div>
 
-      {/* Cards grid */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-52 rounded-2xl" />)}
@@ -115,6 +165,7 @@ export default function TechniciansPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {technicians && technicians.length > 0 ? technicians.map((tech, idx) => {
             const status = STATUS_MAP[tech.status] || STATUS_MAP.off;
+            const accountExists = hasAccount(tech.email);
             return (
               <motion.div
                 key={tech.id}
@@ -140,7 +191,24 @@ export default function TechniciansPage() {
                   </div>
                 </div>
 
-                <div className="text-xs text-muted-foreground">{tech.email}</div>
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-muted-foreground">{tech.email}</div>
+                  {isAdmin && (
+                    <div className="flex items-center gap-1">
+                      {accountExists ? (
+                        <span className="flex items-center gap-1 text-xs text-green-400">
+                          <CheckCircle2 className="h-3 w-3" />
+                          Compte actif
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground/60">
+                          <UserX className="h-3 w-3" />
+                          Sans compte
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
 
                 {tech.skills && tech.skills.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
@@ -162,6 +230,17 @@ export default function TechniciansPage() {
                     <span><span className="font-semibold text-foreground">{tech.avgRating?.toFixed(1) || "—"}</span>/5</span>
                   </div>
                   <div className="ml-auto flex gap-1">
+                    {isAdmin && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-primary"
+                        onClick={() => openPwDialog(tech)}
+                        title="Définir le mot de passe"
+                      >
+                        <KeyRound className="h-3.5 w-3.5" strokeWidth={1.5} />
+                      </Button>
+                    )}
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => openEdit(tech)} data-testid={`button-edit-tech-${tech.id}`}>
                       <Pencil className="h-3.5 w-3.5" strokeWidth={1.5} />
                     </Button>
@@ -178,6 +257,7 @@ export default function TechniciansPage() {
         </div>
       )}
 
+      {/* Create / Edit dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg bg-card border-border">
           <DialogHeader>
@@ -245,6 +325,84 @@ export default function TechniciansPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Password dialog */}
+      <Dialog open={!!pwDialog} onOpenChange={() => setPwDialog(null)}>
+        <DialogContent className="max-w-sm bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5 text-primary" />
+              Compte utilisateur
+            </DialogTitle>
+          </DialogHeader>
+          {pwDialog && (
+            <div className="space-y-4">
+              <div className="rounded-xl border border-border/60 bg-background/40 p-3">
+                <div className="text-xs text-muted-foreground mb-0.5">Profil</div>
+                <div className="font-medium text-foreground">{pwDialog.techName}</div>
+                <div className="text-sm text-muted-foreground">{pwDialog.techEmail}</div>
+                {hasAccount(pwDialog.techEmail) ? (
+                  <div className="flex items-center gap-1.5 mt-2 text-xs text-green-400">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Compte existant — modification du mot de passe
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 mt-2 text-xs text-primary">
+                    <KeyRound className="h-3.5 w-3.5" />
+                    Création d'un nouveau compte
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">Nouveau mot de passe</label>
+                  <div className="relative">
+                    <Input
+                      type={showPw ? "text" : "password"}
+                      placeholder="Minimum 4 caractères"
+                      value={newPw}
+                      onChange={e => setNewPw(e.target.value)}
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPw(p => !p)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">Confirmer le mot de passe</label>
+                  <Input
+                    type="password"
+                    placeholder="Répéter le mot de passe"
+                    value={confirmPw}
+                    onChange={e => setConfirmPw(e.target.value)}
+                  />
+                  {confirmPw && newPw !== confirmPw && (
+                    <p className="text-xs text-destructive">Les mots de passe ne correspondent pas</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPwDialog(null)}>Annuler</Button>
+            <Button
+              onClick={handleSetPassword}
+              disabled={!newPw || newPw !== confirmPw}
+              className="gap-2"
+            >
+              <KeyRound className="h-4 w-4" />
+              Enregistrer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirm */}
       <Dialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
         <DialogContent className="max-w-sm bg-card border-border">
           <DialogHeader>

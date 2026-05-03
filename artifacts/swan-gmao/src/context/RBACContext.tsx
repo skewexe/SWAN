@@ -1,6 +1,8 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import type { RBACRole } from "./types";
+import { useAuth } from "./AuthContext";
 
-export type RBACRole = "admin" | "manager" | "chef_equipe" | "technicien" | "lecteur";
+export type { RBACRole };
 
 export interface RBACUser {
   name: string;
@@ -48,16 +50,6 @@ export const NAV_ITEMS = [
   { path: "/reports",     key: "reports",     label: "Rapports & KPIs",  icon: "LineChart" },
 ];
 
-interface RBACContextValue {
-  user: RBACUser;
-  setUser: (u: RBACUser) => void;
-  teams: RBACTeam[];
-  setTeams: (t: RBACTeam[]) => void;
-  can: (key: string) => boolean;
-  visibleNav: typeof NAV_ITEMS;
-  isReadOnly: boolean;
-}
-
 const DEFAULT_USER: RBACUser = {
   name: "Admin Système",
   email: "admin@swan-gmao.dz",
@@ -74,11 +66,44 @@ const DEFAULT_TEAMS: RBACTeam[] = [
   { id: 4, name: "Supervision",            role: "manager",     site: "Direction",      memberCount: 2, color: "#8B5CF6" },
 ];
 
+interface RBACContextValue {
+  user: RBACUser;
+  setUser: (u: RBACUser) => void;
+  teams: RBACTeam[];
+  setTeams: (t: RBACTeam[]) => void;
+  can: (key: string) => boolean;
+  visibleNav: typeof NAV_ITEMS;
+  isReadOnly: boolean;
+}
+
 const RBACContext = createContext<RBACContextValue | null>(null);
 
+function authToRBAC(au: { name: string; email: string; role: RBACRole; team: string; site: string; technicianId?: number; initials: string }): RBACUser {
+  return {
+    name: au.name,
+    email: au.email,
+    role: au.role,
+    team: au.team,
+    site: au.site,
+    technicianId: au.technicianId,
+    initials: au.initials,
+  };
+}
+
 export function RBACProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<RBACUser>(DEFAULT_USER);
+  const { currentUser } = useAuth();
+  const [user, setUser] = useState<RBACUser>(() =>
+    currentUser ? authToRBAC(currentUser) : DEFAULT_USER
+  );
   const [teams, setTeams] = useState<RBACTeam[]>(DEFAULT_TEAMS);
+
+  useEffect(() => {
+    if (currentUser) {
+      setUser(authToRBAC(currentUser));
+    } else {
+      setUser(DEFAULT_USER);
+    }
+  }, [currentUser]);
 
   const can = (key: string) => ROLE_PERMISSIONS[user.role]?.includes(key) ?? false;
   const visibleNav = NAV_ITEMS.filter(n => can(n.key));

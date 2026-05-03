@@ -7,8 +7,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth, SEED_USERS } from "@/context/AuthContext";
 import swanLogo from "@assets/ChatGPT Image 30 avr. 2026, 11_42_07.png";
-import { Loader2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Eye, EyeOff, Loader2, Users } from "lucide-react";
+
+const ROLE_LABELS: Record<string, string> = {
+  admin: "Administrateur",
+  manager: "Responsable",
+  chef_equipe: "Chef d'équipe",
+  technicien: "Technicien",
+  lecteur: "Lecteur",
+};
 
 const loginSchema = z.object({
   email: z.string().email("Email invalide"),
@@ -18,48 +27,49 @@ const loginSchema = z.object({
 export default function LoginPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [showHints, setShowHints] = useState(false);
+  const [showPw, setShowPw] = useState(false);
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
+    defaultValues: { email: "", password: "" },
   });
 
   function onSubmit(values: z.infer<typeof loginSchema>) {
     setIsLoading(true);
-    const isDemo = values.email.toLowerCase().includes("demo");
     setTimeout(() => {
+      const result = login(values.email, values.password);
       setIsLoading(false);
-      toast({
-        title: isDemo ? "Accès démo" : "Connexion réussie",
-        description: isDemo ? "Données de démonstration chargées" : "Bienvenue sur SWAN GMAO",
-      });
-      setLocation(isDemo ? "/dashboard?mode=demo" : "/dashboard?mode=live");
-    }, 1000);
+      if (result.success) {
+        toast({ title: "Connexion réussie", description: "Bienvenue sur SWAN GMAO" });
+        setLocation("/dashboard");
+      } else {
+        toast({ title: "Échec de connexion", description: result.error, variant: "destructive" });
+      }
+    }, 600);
   }
+
+  const fillAccount = (email: string, password: string) => {
+    form.setValue("email", email);
+    form.setValue("password", password);
+  };
+
+  const demoAccounts = SEED_USERS.filter(u => u.id !== "u7").slice(0, 5);
 
   return (
     <div className="flex-1 flex flex-col justify-center items-center px-4 py-12">
-      <div className="w-full max-w-md space-y-8">
+      <div className="w-full max-w-md space-y-6">
         <div className="text-center">
           <img src={swanLogo} alt="SWAN Logo" className="h-16 w-auto mx-auto mb-6" />
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Connexion</h1>
-          <p className="mt-2 text-muted-foreground">
-            Accédez à votre espace de contrôle industriel
-          </p>
+          <p className="mt-2 text-muted-foreground">Accédez à votre espace de contrôle industriel</p>
         </div>
 
-        <div className="bg-card border border-border p-8 rounded-2xl shadow-xl shadow-background/50 space-y-4">
-          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm text-muted-foreground">
-            <div className="font-medium text-foreground mb-1">Mode démo</div>
-            Utilisez un email contenant <span className="text-primary font-medium">demo</span> pour voir les données de démonstration.
-            Les comptes normaux se connecteront à leurs propres données.
-          </div>
+        <div className="bg-card border border-border p-8 rounded-2xl shadow-xl shadow-background/50 space-y-5">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
               <FormField
                 control={form.control}
                 name="email"
@@ -80,10 +90,23 @@ export default function LoginPage() {
                   <FormItem>
                     <div className="flex items-center justify-between">
                       <FormLabel>Mot de passe</FormLabel>
-                      <Link href="#" className="text-sm text-primary hover:underline font-medium">Oublié ?</Link>
                     </div>
                     <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} className="h-12 bg-background border-border/50 focus:border-primary/50" />
+                      <div className="relative">
+                        <Input
+                          type={showPw ? "text" : "password"}
+                          placeholder="••••••••"
+                          {...field}
+                          className="h-12 bg-background border-border/50 focus:border-primary/50 pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPw(p => !p)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -95,13 +118,59 @@ export default function LoginPage() {
               </Button>
             </form>
           </Form>
+
+          <div className="border-t border-border/40 pt-4">
+            <button
+              type="button"
+              onClick={() => setShowHints(s => !s)}
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full"
+            >
+              <Users className="h-4 w-4 text-primary" />
+              <span className="font-medium text-primary">Comptes de démonstration</span>
+              {showHints ? <ChevronUp className="h-3.5 w-3.5 ml-auto" /> : <ChevronDown className="h-3.5 w-3.5 ml-auto" />}
+            </button>
+
+            {showHints && (
+              <div className="mt-3 space-y-1.5">
+                {demoAccounts.map(u => (
+                  <button
+                    key={u.id}
+                    type="button"
+                    onClick={() => fillAccount(u.email, u.password)}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left hover:bg-primary/5 border border-transparent hover:border-primary/20 transition-all group"
+                  >
+                    <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold shrink-0">
+                      {u.initials}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-medium text-foreground truncate">{u.name}</div>
+                      <div className="text-xs text-muted-foreground truncate">{u.email}</div>
+                    </div>
+                    <div className="text-xs text-muted-foreground/70 shrink-0">
+                      <span className="font-mono bg-muted px-1.5 py-0.5 rounded text-xs">{u.password}</span>
+                    </div>
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => fillAccount("demo@swan-gmao.dz", "demo")}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left hover:bg-primary/5 border border-transparent hover:border-primary/20 transition-all"
+                >
+                  <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-muted-foreground text-xs font-bold shrink-0">DM</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-medium text-foreground">Utilisateur Démo</div>
+                    <div className="text-xs text-muted-foreground">demo@swan-gmao.dz</div>
+                  </div>
+                  <span className="font-mono bg-muted px-1.5 py-0.5 rounded text-xs text-muted-foreground/70">demo</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         <p className="text-center text-sm text-muted-foreground">
           Pas encore de compte ?{" "}
-          <Link href="/register" className="text-primary hover:underline font-medium">
-            S'inscrire
-          </Link>
+          <Link href="/register" className="text-primary hover:underline font-medium">S'inscrire</Link>
         </p>
       </div>
     </div>

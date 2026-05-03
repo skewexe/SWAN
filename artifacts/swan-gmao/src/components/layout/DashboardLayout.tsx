@@ -1,4 +1,5 @@
 import { Link, useLocation } from "wouter";
+import { useEffect } from "react";
 import swanLogo from "@assets/ChatGPT Image 30 avr. 2026, 11_42_07.png";
 import {
   LayoutDashboard, Wrench, ClipboardList, CalendarClock,
@@ -6,6 +7,7 @@ import {
 } from "lucide-react";
 import { NotificationsDropdown } from "@/components/NotificationsDropdown";
 import { useRBAC, NAV_ITEMS, ROLE_META } from "@/context/RBACContext";
+import { useAuth } from "@/context/AuthContext";
 
 const ICON_MAP: Record<string, React.ComponentType<any>> = {
   LayoutDashboard, Wrench, ClipboardList, CalendarClock,
@@ -13,9 +15,24 @@ const ICON_MAP: Record<string, React.ComponentType<any>> = {
 };
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const { user, visibleNav, can } = useRBAC();
+  const { isAuthenticated, logout } = useAuth();
   const roleMeta = ROLE_META[user.role];
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setLocation("/login");
+    }
+  }, [isAuthenticated, setLocation]);
+
+  if (!isAuthenticated) return null;
+
+  const handleLogout = (e: React.MouseEvent) => {
+    e.preventDefault();
+    logout();
+    setLocation("/login");
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground flex font-sans">
@@ -52,7 +69,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className="p-4 border-t border-border/50 shrink-0">
-          {/* User info */}
           <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-background/40 border border-border/30 mb-2">
             <div
               className="h-9 w-9 rounded-full flex items-center justify-center font-semibold text-sm shrink-0"
@@ -86,13 +102,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             </Link>
           )}
 
-          <Link
-            href="/login"
+          <a
+            href="#"
+            onClick={handleLogout}
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-destructive transition-colors mt-1"
           >
             <LogOut className="h-5 w-5" strokeWidth={1.5} />
             Déconnexion
-          </Link>
+          </a>
         </div>
       </aside>
 

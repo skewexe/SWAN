@@ -8,10 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthContext";
 import swanLogo from "@assets/ChatGPT Image 30 avr. 2026, 11_42_07.png";
-import { Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 const registerSchema = z.object({
+  name: z.string().min(2, "Nom complet requis"),
   company: z.string().min(2, "Nom de l'entreprise requis"),
   sector: z.string().min(1, "Secteur requis"),
   email: z.string().email("Email invalide"),
@@ -21,29 +23,38 @@ const registerSchema = z.object({
 export default function RegisterPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { register } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [showPw, setShowPw] = useState(false);
 
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
-    defaultValues: {
-      company: "",
-      sector: "",
-      email: "",
-      password: "",
-    },
+    defaultValues: { name: "", company: "", sector: "", email: "", password: "" },
   });
 
   function onSubmit(values: z.infer<typeof registerSchema>) {
     setIsLoading(true);
-    const isDemo = values.email.toLowerCase().includes("demo") || values.company.toLowerCase().includes("demo");
     setTimeout(() => {
-      setIsLoading(false);
-      toast({
-        title: isDemo ? "Compte démo créé" : "Inscription réussie",
-        description: isDemo ? "Espace démo prêt avec données de démonstration" : "Votre espace a été créé avec succès.",
+      const result = register({
+        name: values.name,
+        email: values.email,
+        password: values.password,
+        company: values.company,
+        role: "admin",
+        team: "Direction",
+        site: "Site Principal",
       });
-      setLocation(isDemo ? "/dashboard?mode=demo" : "/dashboard?mode=live");
-    }, 1500);
+      setIsLoading(false);
+      if (result.success) {
+        toast({
+          title: "Compte créé avec succès",
+          description: "Bienvenue sur SWAN GMAO. Votre espace est prêt.",
+        });
+        setLocation("/dashboard");
+      } else {
+        toast({ title: "Erreur d'inscription", description: result.error, variant: "destructive" });
+      }
+    }, 800);
   }
 
   return (
@@ -52,18 +63,25 @@ export default function RegisterPage() {
         <div className="text-center">
           <img src={swanLogo} alt="SWAN Logo" className="h-16 w-auto mx-auto mb-6" />
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Créer un compte</h1>
-          <p className="mt-2 text-muted-foreground">
-            Déployez SWAN dans votre usine aujourd'hui
-          </p>
+          <p className="mt-2 text-muted-foreground">Déployez SWAN dans votre usine aujourd'hui</p>
         </div>
 
         <div className="bg-card border border-border p-8 rounded-2xl shadow-xl shadow-background/50 space-y-4">
-          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm text-muted-foreground">
-            <div className="font-medium text-foreground mb-1">Production ready</div>
-            Les comptes normaux utiliseront leurs propres données. Les comptes contenant <span className="text-primary font-medium">demo</span> activeront l'environnement de démonstration.
-          </div>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Votre nom complet</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ali Mansouri" {...field} className="h-12 bg-background border-border/50 focus:border-primary/50" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={form.control}
                 name="company"
@@ -71,7 +89,7 @@ export default function RegisterPage() {
                   <FormItem>
                     <FormLabel>Nom de l'entreprise</FormLabel>
                     <FormControl>
-                      <Input placeholder="Industries Algérie" {...field} className="h-12 bg-background border-border/50 focus:border-primary/50" />
+                      <Input placeholder="Industries Algérie SPA" {...field} className="h-12 bg-background border-border/50 focus:border-primary/50" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -122,7 +140,21 @@ export default function RegisterPage() {
                   <FormItem>
                     <FormLabel>Mot de passe</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} className="h-12 bg-background border-border/50 focus:border-primary/50" />
+                      <div className="relative">
+                        <Input
+                          type={showPw ? "text" : "password"}
+                          placeholder="Minimum 8 caractères"
+                          {...field}
+                          className="h-12 bg-background border-border/50 focus:border-primary/50 pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPw(p => !p)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -130,7 +162,7 @@ export default function RegisterPage() {
               />
               <Button type="submit" className="w-full h-12 text-base font-semibold" disabled={isLoading}>
                 {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
-                Créer l'espace
+                Créer mon compte
               </Button>
             </form>
           </Form>
@@ -138,9 +170,7 @@ export default function RegisterPage() {
 
         <p className="text-center text-sm text-muted-foreground">
           Déjà client ?{" "}
-          <Link href="/login" className="text-primary hover:underline font-medium">
-            Se connecter
-          </Link>
+          <Link href="/login" className="text-primary hover:underline font-medium">Se connecter</Link>
         </p>
       </div>
     </div>
