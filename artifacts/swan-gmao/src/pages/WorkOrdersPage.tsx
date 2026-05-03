@@ -71,9 +71,10 @@ function PartsDialog({
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const workOrderId = workOrder?.id ?? 0;
   const { data: parts, isLoading: partsLoading } = useGetWorkOrderParts(
-    { id: workOrder?.id },
-    { query: { enabled: !!workOrder, queryKey: getGetWorkOrderPartsQueryKey({ id: workOrder?.id }) } }
+    workOrderId,
+    { query: { enabled: !!workOrder } }
   );
 
   const { data: inventoryItems } = useGetInventoryItems(
@@ -99,7 +100,7 @@ function PartsDialog({
           setSelectedItemId("");
           setQuantityInput("1");
           setNoteInput("");
-          queryClient.invalidateQueries({ queryKey: getGetWorkOrderPartsQueryKey({ id: workOrder.id }) });
+          queryClient.invalidateQueries({ queryKey: getGetWorkOrderPartsQueryKey(workOrder.id) });
           queryClient.invalidateQueries({ queryKey: getGetInventoryItemsQueryKey({}) });
         },
         onError: (err: any) => {
@@ -117,7 +118,7 @@ function PartsDialog({
       {
         onSuccess: () => {
           toast({ title: "Pièce retirée — stock restauré" });
-          queryClient.invalidateQueries({ queryKey: getGetWorkOrderPartsQueryKey({ id: workOrder.id }) });
+          queryClient.invalidateQueries({ queryKey: getGetWorkOrderPartsQueryKey(workOrder.id) });
           queryClient.invalidateQueries({ queryKey: getGetInventoryItemsQueryKey({}) });
         },
         onError: () => toast({ title: "Erreur", variant: "destructive" }),
