@@ -8,6 +8,7 @@ import {
 import { NotificationsDropdown } from "@/components/NotificationsDropdown";
 import { useRBAC, NAV_ITEMS, ROLE_META } from "@/context/RBACContext";
 import { useAuth } from "@/context/AuthContext";
+import { FloatingHeaderShell } from "@/components/layout/FloatingHeaderShell";
 
 const ICON_MAP: Record<string, React.ComponentType<any>> = {
   LayoutDashboard, Wrench, ClipboardList, CalendarClock,
@@ -92,14 +93,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="sticky top-0 z-40 px-8 pt-6">
-          <div className="flex h-16 items-center justify-between rounded-full border border-border/60 bg-card/70 px-5 py-3 shadow-[0_16px_40px_-24px_rgba(0,0,0,0.65)] backdrop-blur-md">
-            <div className="text-lg font-medium tracking-tight text-foreground">
-            {[...NAV_ITEMS, { path: "/settings", key: "settings", label: "Paramètres", icon: "Settings" }].find(i => location.startsWith(i.path))?.label || "GMAO"}
-            </div>
-            <NotificationsDropdown />
-          </div>
-        </header>
+        <FloatingHeaderShell logo={swanLogo} title={[...NAV_ITEMS, { path: "/settings", key: "settings", label: "Paramètres", icon: "Settings" }].find(i => location.startsWith(i.path))?.label || "GMAO"} rightContent={<NotificationsDropdown />} hideCenterNav />
         <main className="relative flex-1 overflow-y-auto p-8">
           <div className="mx-auto max-w-7xl">{children}</div>
         </main>
