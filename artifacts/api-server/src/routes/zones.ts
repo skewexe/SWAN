@@ -24,7 +24,7 @@ router.get("/zones", async (req, res) => {
 router.post("/zones", async (req, res) => {
   try {
     const { name, siteId, description } = req.body;
-    if (!name) return res.status(400).json({ error: "name is required" });
+    if (!name) { res.status(400).json({ error: "name is required" }); return; }
     const [zone] = await db.insert(zonesTable).values({ name, siteId: siteId || null, description }).returning();
     const sites = await db.select().from(sitesTable);
     res.status(201).json({

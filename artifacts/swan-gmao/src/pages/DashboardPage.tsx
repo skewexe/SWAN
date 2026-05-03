@@ -528,6 +528,75 @@ export default function DashboardPage() {
         </motion.div>
       </div>
 
+      {/* Availability Trend */}
+      <motion.div
+        variants={fadeIn} initial="initial" animate="animate" transition={{ duration: 0.5, delay: 0.51 }}
+        className="bg-card border border-border/60 rounded-2xl p-6"
+      >
+        <div className="flex items-start justify-between mb-5">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Tendance de disponibilité</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">Taux de disponibilité estimé · 6 derniers mois</p>
+          </div>
+          {filteredStats && (
+            <div className="text-right">
+              <div className="text-2xl font-semibold tabular-nums" style={{ color: "#22C55E" }}>
+                {filteredStats.availabilityRate.toFixed(1)}%
+              </div>
+              <div className="text-xs text-muted-foreground mt-0.5">Actuel</div>
+            </div>
+          )}
+        </div>
+        {chartLoading ? (
+          <Skeleton className="h-36" />
+        ) : filteredChartData ? (() => {
+          const trendData = filteredChartData.maintenanceByMonth.map((item: any) => {
+            const total = item.corrective + item.preventive;
+            const corrRatio = total > 0 ? item.corrective / total : 0;
+            const avail = Math.max(72, Math.min(99, 96 - corrRatio * 28 + item.preventive * 0.4));
+            return { month: item.month, disponibilite: Math.round(avail * 10) / 10, objectif: 95 };
+          });
+          return (
+            <ResponsiveContainer width="100%" height={140}>
+              <AreaChart data={trendData} margin={{ top: 4, right: 4, left: -18, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="gradAvail" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#22C55E" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="#22C55E" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="gradObj" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#0A6DFF" stopOpacity={0.10} />
+                    <stop offset="95%" stopColor="#0A6DFF" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" vertical={false} />
+                <XAxis dataKey="month" tick={{ fill: "#94A3B8", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis domain={[60, 100]} tick={{ fill: "#94A3B8", fontSize: 11 }} axisLine={false} tickLine={false} width={32} tickFormatter={(v) => `${v}%`} />
+                <Tooltip
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload?.length) return null;
+                    return (
+                      <div className="bg-[#0F1C2E] border border-border/80 rounded-xl p-3 text-xs shadow-xl">
+                        <div className="font-semibold text-foreground mb-2">{label}</div>
+                        {payload.map((p: any) => (
+                          <div key={p.name} className="flex items-center gap-2 py-0.5">
+                            <div className="h-2 w-2 rounded-full" style={{ background: p.stroke }} />
+                            <span className="text-muted-foreground">{p.name === "disponibilite" ? "Disponibilité" : "Objectif"}:</span>
+                            <span className="font-semibold text-foreground">{p.value}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }}
+                />
+                <Area type="monotone" dataKey="objectif" stroke="#0A6DFF" strokeWidth={1.5} strokeDasharray="4 3" fill="url(#gradObj)" dot={false} name="objectif" />
+                <Area type="monotone" dataKey="disponibilite" stroke="#22C55E" strokeWidth={2} fill="url(#gradAvail)" dot={{ fill: "#22C55E", strokeWidth: 0, r: 3 }} activeDot={{ r: 5 }} name="disponibilite" />
+              </AreaChart>
+            </ResponsiveContainer>
+          );
+        })() : null}
+      </motion.div>
+
       {/* Agenda + Overdue */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <motion.div

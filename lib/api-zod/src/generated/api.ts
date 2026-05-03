@@ -591,16 +591,14 @@ export const MarkNotificationReadResponse = zod.object({
  */
 export const GetPreventivePlansResponseItem = zod.object({
   id: zod.number(),
-  title: zod.string(),
+  name: zod.string(),
   assetId: zod.number().optional(),
   assetName: zod.string().optional(),
-  frequency: zod.string(),
-  nextDueDate: zod.string().optional(),
-  lastExecutedDate: zod.string().optional(),
-  status: zod.enum(["active", "overdue", "completed", "paused"]),
-  technicianId: zod.number().optional(),
-  technicianName: zod.string().optional(),
-  estimatedHours: zod.number().optional(),
+  frequency: zod.enum(["daily", "weekly", "monthly", "quarterly", "annually"]),
+  nextDue: zod.string().optional(),
+  lastExecuted: zod.string().optional(),
+  status: zod.enum(["active", "inactive", "overdue"]),
+  estimatedDuration: zod.number().optional(),
   description: zod.string().optional(),
   createdAt: zod.string(),
 });
@@ -612,14 +610,13 @@ export const GetPreventivePlansResponse = zod.array(
  * @summary Create a preventive plan
  */
 export const CreatePreventivePlanBody = zod.object({
-  title: zod.string(),
+  name: zod.string(),
   assetId: zod.number().optional(),
-  frequency: zod.string(),
-  nextDueDate: zod.string().optional(),
-  technicianId: zod.number().optional(),
-  estimatedHours: zod.number().optional(),
+  frequency: zod.enum(["daily", "weekly", "monthly", "quarterly", "annually"]),
+  nextDue: zod.string().optional(),
+  estimatedDuration: zod.number().optional(),
   description: zod.string().optional(),
-  status: zod.enum(["active", "overdue", "completed", "paused"]).optional(),
+  status: zod.enum(["active", "inactive", "overdue"]).optional(),
 });
 
 /**
@@ -630,28 +627,25 @@ export const UpdatePreventivePlanParams = zod.object({
 });
 
 export const UpdatePreventivePlanBody = zod.object({
-  title: zod.string(),
+  name: zod.string(),
   assetId: zod.number().optional(),
-  frequency: zod.string(),
-  nextDueDate: zod.string().optional(),
-  technicianId: zod.number().optional(),
-  estimatedHours: zod.number().optional(),
+  frequency: zod.enum(["daily", "weekly", "monthly", "quarterly", "annually"]),
+  nextDue: zod.string().optional(),
+  estimatedDuration: zod.number().optional(),
   description: zod.string().optional(),
-  status: zod.enum(["active", "overdue", "completed", "paused"]).optional(),
+  status: zod.enum(["active", "inactive", "overdue"]).optional(),
 });
 
 export const UpdatePreventivePlanResponse = zod.object({
   id: zod.number(),
-  title: zod.string(),
+  name: zod.string(),
   assetId: zod.number().optional(),
   assetName: zod.string().optional(),
-  frequency: zod.string(),
-  nextDueDate: zod.string().optional(),
-  lastExecutedDate: zod.string().optional(),
-  status: zod.enum(["active", "overdue", "completed", "paused"]),
-  technicianId: zod.number().optional(),
-  technicianName: zod.string().optional(),
-  estimatedHours: zod.number().optional(),
+  frequency: zod.enum(["daily", "weekly", "monthly", "quarterly", "annually"]),
+  nextDue: zod.string().optional(),
+  lastExecuted: zod.string().optional(),
+  status: zod.enum(["active", "inactive", "overdue"]),
+  estimatedDuration: zod.number().optional(),
   description: zod.string().optional(),
   createdAt: zod.string(),
 });
@@ -690,6 +684,7 @@ export const GetInventoryItemsResponseItem = zod.object({
   supplier: zod.string().optional(),
   unitCost: zod.number().optional(),
   isLowStock: zod.boolean().optional(),
+  totalValue: zod.number().optional(),
   createdAt: zod.string(),
 });
 export const GetInventoryItemsResponse = zod.array(
@@ -742,6 +737,7 @@ export const UpdateInventoryItemResponse = zod.object({
   supplier: zod.string().optional(),
   unitCost: zod.number().optional(),
   isLowStock: zod.boolean().optional(),
+  totalValue: zod.number().optional(),
   createdAt: zod.string(),
 });
 

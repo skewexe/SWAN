@@ -1301,7 +1301,7 @@ components:
       properties:
         id:
           type: integer
-        title:
+        name:
           type: string
         assetId:
           type: integer
@@ -1309,18 +1309,15 @@ components:
           type: string
         frequency:
           type: string
-        nextDueDate:
+          enum: [daily, weekly, monthly, quarterly, annually]
+        nextDue:
           type: string
-        lastExecutedDate:
+        lastExecuted:
           type: string
         status:
           type: string
-          enum: [active, overdue, completed, paused]
-        technicianId:
-          type: integer
-        technicianName:
-          type: string
-        estimatedHours:
+          enum: [active, inactive, overdue]
+        estimatedDuration:
           type: number
         description:
           type: string
@@ -1328,7 +1325,7 @@ components:
           type: string
       required:
         - id
-        - title
+        - name
         - frequency
         - status
         - createdAt
@@ -1336,25 +1333,24 @@ components:
     CreatePreventivePlanBody:
       type: object
       properties:
-        title:
+        name:
           type: string
         assetId:
           type: integer
         frequency:
           type: string
-        nextDueDate:
+          enum: [daily, weekly, monthly, quarterly, annually]
+        nextDue:
           type: string
-        technicianId:
-          type: integer
-        estimatedHours:
+        estimatedDuration:
           type: number
         description:
           type: string
         status:
           type: string
-          enum: [active, overdue, completed, paused]
+          enum: [active, inactive, overdue]
       required:
-        - title
+        - name
         - frequency
 
     InventoryItem:
@@ -1382,6 +1378,8 @@ components:
           type: number
         isLowStock:
           type: boolean
+        totalValue:
+          type: number
         createdAt:
           type: string
       required:

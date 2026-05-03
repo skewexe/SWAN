@@ -1,0 +1,192 @@
+**PROJECT TITLE:**
+WhatsApp Gateway for Existing GMAO (Parallel & Redundant Channel)
+
+---
+
+**OBJECTIVE:**
+Build a lightweight WhatsApp integration service that connects to an existing GMAO system.
+This service must act as a **secondary interface (not the main system)** and allow users to interact with the GMAO via WhatsApp messages.
+
+The system must:
+
+* NOT modify the core GMAO logic
+* NOT replace the UI or main workflows
+* ONLY act as an additional input/output communication layer
+
+---
+
+**ARCHITECTURE REQUIREMENTS:**
+
+* Use Node.js
+* Use Express.js for API/webhook
+* Use "whatsapp-web.js" for WhatsApp integration
+* Communicate with existing GMAO via REST API
+
+Architecture flow:
+User (WhatsApp) → WhatsApp Client → Middleware → GMAO API → Database
+
+---
+
+**CORE FEATURES (MVP ONLY):**
+
+1. RECEIVE MESSAGES
+
+* Listen to incoming WhatsApp messages
+* Extract:
+
+  * message text
+  * sender phone number
+
+2. CREATE WORK ORDER
+
+* When user sends a message describing a problem:
+  Example: "pompe 2 en panne"
+
+* Call existing GMAO API:
+  POST /api/work-orders
+
+Payload:
+{
+"description": "<full message>",
+"source": "whatsapp",
+"phone": "<sender>",
+"status": "new"
+}
+
+* Send confirmation reply:
+  "✅ Ticket créé avec succès"
+
+---
+
+3. STATUS COMMAND
+
+* If message starts with "status":
+  Example: "status 123"
+
+* Call:
+  GET /api/work-orders/123
+
+* Reply with:
+  "🛠 Statut: <status> | Technicien: <name>"
+
+---
+
+4. NOTIFICATIONS (IMPORTANT)
+
+* Create function to send WhatsApp messages FROM system:
+
+  * New assignment
+  * Status update
+  * Completion
+
+---
+
+**MESSAGE RULES (KEEP SIMPLE):**
+
+* One message = one action
+* No complex chatbot
+* If message unclear:
+  Reply: "❗ Message non reconnu. Exemple: 'panne pompe 2'"
+
+---
+
+**LANGUAGE SUPPORT:**
+
+* Accept French / Arabic / mixed (Darija)
+* Do NOT implement heavy NLP
+* Use simple keyword detection:
+
+  * "panne", "hs", "ma tkhdemch" → issue
+  * "urgent" → priority
+
+---
+
+**SECURITY:**
+
+* Map phone number to user (mock or simple DB)
+* Only allow known numbers
+* Ignore unknown users or send:
+  "⛔ Numéro non autorisé"
+
+---
+
+**TECHNICAL DETAILS:**
+
+Dependencies:
+
+* whatsapp-web.js
+* express
+* axios
+* qrcode-terminal
+
+---
+
+**WHATSAPP SETUP:**
+
+* Generate QR code in terminal
+* Scan with WhatsApp
+* Persist session locally
+
+---
+
+**ERROR HANDLING:**
+
+* If GMAO API fails:
+  Reply: "⚠️ Erreur système, réessayez plus tard"
+
+* Log all messages and errors
+
+---
+
+**PROJECT STRUCTURE:**
+
+/project
+├── index.js
+├── whatsapp.js
+├── gmaoService.js
+├── routes.js
+├── config.js
+
+---
+
+**DELIVERABLES:**
+
+* Fully working Node.js code
+* Ready to run on Replit
+* Console logs for debugging
+* Clear separation between WhatsApp layer and GMAO API
+
+---
+
+**IMPORTANT CONSTRAINTS:**
+
+* This is NOT a full CMMS
+* This is NOT a chatbot platform
+* This is ONLY a communication bridge
+
+---
+
+**FUTURE EXTENSIONS (DO NOT IMPLEMENT NOW):**
+
+* AI parsing
+* Voice messages
+* Multi-step conversations
+* ERP integration
+
+---
+
+**FINAL GOAL:**
+Enable technicians and users to:
+
+* Create tickets via WhatsApp
+* Receive updates via WhatsApp
+
+Without changing how the existing GMAO works.
+
+---
+
+**OUTPUT FORMAT REQUIRED:**
+
+* Complete Node.js implementation
+* Clean, readable, modular code
+* Ready to run immediately

@@ -22,7 +22,7 @@ router.get("/sites", async (req, res) => {
 router.post("/sites", async (req, res) => {
   try {
     const { name, location, city, country } = req.body;
-    if (!name) return res.status(400).json({ error: "name is required" });
+    if (!name) { res.status(400).json({ error: "name is required" }); return; }
     const [site] = await db.insert(sitesTable).values({ name, location, city, country }).returning();
     res.status(201).json({ ...site, createdAt: site.createdAt.toISOString(), zoneCount: 0 });
     return;

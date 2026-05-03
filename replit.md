@@ -161,16 +161,30 @@ SWAN is a professional GMAO (Computerized Maintenance Management System) SaaS pl
 ## Dashboard Sections
 
 - 8 KPI cards (totals, availability, MTBF, MTTR, stock alert, planned maintenance)
-- Bar chart: interventions by month (corrective vs preventive) — clickable to filter
-- Pie chart: assets by category — clickable to filter
+- Bar chart: interventions by month (corrective vs preventive) — clickable to filter by month
+- Pie chart: assets by category — clickable to filter by category
+- **WO Status Distribution**: horizontal bars — clickable to filter by status (cross-filter: driven by priority+month)
+- **WO Priority Distribution**: horizontal bars — clickable to filter by priority (cross-filter: driven by status+month)
+- **Availability Trend AreaChart**: estimated availability % vs 95% target over last 6 months
 - **Agenda de la semaine**: upcoming WOs in next 7 days
 - **Plans en retard**: overdue preventive plans
-- Activity feed + cross-filter chips
+- Activity feed + cross-filter chips with reset button
+
+## Reports Page Sections
+
+- 5 KPI metrics with trend indicators (MTBF, MTTR, Disponibilité, OT Complétés, Préventif/Correctif)
+- **MTBF / MTTR Trend AreaChart**: 6-month trend with gradient fills
+- **Availability Trend AreaChart**: vs 95% target objective line
+- Top failing assets (animated horizontal bars)
+- Cost breakdown bar chart (labor / parts / downtime by month)
+- Cost totals row (4 cards)
 
 ## Backend Notes
 
 - `PUT /workorders/:id` uses `.partial()` Zod validation — allows partial status-only updates
 - `GET /assets/:id/workorders` — returns WOs filtered by asset, enriched with technicianName, siteName, zoneName
 - Routes for sites/zones/asset_parts use plain JS validation (not Zod) to avoid esbuild bundling issues
+- **OpenAPI spec field names must match DB column names exactly**: `PreventivePlan` uses `name`/`nextDue`/`estimatedDuration`/`lastExecuted` (not `title`/`nextDueDate`/`estimatedHours`). `InventoryItem` includes computed `totalValue` field. After any spec change, run `pnpm --filter @workspace/api-spec run codegen`.
+- `POST /sites` and `POST /zones` use `{ res.status(400).json(...); return; }` pattern (not `return res.json(...)`) to satisfy TS7030.
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.

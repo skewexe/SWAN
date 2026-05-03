@@ -312,49 +312,66 @@ export interface AddWorkOrderPartBody {
   note?: string;
 }
 
+export type PreventivePlanFrequency =
+  (typeof PreventivePlanFrequency)[keyof typeof PreventivePlanFrequency];
+
+export const PreventivePlanFrequency = {
+  daily: "daily",
+  weekly: "weekly",
+  monthly: "monthly",
+  quarterly: "quarterly",
+  annually: "annually",
+} as const;
+
 export type PreventivePlanStatus =
   (typeof PreventivePlanStatus)[keyof typeof PreventivePlanStatus];
 
 export const PreventivePlanStatus = {
   active: "active",
+  inactive: "inactive",
   overdue: "overdue",
-  completed: "completed",
-  paused: "paused",
 } as const;
 
 export interface PreventivePlan {
   id: number;
-  title: string;
+  name: string;
   assetId?: number;
   assetName?: string;
-  frequency: string;
-  nextDueDate?: string;
-  lastExecutedDate?: string;
+  frequency: PreventivePlanFrequency;
+  nextDue?: string;
+  lastExecuted?: string;
   status: PreventivePlanStatus;
-  technicianId?: number;
-  technicianName?: string;
-  estimatedHours?: number;
+  estimatedDuration?: number;
   description?: string;
   createdAt: string;
 }
+
+export type CreatePreventivePlanBodyFrequency =
+  (typeof CreatePreventivePlanBodyFrequency)[keyof typeof CreatePreventivePlanBodyFrequency];
+
+export const CreatePreventivePlanBodyFrequency = {
+  daily: "daily",
+  weekly: "weekly",
+  monthly: "monthly",
+  quarterly: "quarterly",
+  annually: "annually",
+} as const;
 
 export type CreatePreventivePlanBodyStatus =
   (typeof CreatePreventivePlanBodyStatus)[keyof typeof CreatePreventivePlanBodyStatus];
 
 export const CreatePreventivePlanBodyStatus = {
   active: "active",
+  inactive: "inactive",
   overdue: "overdue",
-  completed: "completed",
-  paused: "paused",
 } as const;
 
 export interface CreatePreventivePlanBody {
-  title: string;
+  name: string;
   assetId?: number;
-  frequency: string;
-  nextDueDate?: string;
-  technicianId?: number;
-  estimatedHours?: number;
+  frequency: CreatePreventivePlanBodyFrequency;
+  nextDue?: string;
+  estimatedDuration?: number;
   description?: string;
   status?: CreatePreventivePlanBodyStatus;
 }
@@ -371,6 +388,7 @@ export interface InventoryItem {
   supplier?: string;
   unitCost?: number;
   isLowStock?: boolean;
+  totalValue?: number;
   createdAt: string;
 }
 

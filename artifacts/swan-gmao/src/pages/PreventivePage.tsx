@@ -39,6 +39,7 @@ interface PlanFormData {
   frequency: PlanFrequency;
   nextDue?: string;
   estimatedDuration?: number;
+  status?: "active" | "inactive" | "overdue";
 }
 
 export default function PreventivePage() {
@@ -102,7 +103,7 @@ export default function PreventivePage() {
         onError: () => toast({ title: "Erreur", variant: "destructive" }),
       });
     } else {
-      createPlan.mutate({ data: body as any }, {
+      createPlan.mutate({ data: body }, {
         onSuccess: () => { toast({ title: "Plan créé" }); setDialogOpen(false); invalidate(); },
         onError: () => toast({ title: "Erreur", variant: "destructive" }),
       });
