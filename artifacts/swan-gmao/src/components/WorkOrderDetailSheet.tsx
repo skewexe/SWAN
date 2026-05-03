@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
@@ -10,6 +11,7 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -76,6 +78,9 @@ export function WorkOrderDetailSheet({ workOrder, open, onClose }: Props) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const updateWO = useUpdateWorkOrder();
+  const [showCompletePrompt, setShowCompletePrompt] = useState(false);
+  const [actualHoursInput, setActualHoursInput] = useState("");
+  const [completionNoteInput, setCompletionNoteInput] = useState("");
 
   const woId = workOrder?.id ?? 0;
   const { data: parts, isLoading: partsLoading } = useGetWorkOrderParts(
@@ -90,14 +95,41 @@ export function WorkOrderDetailSheet({ workOrder, open, onClose }: Props) {
 
   const changeStatus = (newStatus: WOStatus) => {
     if (!workOrder || newStatus === workOrder.status) return;
+    if (newStatus === "completed") {
+      setActualHoursInput(workOrder.estimatedHours ? String(workOrder.estimatedHours) : "");
+      setCompletionNoteInput("");
+      setShowCompletePrompt(true);
+      return;
+    }
     const body: any = { status: newStatus };
-    if (newStatus === "completed") body.completedDate = new Date().toISOString().slice(0, 10);
     updateWO.mutate(
       { id: workOrder.id, data: body },
       {
         onSuccess: () => {
           toast({ title: `Statut → ${STATUS_FLOW.find(s => s.key === newStatus)?.label}` });
           queryClient.invalidateQueries({ queryKey: getGetWorkOrdersQueryKey() });
+        },
+        onError: () => toast({ title: "Erreur", variant: "destructive" }),
+      }
+    );
+  };
+
+  const confirmCompletion = () => {
+    if (!workOrder) return;
+    const body: any = {
+      status: "completed",
+      completedDate: new Date().toISOString().slice(0, 10),
+    };
+    const h = parseFloat(actualHoursInput);
+    if (!isNaN(h) && h > 0) body.actualHours = h;
+    if (completionNoteInput.trim()) body.description = completionNoteInput.trim();
+    updateWO.mutate(
+      { id: workOrder.id, data: body },
+      {
+        onSuccess: () => {
+          toast({ title: "OT clôturé ✓", description: body.actualHours ? `Durée réelle : ${body.actualHours}h` : undefined });
+          queryClient.invalidateQueries({ queryKey: getGetWorkOrdersQueryKey() });
+          setShowCompletePrompt(false);
         },
         onError: () => toast({ title: "Erreur", variant: "destructive" }),
       }
@@ -150,47 +182,98 @@ export function WorkOrderDetailSheet({ workOrder, open, onClose }: Props) {
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                   Changer le statut
                 </p>
-                <div className="grid grid-cols-2 gap-2">
-                  {STATUS_FLOW.filter(s => s.key !== "cancelled").map((s) => {
-                    const isCurrent = workOrder.status === s.key;
-                    const isPending = updateWO.isPending;
-                    return (
-                      <button
-                        key={s.key}
-                        onClick={() => changeStatus(s.key)}
-                        disabled={isCurrent || isPending}
-                        className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all ${
-                          isCurrent
-                            ? `border-current opacity-90 cursor-default ${s.bg}`
-                            : "border-border/40 text-muted-foreground hover:border-border bg-background/50 hover:bg-muted/50"
-                        }`}
-                      >
-                        {isCurrent ? (
-                          <CheckCircle2 className="h-3.5 w-3.5 shrink-0" strokeWidth={2} style={{ color: s.color }} />
-                        ) : (
-                          <Circle className="h-3.5 w-3.5 shrink-0 text-border" strokeWidth={1.5} />
+
+                {/* Completion prompt (shown when clicking Terminé) */}
+                {showCompletePrompt ? (
+                  <div className="bg-green-500/5 border border-green-500/30 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-400 shrink-0" strokeWidth={1.5} />
+                      <p className="text-sm font-semibold text-foreground">Clôturer l'intervention</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs text-muted-foreground mb-1 block">Heures réelles</label>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          placeholder={workOrder.estimatedHours ? String(workOrder.estimatedHours) : "Ex: 3.5"}
+                          value={actualHoursInput}
+                          onChange={e => setActualHoursInput(e.target.value)}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <div className="flex items-end">
+                        {workOrder.estimatedHours && (
+                          <span className="text-xs text-muted-foreground pb-2">
+                            Estimé: <span className="font-medium text-foreground">{workOrder.estimatedHours}h</span>
+                          </span>
                         )}
-                        {s.label}
-                      </button>
-                    );
-                  })}
-                  <button
-                    onClick={() => changeStatus("cancelled")}
-                    disabled={workOrder.status === "cancelled" || updateWO.isPending}
-                    className={`col-span-2 flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-medium transition-all ${
-                      workOrder.status === "cancelled"
-                        ? "border-current text-muted-foreground bg-muted"
-                        : "border-border/40 text-muted-foreground hover:border-destructive/50 hover:text-destructive bg-background/50 hover:bg-destructive/5"
-                    }`}
-                  >
-                    {workOrder.status === "cancelled" ? (
-                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={2} />
-                    ) : (
-                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
-                    )}
-                    Annuler l'OT
-                  </button>
-                </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        className="flex-1 gap-1.5 bg-green-600 hover:bg-green-700 text-white"
+                        onClick={confirmCompletion}
+                        disabled={updateWO.isPending}
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={2} />
+                        Confirmer la clôture
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setShowCompletePrompt(false)}
+                        disabled={updateWO.isPending}
+                      >
+                        Annuler
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    {STATUS_FLOW.filter(s => s.key !== "cancelled").map((s) => {
+                      const isCurrent = workOrder.status === s.key;
+                      const isPending = updateWO.isPending;
+                      return (
+                        <button
+                          key={s.key}
+                          onClick={() => changeStatus(s.key)}
+                          disabled={isCurrent || isPending}
+                          className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all ${
+                            isCurrent
+                              ? `border-current opacity-90 cursor-default ${s.bg}`
+                              : "border-border/40 text-muted-foreground hover:border-border bg-background/50 hover:bg-muted/50"
+                          }`}
+                        >
+                          {isCurrent ? (
+                            <CheckCircle2 className="h-3.5 w-3.5 shrink-0" strokeWidth={2} style={{ color: s.color }} />
+                          ) : (
+                            <Circle className="h-3.5 w-3.5 shrink-0 text-border" strokeWidth={1.5} />
+                          )}
+                          {s.label}
+                        </button>
+                      );
+                    })}
+                    <button
+                      onClick={() => changeStatus("cancelled")}
+                      disabled={workOrder.status === "cancelled" || updateWO.isPending}
+                      className={`col-span-2 flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-medium transition-all ${
+                        workOrder.status === "cancelled"
+                          ? "border-current text-muted-foreground bg-muted"
+                          : "border-border/40 text-muted-foreground hover:border-destructive/50 hover:text-destructive bg-background/50 hover:bg-destructive/5"
+                      }`}
+                    >
+                      {workOrder.status === "cancelled" ? (
+                        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={2} />
+                      ) : (
+                        <AlertTriangle className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
+                      )}
+                      Annuler l'OT
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Details */}

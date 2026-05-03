@@ -312,6 +312,9 @@ export default function WorkOrdersPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<any>(null);
   const [partsWO, setPartsWO] = useState<any>(null);
   const [detailWO, setDetailWO] = useState<any>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkStatusTarget, setBulkStatusTarget] = useState<WOStatus>("completed");
+  const [showBulkDialog, setShowBulkDialog] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user, isReadOnly } = useRBAC();
@@ -394,6 +397,39 @@ export default function WorkOrdersPage() {
     }
   };
 
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (!workOrders) return;
+    if (selectedIds.size === workOrders.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(workOrders.map((wo: any) => wo.id)));
+    }
+  };
+
+  const executeBulkStatus = async () => {
+    const ids = Array.from(selectedIds);
+    let success = 0;
+    for (const id of ids) {
+      await new Promise<void>(resolve => {
+        const body: any = { status: bulkStatusTarget };
+        if (bulkStatusTarget === "completed") body.completedDate = new Date().toISOString().slice(0, 10);
+        updateWO.mutate({ id, data: body }, { onSuccess: () => { success++; resolve(); }, onError: () => resolve() });
+      });
+    }
+    toast({ title: `${success} OT mis à jour → ${STATUS_LABELS[bulkStatusTarget]?.label}` });
+    setSelectedIds(new Set());
+    setShowBulkDialog(false);
+    queryClient.invalidateQueries({ queryKey: getGetWorkOrdersQueryKey() });
+  };
+
   const confirmDelete = () => {
     if (!deleteConfirm) return;
     deleteWO.mutate({ id: deleteConfirm.id }, {
@@ -467,6 +503,38 @@ export default function WorkOrdersPage() {
         </Select>
       </div>
 
+      {/* Bulk action bar */}
+      {selectedIds.size > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 bg-primary/10 border border-primary/30 rounded-2xl px-4 py-3"
+        >
+          <span className="text-sm font-medium text-primary">
+            {selectedIds.size} OT sélectionné{selectedIds.size > 1 ? "s" : ""}
+          </span>
+          <div className="flex-1" />
+          <Select value={bulkStatusTarget} onValueChange={v => setBulkStatusTarget(v as WOStatus)}>
+            <SelectTrigger className="w-44 h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="open">Ouvert</SelectItem>
+              <SelectItem value="in_progress">En cours</SelectItem>
+              <SelectItem value="completed">Terminé</SelectItem>
+              <SelectItem value="on_hold">En attente</SelectItem>
+              <SelectItem value="cancelled">Annulé</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setShowBulkDialog(true)}>
+            Appliquer le statut
+          </Button>
+          <Button size="sm" variant="ghost" className="h-8 text-xs text-muted-foreground" onClick={() => setSelectedIds(new Set())}>
+            Désélectionner
+          </Button>
+        </motion.div>
+      )}
+
       {/* Table */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-card border border-border/60 rounded-3xl overflow-hidden">
         {isLoading ? (
@@ -477,6 +545,16 @@ export default function WorkOrdersPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border/60">
+                {!isReadOnly && !isTechnicien && (
+                  <th className="px-4 py-4 w-10">
+                    <input
+                      type="checkbox"
+                      checked={!!workOrders && workOrders.length > 0 && selectedIds.size === workOrders.length}
+                      onChange={toggleSelectAll}
+                      className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
+                    />
+                  </th>
+                )}
                 <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-4">Titre</th>
                 <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-4">Type</th>
                 <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-4">Priorité</th>
@@ -500,10 +578,20 @@ export default function WorkOrdersPage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: idx * 0.03 }}
-                    className="border-b border-border/40 last:border-0 hover:bg-muted/30 transition-colors cursor-pointer"
+                    className={`border-b border-border/40 last:border-0 hover:bg-muted/30 transition-colors cursor-pointer ${selectedIds.has(wo.id) ? "bg-primary/5" : ""}`}
                     onClick={() => setDetailWO(wo)}
                     data-testid={`row-workorder-${wo.id}`}
                   >
+                    {!isReadOnly && !isTechnicien && (
+                      <td className="px-4 py-4 w-10" onClick={e => { e.stopPropagation(); toggleSelect(wo.id); }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(wo.id)}
+                          onChange={() => toggleSelect(wo.id)}
+                          className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
+                        />
+                      </td>
+                    )}
                     <td className="px-6 py-4">
                       <div className="font-medium text-foreground max-w-xs truncate">{wo.title}</div>
                     </td>
@@ -753,6 +841,31 @@ export default function WorkOrdersPage() {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk status confirm */}
+      <Dialog open={showBulkDialog} onOpenChange={setShowBulkDialog}>
+        <DialogContent className="max-w-sm bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-primary" strokeWidth={1.5} />
+              Confirmer la modification
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Appliquer le statut{" "}
+            <span className={`font-semibold px-1.5 py-0.5 rounded text-xs border ${STATUS_LABELS[bulkStatusTarget]?.className}`}>
+              {STATUS_LABELS[bulkStatusTarget]?.label}
+            </span>{" "}
+            à <span className="font-semibold text-foreground">{selectedIds.size} OT</span> ?
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBulkDialog(false)}>Annuler</Button>
+            <Button onClick={executeBulkStatus} disabled={updateWO.isPending}>
+              {updateWO.isPending ? "En cours..." : "Confirmer"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

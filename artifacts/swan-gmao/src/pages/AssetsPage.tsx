@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import * as XLSX from "xlsx";
 import {
@@ -18,12 +18,13 @@ import { Progress } from "@/components/ui/progress";
 import {
   Plus, Search, Pencil, Trash2, AlertTriangle, Copy, Upload,
   FileSpreadsheet, Download, CheckCircle2, X, Wrench, Layers, Trash,
-  ImageIcon, Building2, MapPin,
+  ImageIcon, Building2, MapPin, QrCode,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { useRBAC } from "@/context/RBACContext";
 import { Link } from "wouter";
+import { QRCodeDialog } from "@/components/QRCodeDialog";
 
 type AssetStatus = "operational" | "maintenance" | "breakdown" | "decommissioned";
 type AssetCriticality = "low" | "medium" | "high" | "critical";
@@ -693,9 +694,21 @@ export default function AssetsPage() {
   const [detailAsset, setDetailAsset] = useState<any>(null);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [qrAsset, setQrAsset] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isReadOnly } = useRBAC();
+
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const qrId = sp.get("qr");
+    if (qrId) {
+      fetch(`/api/assets/${qrId}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(a => { if (a) setDetailAsset(a); })
+        .catch(() => {});
+    }
+  }, []);
 
   const params = {
     search: search || undefined,
@@ -908,16 +921,27 @@ export default function AssetsPage() {
                       ) : "—"}
                     </td>
                     <td className="px-6 py-4">
-                      {!isReadOnly && (
-                        <div className="flex items-center gap-2 justify-end" onClick={e => e.stopPropagation()}>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => openEdit(asset)} data-testid={`button-edit-asset-${asset.id}`}>
-                            <Pencil className="h-4 w-4" strokeWidth={1.5} />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setDeleteConfirm(asset)} data-testid={`button-delete-asset-${asset.id}`}>
-                            <Trash2 className="h-4 w-4" strokeWidth={1.5} />
-                          </Button>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-1 justify-end" onClick={e => e.stopPropagation()}>
+                        <Button
+                          variant="ghost" size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-primary"
+                          onClick={() => setQrAsset(asset)}
+                          title="Code QR"
+                          data-testid={`button-qr-asset-${asset.id}`}
+                        >
+                          <QrCode className="h-4 w-4" strokeWidth={1.5} />
+                        </Button>
+                        {!isReadOnly && (
+                          <>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => openEdit(asset)} data-testid={`button-edit-asset-${asset.id}`}>
+                              <Pencil className="h-4 w-4" strokeWidth={1.5} />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setDeleteConfirm(asset)} data-testid={`button-delete-asset-${asset.id}`}>
+                              <Trash2 className="h-4 w-4" strokeWidth={1.5} />
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </motion.tr>
                 );
@@ -936,6 +960,7 @@ export default function AssetsPage() {
       </motion.div>
 
       <AssetDetailSheet asset={detailAsset} open={!!detailAsset} onClose={() => setDetailAsset(null)} />
+      <QRCodeDialog asset={qrAsset} open={!!qrAsset} onClose={() => setQrAsset(null)} />
       <BulkTypesDialog open={bulkOpen} onClose={() => setBulkOpen(false)} />
       <ImportDialog open={importOpen} onClose={() => setImportOpen(false)} />
 

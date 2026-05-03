@@ -418,7 +418,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Dashboard Builder */}
-      <div className="grid grid-cols-1 gap-4">
+      <div className="grid grid-cols-12 gap-4">
         {widgets.map((widget, idx) => (
           <motion.div
             key={widget.id}
@@ -432,7 +432,12 @@ export default function DashboardPage() {
               moveWidget(from, to);
               setDraggedId(null);
             }}
-            className={`relative rounded-2xl border border-border/60 bg-card p-5 ${widget.span === "full" ? "" : widget.span === "half" ? "lg:col-span-2" : "lg:col-span-1"}`}
+            className={`relative rounded-2xl border border-border/60 bg-card p-5 ${
+              widget.span === "full" ? "col-span-12"
+              : widget.span === "half" ? "col-span-12 lg:col-span-6"
+              : widget.span === "third" ? "col-span-12 lg:col-span-4"
+              : "col-span-12 sm:col-span-6 lg:col-span-3"
+            }`}
           >
             {editMode && (
               <div className="mb-4 flex items-center justify-between gap-2">
@@ -458,7 +463,7 @@ export default function DashboardPage() {
               </div>
             )}
             {widget.kind === "kpis" && (
-              <div className={`grid gap-4 ${widget.span === "quarter" ? "grid-cols-2 lg:grid-cols-4" : widget.span === "third" ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : widget.span === "half" ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-4" : "grid-cols-1 md:grid-cols-2 xl:grid-cols-4"}`}>
+              <div className={`grid gap-4 ${widget.span === "quarter" ? "grid-cols-2" : widget.span === "third" ? "grid-cols-2 lg:grid-cols-3" : widget.span === "half" ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-2 lg:grid-cols-4"}`}>
                 {statsLoading ? Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-2xl" />) : filteredStats ? (
                   <>
                     <KpiCard label="Équipements" value={filteredStats.totalAssets} icon={Wrench} color="#0A6DFF" delay={0} trend={2} />

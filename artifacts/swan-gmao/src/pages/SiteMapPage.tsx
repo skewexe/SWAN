@@ -122,14 +122,27 @@ export default function SiteMapPage() {
   const svgRef = useRef<SVGSVGElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Refs to avoid stale closures in mouse event handlers
+  const activeMapIdRef = useRef<string | null>(activeMapId);
+  useEffect(() => { activeMapIdRef.current = activeMapId; }, [activeMapId]);
+
   const persist = useCallback((updated: SiteMapData[]) => {
     setMaps(updated);
     saveMaps(updated);
   }, []);
 
+  // Uses functional state update so it never captures a stale `maps` snapshot
   const updateActiveMap = useCallback((updater: (m: SiteMapData) => SiteMapData) => {
-    persist(maps.map(m => m.id === activeMapId ? { ...updater(m), updatedAt: new Date().toISOString() } : m));
-  }, [maps, activeMapId, persist]);
+    setMaps(prev => {
+      const updated = prev.map(m =>
+        m.id === activeMapIdRef.current
+          ? { ...updater(m), updatedAt: new Date().toISOString() }
+          : m
+      );
+      saveMaps(updated);
+      return updated;
+    });
+  }, []);
 
   const createMap = () => {
     if (!newMapName.trim()) return;
