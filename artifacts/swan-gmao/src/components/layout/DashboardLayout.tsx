@@ -1,5 +1,4 @@
 import { Link, useLocation } from "wouter";
-import { useEffect } from "react";
 import swanLogo from "@assets/ChatGPT Image 30 avr. 2026, 11_42_07.png";
 import {
   LayoutDashboard, Wrench, ClipboardList, CalendarClock,
@@ -20,12 +19,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, visibleNav, can } = useRBAC();
   const { isAuthenticated, logout } = useAuth();
   const roleMeta = ROLE_META[user.role];
-
-  useEffect(() => {
-    if (!isAuthenticated) setLocation("/login");
-  }, [isAuthenticated, setLocation]);
-
-  if (!isAuthenticated) return null;
 
   const handleLogout = (e: React.MouseEvent) => {
     e.preventDefault();
