@@ -92,11 +92,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-border/50 bg-background/80 px-8 backdrop-blur-md">
-          <div className="text-lg font-medium tracking-tight text-foreground">
+        <header className="sticky top-0 z-40 px-8 pt-6">
+          <div className="flex h-16 items-center justify-between rounded-full border border-border/60 bg-card/70 px-5 py-3 shadow-[0_16px_40px_-24px_rgba(0,0,0,0.65)] backdrop-blur-md">
+            <div className="text-lg font-medium tracking-tight text-foreground">
             {[...NAV_ITEMS, { path: "/settings", key: "settings", label: "Paramètres", icon: "Settings" }].find(i => location.startsWith(i.path))?.label || "GMAO"}
+            </div>
+            <NotificationsDropdown />
           </div>
-          <NotificationsDropdown />
         </header>
         <main className="relative flex-1 overflow-y-auto p-8">
           <div className="mx-auto max-w-7xl">{children}</div>

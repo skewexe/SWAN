@@ -7,8 +7,8 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
-      <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">
+      <header className="sticky top-0 z-50 px-6 pt-6 lg:px-8">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between rounded-full border border-border/60 bg-card/70 px-5 py-3 shadow-[0_16px_40px_-24px_rgba(0,0,0,0.65)] backdrop-blur-md">
           <Link href="/" className="flex items-center gap-3 transition-opacity hover:opacity-80">
             <img src={swanLogo} alt="SWAN Logo" className="h-8 w-auto" />
             <div className="hidden sm:block">
@@ -17,7 +17,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
             </div>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-8 text-[13px] text-muted-foreground">
+          <nav className="hidden md:flex items-center gap-7 rounded-full border border-border/50 bg-background/40 px-4 py-2 text-[13px] text-muted-foreground">
             <Link href="/" className={`transition-colors hover:text-foreground ${location === '/' ? 'text-foreground' : ''}`}>Accueil</Link>
             <Link href="/about" className={`transition-colors hover:text-foreground ${location === '/about' ? 'text-foreground' : ''}`}>À propos</Link>
             <Link href="/faq" className={`transition-colors hover:text-foreground ${location === '/faq' ? 'text-foreground' : ''}`}>FAQ</Link>
