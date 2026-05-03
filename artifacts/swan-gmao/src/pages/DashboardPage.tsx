@@ -197,6 +197,26 @@ export default function DashboardPage() {
     [preventivePlans]
   );
 
+  const filteredStats = useMemo(() => {
+    if (!stats) return null;
+    const workOrders = filteredWOs;
+    const activeWorkOrders = workOrders.filter(wo => wo.status === "open" || wo.status === "in_progress").length;
+    const criticalAlerts = workOrders.filter(wo => wo.priority === "critical" && wo.status !== "completed").length;
+    const plannedMaintenanceThisMonth = workOrders.filter(wo => {
+      if (!wo.scheduledDate) return false;
+      const date = new Date(wo.scheduledDate);
+      return date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
+    }).length;
+    const lowStockItems = stats.lowStockItems;
+    return {
+      ...stats,
+      activeWorkOrders,
+      criticalAlerts,
+      plannedMaintenanceThisMonth,
+      lowStockItems,
+    };
+  }, [stats, filteredWOs, today]);
+
   // Filtered chart data
   const filteredChartData = useMemo(() => {
     if (!chartData) return null;
@@ -266,16 +286,16 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statsLoading ? (
           Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-2xl" />)
-        ) : stats ? (
+        ) : filteredStats ? (
           <>
-            <KpiCard label="Équipements" value={stats.totalAssets} icon={Wrench} color="#0A6DFF" delay={0} trend={2} />
-            <KpiCard label="OT actifs" value={stats.activeWorkOrders} icon={Activity} color="#38BDF8" delay={0.05} trend={-5} />
-            <KpiCard label="Alertes critiques" value={stats.criticalAlerts} icon={AlertTriangle} color="#EF4444" delay={0.1} trend={0} />
-            <KpiCard label="Disponibilité" value={`${stats.availabilityRate.toFixed(1)}%`} icon={Gauge} color="#22C55E" delay={0.15} trend={1} />
-            <KpiCard label="MTBF moyen" value={stats.mtbf.toFixed(0)} unit="h" icon={TrendingUp} color="#0A6DFF" delay={0.2} trend={8} />
-            <KpiCard label="MTTR moyen" value={stats.mttr.toFixed(1)} unit="h" icon={Clock} color="#F59E0B" delay={0.25} trend={-3} />
-            <KpiCard label="Stock en alerte" value={stats.lowStockItems} icon={Package} color="#EF4444" delay={0.3} />
-            <KpiCard label="Planifié ce mois" value={stats.plannedMaintenanceThisMonth} icon={CalendarCheck} color="#22C55E" delay={0.35} />
+            <KpiCard label="Équipements" value={filteredStats.totalAssets} icon={Wrench} color="#0A6DFF" delay={0} trend={2} />
+            <KpiCard label="OT actifs" value={filteredStats.activeWorkOrders} icon={Activity} color="#38BDF8" delay={0.05} trend={-5} />
+            <KpiCard label="Alertes critiques" value={filteredStats.criticalAlerts} icon={AlertTriangle} color="#EF4444" delay={0.1} trend={0} />
+            <KpiCard label="Disponibilité" value={`${filteredStats.availabilityRate.toFixed(1)}%`} icon={Gauge} color="#22C55E" delay={0.15} trend={1} />
+            <KpiCard label="MTBF moyen" value={filteredStats.mtbf.toFixed(0)} unit="h" icon={TrendingUp} color="#0A6DFF" delay={0.2} trend={8} />
+            <KpiCard label="MTTR moyen" value={filteredStats.mttr.toFixed(1)} unit="h" icon={Clock} color="#F59E0B" delay={0.25} trend={-3} />
+            <KpiCard label="Stock en alerte" value={filteredStats.lowStockItems} icon={Package} color="#EF4444" delay={0.3} />
+            <KpiCard label="Planifié ce mois" value={filteredStats.plannedMaintenanceThisMonth} icon={CalendarCheck} color="#22C55E" delay={0.35} />
           </>
         ) : null}
       </div>
