@@ -23,6 +23,7 @@ import {
 import { useForm } from "react-hook-form";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { useRBAC } from "@/context/RBACContext";
+import { Link } from "wouter";
 
 type AssetStatus = "operational" | "maintenance" | "breakdown" | "decommissioned";
 type AssetCriticality = "low" | "medium" | "high" | "critical";
@@ -792,18 +793,20 @@ export default function AssetsPage() {
         )}
       </div>
       <div className="grid gap-3 md:grid-cols-3">
-        <div className="rounded-2xl border border-border/60 bg-card p-4">
+        <Link href="/workorders">
+          <button className="w-full text-left rounded-2xl border border-border/60 bg-card p-4 hover:border-primary/30 transition-colors">
           <div className="text-xs font-semibold uppercase tracking-wide text-primary mb-1">GMAO</div>
           <div className="text-sm text-foreground">Équipements, composants, nomenclatures et traçabilité.</div>
-        </div>
-        <div className="rounded-2xl border border-border/60 bg-card p-4">
+          </button>
+        </Link>
+        <button onClick={() => setBulkOpen(true)} className="text-left rounded-2xl border border-border/60 bg-card p-4 hover:border-primary/30 transition-colors">
           <div className="text-xs font-semibold uppercase tracking-wide text-primary mb-1">Stocks</div>
           <div className="text-sm text-foreground">Pièces de rechange, seuils, mouvements et réservations.</div>
-        </div>
-        <div className="rounded-2xl border border-border/60 bg-card p-4">
+        </button>
+        <button onClick={() => setImportOpen(true)} className="text-left rounded-2xl border border-border/60 bg-card p-4 hover:border-primary/30 transition-colors">
           <div className="text-xs font-semibold uppercase tracking-wide text-primary mb-1">Conformité</div>
           <div className="text-sm text-foreground">Historique, maintenance réglementaire et contrôle des actifs.</div>
-        </div>
+        </button>
       </div>
 
       {/* Filters */}

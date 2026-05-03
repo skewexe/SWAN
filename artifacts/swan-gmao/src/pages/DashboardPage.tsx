@@ -705,11 +705,23 @@ export default function DashboardPage() {
           <h3 className="text-sm font-semibold text-foreground">Suite maintenance complète</h3>
           <p className="text-xs text-muted-foreground mt-0.5">Gestion technique, gammes opératoires, OT, stocks, planning, KPI, coût ABC et historique.</p>
         </div>
-        <div className="flex items-center justify-between mb-1">
-          <h3 className="text-sm font-semibold text-foreground">Activité récente</h3>
-          <span className="text-xs text-muted-foreground">Derniers événements</span>
+        <div className="grid gap-3 md:grid-cols-3 mb-5">
+          {[
+            { label: "Interventions", value: "OT en cours", icon: Wrench, onClick: () => setFilter("status", "in_progress") },
+            { label: "Préventif", value: "Plans à suivre", icon: CalendarCheck, onClick: () => setFilter("type", "preventive") },
+            { label: "Stocks", value: "Pièces critiques", icon: Package, onClick: () => setFilter("category", "inventory") },
+          ].map(({ label, value, icon: Icon, onClick }) => (
+            <button key={label} onClick={onClick} className="text-left rounded-2xl border border-border/60 bg-background/50 p-4 hover:border-primary/30 transition-colors">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-primary mb-1">{label}</div>
+                  <div className="text-sm font-medium text-foreground">{value}</div>
+                </div>
+                <Icon className="h-4 w-4 text-primary" strokeWidth={1.5} />
+              </div>
+            </button>
+          ))}
         </div>
-        <div className="h-0.5 bg-gradient-to-r from-primary/30 to-transparent rounded-full mb-5" />
         {activityLoading ? (
           <div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14" />)}</div>
         ) : activity && activity.length > 0 ? (
