@@ -143,6 +143,13 @@ export default function TechniciansPage() {
   };
 
   const hasAccount = (email: string) => allUsers.some(u => u.email.toLowerCase() === email.toLowerCase());
+  const techStats = technicians ?? [];
+  const totalTechs = techStats.length;
+  const availableTechs = techStats.filter(tech => tech.status === "available").length;
+  const activeWorkOrders = techStats.reduce((sum, tech) => sum + (tech.activeWorkOrders ?? 0), 0);
+  const ratedTechs = techStats.filter(tech => (tech.avgRating ?? 0) > 0).length;
+  const avgRating = totalTechs > 0 ? techStats.reduce((sum, tech) => sum + (tech.avgRating ?? 0), 0) / totalTechs : 0;
+  const topTech = [...techStats].sort((a, b) => (b.avgRating ?? 0) - (a.avgRating ?? 0))[0];
 
   return (
     <div className="space-y-6">
@@ -157,6 +164,43 @@ export default function TechniciansPage() {
           Nouveau technicien
         </Button>
       </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="rounded-2xl border border-border/60 bg-card p-4">
+          <div className="text-xs text-muted-foreground">Techniciens</div>
+          <div className="mt-2 text-2xl font-semibold text-foreground">{totalTechs}</div>
+          <div className="text-xs text-muted-foreground mt-1">équipe totale</div>
+        </div>
+        <div className="rounded-2xl border border-border/60 bg-card p-4">
+          <div className="text-xs text-muted-foreground">Disponibles</div>
+          <div className="mt-2 text-2xl font-semibold text-foreground">{availableTechs}</div>
+          <div className="text-xs text-muted-foreground mt-1">prêts à intervenir</div>
+        </div>
+        <div className="rounded-2xl border border-border/60 bg-card p-4">
+          <div className="text-xs text-muted-foreground">OT actifs</div>
+          <div className="mt-2 text-2xl font-semibold text-foreground">{activeWorkOrders}</div>
+          <div className="text-xs text-muted-foreground mt-1">charge opérationnelle</div>
+        </div>
+        <div className="rounded-2xl border border-border/60 bg-card p-4">
+          <div className="text-xs text-muted-foreground">Note moyenne</div>
+          <div className="mt-2 text-2xl font-semibold text-foreground">{avgRating ? avgRating.toFixed(1) : "—"}</div>
+          <div className="text-xs text-muted-foreground mt-1">{ratedTechs} évalués</div>
+        </div>
+      </div>
+
+      {topTech && (
+        <div className="rounded-3xl border border-border/60 bg-card p-5 flex items-center justify-between gap-4">
+          <div>
+            <div className="text-xs uppercase tracking-[0.18em] text-primary font-semibold">Top technicien</div>
+            <div className="mt-1 text-lg font-semibold text-foreground">{topTech.name}</div>
+            <div className="text-sm text-muted-foreground">{topTech.specialization}</div>
+          </div>
+          <div className="text-right">
+            <div className="text-3xl font-semibold text-foreground">{(topTech.avgRating ?? 0).toFixed(1)}</div>
+            <div className="text-xs text-muted-foreground">sur 5</div>
+          </div>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

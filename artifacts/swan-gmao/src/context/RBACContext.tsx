@@ -35,7 +35,7 @@ export const ROLE_PERMISSIONS: Record<RBACRole, string[]> = {
   admin:       ["dashboard", "assets", "workorders", "preventive", "calendar", "inventory", "technicians", "reports", "settings", "whatsapp"],
   manager:     ["dashboard", "assets", "workorders", "preventive", "calendar", "inventory", "technicians", "reports"],
   chef_equipe: ["dashboard", "workorders", "preventive", "calendar", "technicians"],
-  technicien:  ["dashboard", "workorders"],
+  technicien:  ["dashboard", "workorders", "technicians"],
   lecteur:     ["dashboard", "reports"],
 };
 
