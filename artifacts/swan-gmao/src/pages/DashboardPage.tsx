@@ -233,20 +233,41 @@ export default function DashboardPage() {
     };
   }, [chartData, filters]);
 
-  // WO status breakdown for cross-filter
+  // Cross-filter: status breakdown driven by priority+month filters (not status itself)
   const woStatusBreakdown = useMemo(() => {
-    const wos = allWOs || [];
+    const wos = (allWOs || []).filter(wo => {
+      if (filters.priority && wo.priority !== filters.priority) return false;
+      if (filters.month && wo.scheduledDate) {
+        const m = new Date(wo.scheduledDate).toLocaleDateString("fr-DZ", { month: "short" });
+        if (m !== filters.month) return false;
+      }
+      return true;
+    });
     const counts: Record<string, number> = {};
     wos.forEach(wo => { counts[wo.status] = (counts[wo.status] || 0) + 1; });
-    return Object.entries(counts).map(([status, count]) => ({ status, count }));
-  }, [allWOs]);
+    const total = wos.length;
+    return Object.entries(counts)
+      .map(([status, count]) => ({ status, count, pct: total > 0 ? Math.round((count / total) * 100) : 0 }))
+      .sort((a, b) => b.count - a.count);
+  }, [allWOs, filters.priority, filters.month]);
 
+  // Cross-filter: priority breakdown driven by status+month filters (not priority itself)
   const woPriorityBreakdown = useMemo(() => {
-    const wos = allWOs || [];
+    const wos = (allWOs || []).filter(wo => {
+      if (filters.status && wo.status !== filters.status) return false;
+      if (filters.month && wo.scheduledDate) {
+        const m = new Date(wo.scheduledDate).toLocaleDateString("fr-DZ", { month: "short" });
+        if (m !== filters.month) return false;
+      }
+      return true;
+    });
     const counts: Record<string, number> = {};
     wos.forEach(wo => { counts[wo.priority] = (counts[wo.priority] || 0) + 1; });
-    return Object.entries(counts).map(([priority, count]) => ({ priority, count }));
-  }, [allWOs]);
+    const total = wos.length;
+    return Object.entries(counts)
+      .map(([priority, count]) => ({ priority, count, pct: total > 0 ? Math.round((count / total) * 100) : 0 }))
+      .sort((a, b) => b.count - a.count);
+  }, [allWOs, filters.status, filters.month]);
 
   return (
     <div className="space-y-6">
@@ -431,10 +452,8 @@ export default function DashboardPage() {
           <p className="text-xs text-muted-foreground mb-4">Cliquez pour filtrer les interventions</p>
           {wosLoading ? <Skeleton className="h-24" /> : (
             <div className="space-y-2">
-              {woStatusBreakdown.map(({ status, count }) => {
+              {woStatusBreakdown.map(({ status, count, pct }) => {
                 const info = WO_STATUS_MAP[status];
-                const total = (allWOs || []).length;
-                const pct = total > 0 ? Math.round((count / total) * 100) : 0;
                 const color = STATUS_COLORS[status] || "#94A3B8";
                 const isActive = filters.status === status;
                 return (
@@ -475,11 +494,9 @@ export default function DashboardPage() {
           <p className="text-xs text-muted-foreground mb-4">Cliquez pour filtrer par priorité</p>
           {wosLoading ? <Skeleton className="h-24" /> : (
             <div className="space-y-2">
-              {woPriorityBreakdown.map(({ priority, count }) => {
+              {woPriorityBreakdown.map(({ priority, count, pct }) => {
                 const color = PRIORITY_DOT[priority] || "#94A3B8";
                 const labels: Record<string, string> = { critical: "Critique", high: "Élevée", medium: "Moyenne", low: "Faible" };
-                const total = (allWOs || []).length;
-                const pct = total > 0 ? Math.round((count / total) * 100) : 0;
                 const isActive = filters.priority === priority;
                 return (
                   <button
