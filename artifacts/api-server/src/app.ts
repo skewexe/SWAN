@@ -32,8 +32,6 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
 
-// Proxy: forward /whatsapp/* → WhatsApp Gateway on port 8099
-// Uses Node's built-in http module — no extra dependencies.
 function whatsappProxy(req: Request, res: Response) {
   const bodyData =
     req.body && typeof req.body === "object" && Object.keys(req.body).length > 0

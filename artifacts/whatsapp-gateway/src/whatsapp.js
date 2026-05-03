@@ -3,17 +3,20 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
 const qrcodeTerminal = require('qrcode-terminal');
-const { loadNumbers } = require('./config');
 const { createWorkOrder, getWorkOrder } = require('./gmaoService');
+const {
+  listAllowedNumbers,
+  upsertGatewayState,
+  getGatewayState,
+  logMessage,
+  listMessages,
+} = require('./db');
 
-// --- State ---
 let client = null;
 let currentQRString = null;
 let currentQRImage = null;
-let status = 'disconnected'; // disconnected | initializing | qr_ready | connected
-const messageLogs = [];
+let status = 'disconnected';
 
-// --- Keyword detection ---
 const ISSUE_KEYWORDS = [
   'panne', 'hs', 'ma tkhdemch', 'ne marche pas', 'arrêt', 'défaut',
   'problème', 'pb', 'hors service', 'bloqué', 'bloque', 'en panne',
@@ -24,32 +27,43 @@ const URGENT_KEYWORDS = [
   'danger', 'risque', 'accident',
 ];
 
-function addLog(type, phone, text, reply) {
-  messageLogs.unshift({ type, phone, text, reply, timestamp: new Date().toISOString() });
-  if (messageLogs.length > 100) messageLogs.pop();
+async function persistState(patch) {
+  await upsertGatewayState({
+    status,
+    qrText: currentQRString,
+    qrImage: currentQRImage,
+    ...patch,
+  });
+}
+
+async function addLog(type, phone, text, reply, extra = {}) {
+  await logMessage({
+    direction: 'inbound',
+    messageType: type,
+    phone,
+    text,
+    reply: reply || null,
+    workOrderId: extra.workOrderId || null,
+    statusCode: extra.statusCode || null,
+  });
 }
 
 async function processMessage(message) {
-  const rawPhone = message.from; // e.g. "213551234567@c.us"
+  const rawPhone = message.from;
   const phone = rawPhone.replace('@c.us', '');
   const rawText = message.body.trim();
   const text = rawText.toLowerCase();
 
-  // Check authorization
-  const allowedNumbers = loadNumbers();
+  const allowedNumbers = await listAllowedNumbers();
   const isAllowed = allowedNumbers.some(n => n.phone === phone || n.phone === rawPhone);
 
   if (!isAllowed) {
     const reply = '⛔ Numéro non autorisé. Veuillez contacter votre administrateur SWAN GMAO.';
     await message.reply(reply).catch(() => {});
-    addLog('blocked', phone, rawText, reply);
-    console.log(`[WhatsApp] Blocked unknown number: +${phone}`);
+    await addLog('blocked', phone, rawText, reply, { statusCode: 403 });
     return;
   }
 
-  console.log(`[WhatsApp] Authorized message from +${phone}: ${rawText}`);
-
-  // --- Help ---
   if (text === 'aide' || text === 'help' || text === '?') {
     const reply =
       '📋 *SWAN GMAO — Commandes*\n\n' +
@@ -58,18 +72,17 @@ async function processMessage(message) {
       '• Consulter un OT :\n  _"status 42"_\n\n' +
       '• Cette aide :\n  _"aide"_';
     await message.reply(reply).catch(() => {});
-    addLog('help', phone, rawText, reply);
+    await addLog('help', phone, rawText, reply);
     return;
   }
 
-  // --- Status query: "status 42" or "statut 42" ---
   if (text.startsWith('status ') || text.startsWith('statut ')) {
     const parts = rawText.trim().split(/\s+/);
     const id = parts[1];
     if (!id || isNaN(Number(id))) {
       const reply = '❗ Usage : *status <numéro_OT>*\nEx : _status 42_';
       await message.reply(reply).catch(() => {});
-      addLog('status_query', phone, rawText, reply);
+      await addLog('status_query', phone, rawText, reply, { statusCode: 400 });
       return;
     }
     try {
@@ -85,16 +98,15 @@ async function processMessage(message) {
         `👷 Technicien : ${wo.technicianName || 'Non assigné'}\n` +
         `📅 Créé : ${new Date(wo.createdAt).toLocaleDateString('fr-DZ')}`;
       await message.reply(reply).catch(() => {});
-      addLog('status_query', phone, rawText, reply);
+      await addLog('status_query', phone, rawText, reply, { workOrderId: wo.id });
     } catch (e) {
       const reply = `⚠️ OT #${id} introuvable ou erreur système.\n_Réessayez plus tard._`;
       await message.reply(reply).catch(() => {});
-      addLog('status_query', phone, rawText, reply);
+      await addLog('status_query', phone, rawText, reply, { statusCode: 404 });
     }
     return;
   }
 
-  // --- Issue / fault report ---
   const isIssue = ISSUE_KEYWORDS.some(kw => text.includes(kw));
   const isUrgent = URGENT_KEYWORDS.some(kw => text.includes(kw));
 
@@ -113,18 +125,15 @@ async function processMessage(message) {
         `⚡ Priorité : ${priorityLabel}\n\n` +
         `Suivre : _status ${wo.id}_`;
       await message.reply(reply).catch(() => {});
-      addLog('ticket_created', phone, rawText, reply);
-      console.log(`[WhatsApp] Work order #${wo.id} created from +${phone} (priority: ${isUrgent ? 'high' : 'medium'})`);
+      await addLog('ticket_created', phone, rawText, reply, { workOrderId: wo.id });
     } catch (e) {
-      console.error('[WhatsApp] Error creating work order:', e.message);
       const reply = '⚠️ Erreur système, veuillez réessayer plus tard.\n_Contactez votre administrateur si le problème persiste._';
       await message.reply(reply).catch(() => {});
-      addLog('error', phone, rawText, reply);
+      await addLog('error', phone, rawText, reply, { statusCode: 503 });
     }
     return;
   }
 
-  // --- Unknown ---
   const reply =
     '❗ Message non reconnu.\n\n' +
     'Exemples :\n' +
@@ -133,14 +142,13 @@ async function processMessage(message) {
     '• _"status 42"_\n' +
     '• _"aide"_ pour la liste complète';
   await message.reply(reply).catch(() => {});
-  addLog('unknown', phone, rawText, reply);
+  await addLog('unknown', phone, rawText, reply, { statusCode: 400 });
 }
 
-// --- Client lifecycle ---
 function initClient() {
-  if (client) return; // already initialized
+  if (client) return;
   status = 'initializing';
-  console.log('[WhatsApp] Initializing client...');
+  persistState({ lastDisconnectedAt: new Date() }).catch(() => {});
 
   client = new Client({
     authStrategy: new LocalAuth({ clientId: 'swan-gmao', dataPath: '.wwebjs_auth' }),
@@ -162,41 +170,37 @@ function initClient() {
   client.on('qr', async (qr) => {
     status = 'qr_ready';
     currentQRString = qr;
-    // Print to terminal
     qrcodeTerminal.generate(qr, { small: true });
-    console.log('\n[WhatsApp] QR code ready — scan with WhatsApp to connect.\n');
-    // Generate base64 image for the admin UI
     try {
       currentQRImage = await qrcode.toDataURL(qr);
-    } catch (e) {
-      console.error('[WhatsApp] QR image generation error:', e.message);
-    }
+    } catch {}
+    await persistState({ qrText: qr, qrImage: currentQRImage }).catch(() => {});
   });
 
-  client.on('ready', () => {
+  client.on('ready', async () => {
     status = 'connected';
     currentQRString = null;
     currentQRImage = null;
-    console.log('[WhatsApp] ✅ Client connected and ready!');
+    await persistState({ lastConnectedAt: new Date(), qrText: null, qrImage: null }).catch(() => {});
   });
 
   client.on('authenticated', () => {
-    console.log('[WhatsApp] Session authenticated.');
+    persistState({ lastConnectedAt: new Date() }).catch(() => {});
   });
 
-  client.on('auth_failure', (msg) => {
+  client.on('auth_failure', () => {
     status = 'disconnected';
     currentQRImage = null;
-    console.error('[WhatsApp] Auth failure:', msg);
+    currentQRString = null;
+    persistState({ lastDisconnectedAt: new Date(), qrText: null, qrImage: null }).catch(() => {});
   });
 
-  client.on('disconnected', (reason) => {
+  client.on('disconnected', () => {
     status = 'disconnected';
     currentQRImage = null;
+    currentQRString = null;
     client = null;
-    console.log('[WhatsApp] Disconnected:', reason);
-    // Auto-reconnect after 10s
-    console.log('[WhatsApp] Will attempt reconnect in 10 seconds...');
+    persistState({ lastDisconnectedAt: new Date(), qrText: null, qrImage: null }).catch(() => {});
     setTimeout(initClient, 10000);
   });
 
@@ -205,14 +209,14 @@ function initClient() {
     try {
       await processMessage(message);
     } catch (e) {
-      console.error('[WhatsApp] Unhandled error processing message:', e.message);
+      await addLog('error', message.from.replace('@c.us', ''), message.body || '', 'Erreur interne', { statusCode: 500 });
     }
   });
 
-  client.initialize().catch((e) => {
-    console.error('[WhatsApp] Initialization error:', e.message);
+  client.initialize().catch(async () => {
     status = 'disconnected';
     client = null;
+    await persistState({ lastDisconnectedAt: new Date(), qrText: null, qrImage: null }).catch(() => {});
   });
 }
 
@@ -222,11 +226,29 @@ async function sendMessage(phone, text) {
   }
   const chatId = phone.includes('@c.us') ? phone : `${phone.replace(/\D/g, '')}@c.us`;
   await client.sendMessage(chatId, text);
-  console.log(`[WhatsApp] Message sent to ${chatId}`);
+  await logMessage({
+    direction: 'outbound',
+    messageType: 'manual',
+    phone: phone.replace(/\D/g, ''),
+    text,
+    reply: null,
+    workOrderId: null,
+    statusCode: 200,
+  });
 }
 
-function getStatus() { return status; }
-function getQRImage() { return currentQRImage; }
-function getLogs() { return messageLogs; }
+async function getStatus() {
+  const state = await getGatewayState();
+  return state?.status || status;
+}
+
+async function getQRImage() {
+  const state = await getGatewayState();
+  return state?.qrImage || currentQRImage;
+}
+
+async function getLogs() {
+  return listMessages();
+}
 
 module.exports = { initClient, sendMessage, getStatus, getQRImage, getLogs };

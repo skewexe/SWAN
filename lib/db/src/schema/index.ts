@@ -7,3 +7,4 @@ export * from "./technicians";
 export * from "./sites";
 export * from "./zones";
 export * from "./asset_parts";
+export * from "./whatsapp";

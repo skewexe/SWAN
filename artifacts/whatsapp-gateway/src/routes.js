@@ -1,58 +1,44 @@
 'use strict';
 
 const express = require('express');
-const { loadNumbers, saveNumbers } = require('./config');
-const { getStatus, getQRImage, sendMessage, getLogs } = require('./whatsapp');
+const { listAllowedNumbers, addAllowedNumber, removeAllowedNumber, getGatewayState, listMessages } = require('./db');
+const { getStatus, getQRImage, sendMessage } = require('./whatsapp');
 
 const router = express.Router();
 
-// GET /whatsapp/status
-router.get('/status', (req, res) => {
-  res.json({ status: getStatus(), timestamp: new Date().toISOString() });
+router.get('/status', async (req, res) => {
+  const state = await getGatewayState();
+  res.json({ status: state?.status || (await getStatus()), timestamp: new Date().toISOString() });
 });
 
-// GET /whatsapp/qr — returns base64 PNG of QR code
-router.get('/qr', (req, res) => {
-  const qr = getQRImage();
-  res.json({ qr: qr || null, status: getStatus() });
+router.get('/qr', async (req, res) => {
+  const state = await getGatewayState();
+  res.json({ qr: state?.qrImage || (await getQRImage()) || null, status: state?.status || (await getStatus()) });
 });
 
-// GET /whatsapp/numbers — list allowed numbers
-router.get('/numbers', (req, res) => {
-  res.json(loadNumbers());
+router.get('/numbers', async (req, res) => {
+  res.json(await listAllowedNumbers());
 });
 
-// POST /whatsapp/numbers — add { phone, name }
-router.post('/numbers', (req, res) => {
+router.post('/numbers', async (req, res) => {
   const { phone, name } = req.body;
   if (!phone) { res.status(400).json({ error: 'phone is required' }); return; }
-
   const clean = String(phone).replace(/\D/g, '');
   if (!clean) { res.status(400).json({ error: 'Invalid phone number' }); return; }
-
-  const numbers = loadNumbers();
-  if (numbers.some(n => n.phone === clean)) {
+  try {
+    const entry = await addAllowedNumber(clean, (name || clean).trim());
+    res.status(201).json(entry);
+  } catch (e) {
     res.status(409).json({ error: 'Ce numéro est déjà autorisé' });
-    return;
   }
-  const entry = { phone: clean, name: (name || clean).trim(), addedAt: new Date().toISOString() };
-  numbers.push(entry);
-  saveNumbers(numbers);
-  console.log(`[Gateway] Authorized number added: +${clean} (${entry.name})`);
-  res.status(201).json(entry);
 });
 
-// DELETE /whatsapp/numbers/:phone
-router.delete('/numbers/:phone', (req, res) => {
+router.delete('/numbers/:phone', async (req, res) => {
   const clean = req.params.phone.replace(/\D/g, '');
-  const before = loadNumbers();
-  const after = before.filter(n => n.phone !== clean);
-  saveNumbers(after);
-  console.log(`[Gateway] Authorized number removed: +${clean}`);
-  res.json({ success: true, removed: before.length - after.length });
+  await removeAllowedNumber(clean);
+  res.json({ success: true });
 });
 
-// POST /whatsapp/send — { phone, message }
 router.post('/send', async (req, res) => {
   const { phone, message } = req.body;
   if (!phone || !message) {
@@ -67,14 +53,12 @@ router.post('/send', async (req, res) => {
   }
 });
 
-// GET /whatsapp/logs — recent message log
-router.get('/logs', (req, res) => {
-  res.json(getLogs());
+router.get('/logs', async (req, res) => {
+  res.json(await listMessages());
 });
 
-// GET /whatsapp/healthz
-router.get('/healthz', (req, res) => {
-  res.json({ ok: true, service: 'whatsapp-gateway', status: getStatus() });
+router.get('/healthz', async (req, res) => {
+  res.json({ ok: true, service: 'whatsapp-gateway', status: await getStatus() });
 });
 
 module.exports = router;
