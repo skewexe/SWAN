@@ -62,8 +62,6 @@ const MILESTONES = [
 export default function AboutPage() {
   return (
     <div className="mx-auto w-full max-w-7xl px-6 lg:px-8 space-y-0">
-
-      {/* ── HERO ── */}
       <section className="relative overflow-hidden pb-20 pt-8">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_700px_at_50%_-60px,rgba(10,109,255,0.09),transparent)]" />
         <motion.div
@@ -98,8 +96,7 @@ export default function AboutPage() {
         </motion.div>
       </section>
 
-      {/* ── STAT BAR ── */}
-      <div className="border-y border-border/50 bg-card/40 py-10">
+      <section className="border-y border-border/50 bg-card/40 py-10">
         <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
           {[
             ["500+", "Sites déployés"],
@@ -113,9 +110,39 @@ export default function AboutPage() {
             </div>
           ))}
         </div>
-      </div>
+      </section>
 
-      {/* ── VALUES ── */}
+      <section className="py-20">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, ease: easeOut }}
+          className="max-w-2xl"
+        >
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary">Origine</p>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Pensé par le terrain, pour le terrain.</h2>
+          <p className="mt-3 text-[1rem] leading-relaxed text-muted-foreground">
+            En 2026, SWAN a été conçu par 3 ingénieurs informatiques travaillant dans 3 usines différentes à Oran.
+            Un besoin réel, observé au quotidien : remplacer les tableaux dispersés, les suivis manuels et les outils
+            génériques par une solution fiable, lisible et directement exploitable par les équipes de maintenance.
+          </p>
+        </motion.div>
+
+        <div className="mt-10 grid gap-5 lg:grid-cols-3">
+          {[
+            ["3 ingénieurs", "Un produit né d'une collaboration entre terrain, code et maintenance."],
+            ["3 usines", "Des contraintes différentes, un seul besoin : piloter mieux et plus vite."],
+            ["Oran, 2026", "Une solution construite pour une réalité industrielle locale, pas pour la théorie."],
+          ].map(([title, desc]) => (
+            <div key={title} className="rounded-3xl border border-border/60 bg-card/70 p-6">
+              <div className="text-lg font-semibold">{title}</div>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <section className="py-20">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -151,7 +178,6 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* ── SECTORS ── */}
       <section className="border-t border-border/50 py-20">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -181,7 +207,6 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* ── TIMELINE ── */}
       <section className="border-t border-border/50 py-20">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -219,7 +244,6 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* ── FEATURES QUICK CHECK ── */}
       <section className="border-t border-border/50 py-20">
         <div className="rounded-[2rem] border border-border/60 bg-card/70 px-8 py-12 md:px-14">
           <div className="grid gap-10 md:grid-cols-2">
@@ -253,7 +277,6 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* ── CTA ── */}
       <section className="border-t border-border/50 py-20">
         <div className="text-center">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary">Passez à l'action</p>
