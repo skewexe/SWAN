@@ -1,241 +1,277 @@
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Activity, ShieldCheck, Settings, Users, BarChart3, Box, Check, Zap, Building2, Headphones } from "lucide-react";
+import {
+  ArrowRight,
+  Activity,
+  ShieldCheck,
+  Settings,
+  Users,
+  BarChart3,
+  Box,
+  Check,
+  Building2,
+  Headphones,
+  Landmark,
+  Factory,
+  FileText,
+  Sparkles,
+  Workflow,
+} from "lucide-react";
 import swanLogo from "@assets/ChatGPT Image 30 avr. 2026, 11_42_07.png";
 
 const fadeInUp = {
-  initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.5 }
+  initial: { opacity: 0, y: 18 },
+  whileInView: { opacity: 1, y: 0 },
+  transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
 };
 
-const staggerContainer = {
-  animate: {
-    transition: {
-      staggerChildren: 0.1
-    }
-  }
+const sectionIn = {
+  initial: { opacity: 0, y: 24 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, amount: 0.3 },
+  transition: { duration: 0.55 },
 };
 
 const PLANS = [
   {
-    name: "Starter",
-    price: "15 000",
-    period: "DA / mois",
-    description: "Idéal pour les PME et ateliers de petite taille.",
-    icon: Zap,
-    color: "#38BDF8",
-    features: [
-      "Jusqu'à 50 équipements",
-      "5 techniciens",
-      "Ordres de travail illimités",
-      "Maintenance préventive",
-      "Gestion du stock",
-      "Support par email",
-    ],
-    cta: "Démarrer",
+    name: "Essentiel",
+    price: "Sur demande",
+    period: "",
+    description: "Pour les équipes qui veulent structurer l'opérationnel sans complexité inutile.",
+    icon: Building2,
+    features: ["Jusqu'à 50 équipements", "5 techniciens", "OT & préventif", "Support standard"],
+    cta: "Parler à un conseiller",
     highlighted: false,
   },
   {
-    name: "Industriel",
-    price: "45 000",
-    period: "DA / mois",
-    description: "Pour les unités de production et sites industriels.",
-    icon: Building2,
-    color: "#0A6DFF",
-    features: [
-      "Équipements illimités",
-      "20 techniciens",
-      "Tout ce qui est dans Starter",
-      "Rapports & KPIs avancés",
-      "Gestion multi-sites",
-      "API & intégrations ERP",
-      "Support prioritaire 5j/7",
-    ],
-    cta: "Choisir ce plan",
+    name: "Entreprise",
+    price: "Sur demande",
+    period: "",
+    description: "Le standard SWAN pour les sites industriels qui exigent contrôle et visibilité.",
+    icon: Factory,
+    features: ["Multi-sites", "RBAC avancé", "Calendrier maintenance", "Rapports & KPI", "Import CSV / Excel"],
+    cta: "Démarrer un projet",
     highlighted: true,
   },
   {
-    name: "Entreprise",
+    name: "Groupe",
     price: "Sur mesure",
     period: "",
-    description: "Solution complète pour les grands groupes industriels.",
-    icon: Headphones,
-    color: "#22C55E",
-    features: [
-      "Tout ce qui est dans Industriel",
-      "Techniciens illimités",
-      "Déploiement on-premise disponible",
-      "Formation & accompagnement",
-      "SLA garanti 99.9%",
-      "Account manager dédié",
-      "Support 24/7",
-    ],
-    cta: "Nous contacter",
+    description: "Déploiement complet pour les organisations à forte maturité industrielle.",
+    icon: Landmark,
+    features: ["On-premise", "SLA dédié", "Accompagnement", "Intégrations SI", "Support 24/7"],
+    cta: "Contacter l'équipe",
     highlighted: false,
   },
 ];
 
+const CAPABILITIES = [
+  { title: "Pilotage des actifs", desc: "Équipements, pièces machine, photos, localisations, historique complet.", icon: Settings },
+  { title: "Ordres de travail", desc: "Affectation par technicien, zone, machine ou type avec contrôle d'exécution.", icon: Workflow },
+  { title: "Maintenance préventive", desc: "Planification lisible, alertes et calendrier industriel exploitable.", icon: ShieldCheck },
+  { title: "Stocks & pièces", desc: "Gestion des consommations, seuils critiques et suivi précis des pièces.", icon: Box },
+  { title: "Équipes & RBAC", desc: "Profils réels, droits clairs et séparation des responsabilités.", icon: Users },
+  { title: "Reporting direction", desc: "MTBF, MTTR, disponibilité, coûts et arbitrage opérationnel.", icon: BarChart3 },
+];
+
 export default function LandingPage() {
   return (
-    <div className="flex flex-col w-full">
-      {/* Hero Section */}
-      <section className="relative pt-24 pb-32 overflow-hidden border-b border-border/50">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/10 via-background to-background -z-10"></div>
-        <div className="container mx-auto px-4 text-center">
-          <motion.div initial="initial" animate="animate" variants={staggerContainer} className="max-w-4xl mx-auto space-y-8">
-            <motion.div variants={fadeInUp} className="flex justify-center mb-8">
-              <img src={swanLogo} alt="SWAN Logo" className="h-20 md:h-28 w-auto" />
+    <div className="w-full bg-background text-foreground">
+      <section className="relative overflow-hidden border-b border-border/50">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(10,109,255,0.14),_transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.02),transparent)]" />
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+        <div className="mx-auto max-w-7xl px-6 py-6 lg:px-8">
+          <div className="flex items-center justify-between rounded-full border border-border/70 bg-card/70 px-4 py-3 backdrop-blur-md">
+            <div className="flex items-center gap-3">
+              <img src={swanLogo} alt="SWAN" className="h-8 w-auto" />
+              <div className="hidden sm:block">
+                <div className="text-sm font-semibold tracking-[0.18em] uppercase">Swan GMAO</div>
+                <div className="text-xs text-muted-foreground">Industrial maintenance platform</div>
+              </div>
+            </div>
+            <div className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
+              <Link href="/about" className="hover:text-foreground transition-colors">À propos</Link>
+              <Link href="/faq" className="hover:text-foreground transition-colors">FAQ</Link>
+              <Link href="/login" className="hover:text-foreground transition-colors">Connexion</Link>
+            </div>
+            <Link href="/register">
+              <Button className="rounded-full px-5">Commencer</Button>
+            </Link>
+          </div>
+        </div>
+
+        <div className="mx-auto grid max-w-7xl gap-16 px-6 pb-24 pt-10 lg:grid-cols-[1.12fr_0.88fr] lg:px-8 lg:pb-28 lg:pt-16">
+          <motion.div initial="initial" animate="whileInView" variants={{}} className="max-w-3xl">
+            <motion.div {...fadeInUp} className="mb-6 inline-flex items-center gap-2 rounded-full border border-border/70 bg-card/70 px-4 py-2 text-sm text-muted-foreground backdrop-blur-md">
+              <Sparkles className="h-4 w-4 text-primary" />
+              GMAO premium pensée pour les industriels
             </motion.div>
-            
-            <motion.h1 variants={fadeInUp} className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-foreground leading-tight">
-              L'Intelligence Industrielle <br/>
-              <span className="text-primary">au Service de la Maintenance</span>
+            <motion.h1 {...fadeInUp} className="text-5xl font-semibold tracking-tight sm:text-6xl lg:text-7xl">
+              L’excellence opérationnelle
+              <span className="block text-muted-foreground">pour la maintenance industrielle.</span>
             </motion.h1>
-            
-            <motion.p variants={fadeInUp} className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              La plateforme GMAO de référence pour l'industrie algérienne. 
-              Pilotez vos équipements, optimisez vos ressources et maximisez votre taux de disponibilité avec une précision chirurgicale.
+            <motion.p {...fadeInUp} className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground">
+              SWAN structure vos équipements, vos interventions et vos équipes dans une interface sobre,
+              claire et conçue pour les exigences des groupes industriels.
             </motion.p>
-            
-            <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+            <motion.div {...fadeInUp} className="mt-10 flex flex-col gap-3 sm:flex-row">
               <Link href="/register">
-                <Button size="lg" className="h-14 px-8 text-base font-semibold w-full sm:w-auto group">
-                  Démarrer l'essai gratuit
-                  <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+                <Button size="lg" className="h-12 rounded-full px-7 text-base font-medium">
+                  Demander un accès
+                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-              <Link href="/about">
-                <Button size="lg" variant="outline" className="h-14 px-8 text-base font-semibold w-full sm:w-auto">
-                  Découvrir la solution
+              <Link href="/dashboard?mode=demo">
+                <Button size="lg" variant="outline" className="h-12 rounded-full px-7 text-base font-medium">
+                  Voir la démonstration
                 </Button>
               </Link>
             </motion.div>
+            <motion.div {...fadeInUp} className="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {[
+                ["99.9%", "Disponibilité"],
+                ["Multi-sites", "Pilotage"],
+                ["RBAC", "Contrôle"],
+                ["24/7", "Support"],
+              ].map(([value, label]) => (
+                <div key={value} className="rounded-2xl border border-border/70 bg-card/70 p-4 backdrop-blur-md">
+                  <div className="text-2xl font-semibold">{value}</div>
+                  <div className="mt-1 text-xs uppercase tracking-[0.18em] text-muted-foreground">{label}</div>
+                </div>
+              ))}
+            </motion.div>
+          </motion.div>
+
+          <motion.div {...sectionIn} className="relative">
+            <div className="absolute -inset-6 rounded-[2rem] bg-primary/5 blur-3xl" />
+            <div className="relative overflow-hidden rounded-[2rem] border border-border/70 bg-card/80 shadow-2xl shadow-black/20">
+              <div className="border-b border-border/60 px-6 py-4">
+                <div className="text-sm font-medium text-muted-foreground">Vue direction maintenance</div>
+                <div className="mt-1 text-2xl font-semibold">Pilotage industriel</div>
+              </div>
+              <div className="grid gap-4 p-6">
+                <div className="rounded-2xl border border-border/70 bg-background/40 p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm text-muted-foreground">Disponibilité globale</div>
+                      <div className="mt-1 text-3xl font-semibold">98.6%</div>
+                    </div>
+                    <Activity className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="mt-4 h-2 rounded-full bg-muted">
+                    <div className="h-2 w-[86%] rounded-full bg-primary" />
+                  </div>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {[
+                    ["OT ouverts", "14"],
+                    ["Préventif en retard", "03"],
+                    ["Sites actifs", "08"],
+                    ["Pièces critiques", "21"],
+                  ].map(([label, value]) => (
+                    <div key={label} className="rounded-2xl border border-border/70 bg-background/40 p-4">
+                      <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{label}</div>
+                      <div className="mt-3 text-2xl font-semibold">{value}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="rounded-2xl border border-border/70 bg-background/40 p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-medium">Maintenance préventive</div>
+                      <div className="text-sm text-muted-foreground">Calendrier et exécution sous contrôle</div>
+                    </div>
+                    <FileText className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="mt-4 space-y-3">
+                    {["Inspection ligne 2", "Graissage atelier A", "Contrôle sécurité site Nord"].map((item) => (
+                      <div key={item} className="flex items-center justify-between rounded-xl border border-border/60 px-4 py-3">
+                        <span className="text-sm">{item}</span>
+                        <span className="text-xs text-muted-foreground">Planifié</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
           </motion.div>
         </div>
       </section>
 
-      {/* Stats/Trust Bar */}
-      <section className="py-12 bg-card border-b border-border/50">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center divide-x divide-border/50">
-            <div className="space-y-2">
-              <div className="text-4xl font-bold text-foreground">99.9%</div>
-              <div className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Disponibilité</div>
-            </div>
-            <div className="space-y-2">
-              <div className="text-4xl font-bold text-foreground">+500</div>
-              <div className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Usines équipées</div>
-            </div>
-            <div className="space-y-2">
-              <div className="text-4xl font-bold text-foreground">-30%</div>
-              <div className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Temps d'arrêt</div>
-            </div>
-            <div className="space-y-2">
-              <div className="text-4xl font-bold text-foreground">24/7</div>
-              <div className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Support local</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Overview */}
-      <section className="py-24">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16 max-w-2xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Un contrôle total sur vos opérations</h2>
-            <p className="text-muted-foreground text-lg">Une suite complète d'outils conçue pour les exigences rigoureuses du milieu industriel.</p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              { title: "Gestion des Actifs", desc: "Inventaire structuré, historique complet et suivi de criticité de chaque équipement.", icon: Settings },
-              { title: "Ordres de Travail", desc: "Planification, assignation et suivi en temps réel des interventions correctives.", icon: Activity },
-              { title: "Maintenance Préventive", desc: "Programmation automatique des routines d'inspection et de maintenance.", icon: ShieldCheck },
-              { title: "Gestion des Stocks", desc: "Suivi des pièces de rechange, alertes de seuil minimum et valorisation.", icon: Box },
-              { title: "Équipes & Techniciens", desc: "Affectation selon les compétences, suivi des charges de travail et disponibilités.", icon: Users },
-              { title: "Rapports Décisionnels", desc: "Tableaux de bord dynamiques, calcul automatique du MTBF, MTTR et coûts.", icon: BarChart3 }
-            ].map((feature, i) => (
-              <div key={i} className="p-6 rounded-2xl bg-card border border-border hover:border-primary/50 transition-colors group">
-                <div className="h-12 w-12 rounded-lg bg-secondary flex items-center justify-center mb-6 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                  <feature.icon className="h-6 w-6" strokeWidth={1.5} />
-                </div>
-                <h3 className="text-xl font-semibold mb-3 text-foreground">{feature.title}</h3>
-                <p className="text-muted-foreground leading-relaxed">{feature.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing Section */}
-      <section className="py-24 bg-card border-t border-border/50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16 max-w-2xl mx-auto">
+      <section className="mx-auto max-w-7xl px-6 py-24 lg:px-8">
+        <motion.div {...sectionIn} className="max-w-2xl">
+          <p className="text-sm font-medium uppercase tracking-[0.2em] text-primary">Plateforme</p>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+            Une interface sobre, crédible et conçue pour les équipes qui opèrent.
+          </h2>
+          <p className="mt-4 text-lg leading-8 text-muted-foreground">
+            Pas d’effets gadgets. Juste une expérience premium, lisible et adaptée à un usage quotidien en environnement industriel.
+          </p>
+        </motion.div>
+        <div className="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {CAPABILITIES.map((item, idx) => (
             <motion.div
+              key={item.title}
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
+              transition={{ duration: 0.4, delay: idx * 0.05 }}
+              className="rounded-3xl border border-border/70 bg-card/80 p-6"
             >
-              <p className="text-sm font-semibold text-primary uppercase tracking-widest mb-3">Tarification</p>
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">Des offres adaptées à chaque industrie</h2>
-              <p className="text-muted-foreground text-lg">Essai gratuit 30 jours · Sans engagement · Mise en production en 48h</p>
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-border/70 bg-background/60">
+                <item.icon className="h-5 w-5 text-primary" />
+              </div>
+              <h3 className="mt-5 text-xl font-semibold">{item.title}</h3>
+              <p className="mt-3 leading-7 text-muted-foreground">{item.desc}</p>
             </motion.div>
-          </div>
+          ))}
+        </div>
+      </section>
 
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {PLANS.map((plan, i) => {
+      <section className="border-y border-border/50 bg-card/40">
+        <div className="mx-auto max-w-7xl px-6 py-24 lg:px-8">
+          <motion.div {...sectionIn} className="max-w-2xl">
+            <p className="text-sm font-medium uppercase tracking-[0.2em] text-primary">Offres</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Une structure claire pour passer à l’échelle.</h2>
+          </motion.div>
+          <div className="mt-12 grid gap-6 lg:grid-cols-3">
+            {PLANS.map((plan, idx) => {
               const Icon = plan.icon;
               return (
                 <motion.div
                   key={plan.name}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 18 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: i * 0.1 }}
-                  className={`relative flex flex-col rounded-2xl p-6 border transition-all ${
-                    plan.highlighted
-                      ? "border-primary/60 bg-primary/5 shadow-[0_0_40px_-8px_rgba(10,109,255,0.3)]"
-                      : "border-border bg-background hover:border-border/80"
-                  }`}
+                  transition={{ duration: 0.4, delay: idx * 0.08 }}
+                  className={`rounded-3xl border p-6 ${plan.highlighted ? "border-primary/60 bg-primary/5" : "border-border/70 bg-card/80"}`}
                 >
                   {plan.highlighted && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <span className="bg-primary text-primary-foreground text-xs font-bold px-4 py-1 rounded-full">
-                        LE PLUS POPULAIRE
-                      </span>
+                    <div className="mb-5 inline-flex rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                      Recommandé pour les sites multi-équipes
                     </div>
                   )}
-
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="h-10 w-10 rounded-lg flex items-center justify-center" style={{ background: `${plan.color}18` }}>
-                      <Icon className="h-5 w-5" style={{ color: plan.color }} strokeWidth={1.5} />
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-border/70 bg-background/60">
+                      <Icon className="h-5 w-5 text-primary" />
                     </div>
-                    <h3 className="text-lg font-semibold text-foreground">{plan.name}</h3>
+                    <div>
+                      <h3 className="text-xl font-semibold">{plan.name}</h3>
+                      <p className="text-sm text-muted-foreground">{plan.description}</p>
+                    </div>
                   </div>
-
-                  <div className="mb-2">
-                    <span className="text-3xl font-bold text-foreground tracking-tight">{plan.price}</span>
-                    {plan.period && <span className="text-sm text-muted-foreground ml-1">{plan.period}</span>}
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-6">{plan.description}</p>
-
-                  <ul className="space-y-3 flex-1 mb-8">
-                    {plan.features.map(feat => (
-                      <li key={feat} className="flex items-start gap-2.5 text-sm text-muted-foreground">
-                        <Check className="h-4 w-4 shrink-0 mt-0.5" style={{ color: plan.color }} strokeWidth={2.5} />
-                        {feat}
+                  <div className="mt-6 text-3xl font-semibold">{plan.price}</div>
+                  <ul className="mt-6 space-y-3">
+                    {plan.features.map((feat) => (
+                      <li key={feat} className="flex items-start gap-3 text-sm text-muted-foreground">
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                        <span>{feat}</span>
                       </li>
                     ))}
                   </ul>
-
                   <Link href="/register">
-                    <Button
-                      className="w-full h-11 font-semibold"
-                      variant={plan.highlighted ? "default" : "outline"}
-                    >
+                    <Button className="mt-8 h-11 w-full rounded-full" variant={plan.highlighted ? "default" : "outline"}>
                       {plan.cta}
                     </Button>
                   </Link>
@@ -243,30 +279,24 @@ export default function LandingPage() {
               );
             })}
           </div>
-
-          <motion.p
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="text-center text-sm text-muted-foreground mt-10"
-          >
-            Tous les prix sont HT · Paiement en dinars algériens (DZD) · Facturation mensuelle ou annuelle
-          </motion.p>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-24 border-t border-border">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">Prêt à moderniser votre maintenance ?</h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto mb-10">
-            Rejoignez les leaders de l'industrie algérienne qui font confiance à SWAN pour optimiser leur production.
+      <section className="mx-auto max-w-7xl px-6 py-24 lg:px-8">
+        <div className="rounded-[2rem] border border-border/70 bg-card/80 p-8 text-center md:p-14">
+          <p className="text-sm font-medium uppercase tracking-[0.2em] text-primary">SWAN GMAO</p>
+          <h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">Prêt pour une image plus mature et plus exigeante.</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-lg leading-8 text-muted-foreground">
+            Pensé pour les directions industrielles, les équipes de maintenance et les environnements où la sobriété inspire confiance.
           </p>
-          <Link href="/register">
-            <Button size="lg" className="h-14 px-10 text-base font-semibold">
-              Créer mon espace
-            </Button>
-          </Link>
+          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+            <Link href="/register">
+              <Button size="lg" className="h-12 rounded-full px-7 text-base">Créer un espace</Button>
+            </Link>
+            <Link href="/login">
+              <Button size="lg" variant="outline" className="h-12 rounded-full px-7 text-base">Se connecter</Button>
+            </Link>
+          </div>
         </div>
       </section>
     </div>
