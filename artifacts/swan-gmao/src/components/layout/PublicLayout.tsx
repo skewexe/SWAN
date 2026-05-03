@@ -14,7 +14,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
       <footer className="border-t border-border/50 bg-card/30">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-6 py-10 sm:flex-row lg:px-8">
           <div className="flex items-center gap-3">
-            <img src={swanLogo} alt="SWAN Logo" className="h-6 w-auto opacity-60 grayscale" />
+            <img src={swanLogo} alt="SWAN Logo" className="h-8 w-auto opacity-60 grayscale" />
             <span className="text-[13px] text-muted-foreground">© {new Date().getFullYear()} SWAN Industrial Intelligence</span>
           </div>
           <div className="flex gap-7 text-[13px] text-muted-foreground">

@@ -31,7 +31,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       <aside className="w-72 border-r border-border/50 bg-card/70 flex flex-col shrink-0 sticky top-0 h-screen backdrop-blur-md">
         <div className="h-16 flex items-center px-6 border-b border-border/50 shrink-0">
           <Link href="/dashboard" className="flex items-center gap-3 transition-opacity hover:opacity-80">
-            <img src={swanLogo} alt="SWAN Logo" className="h-8 w-auto" />
+            <img src={swanLogo} alt="SWAN Logo" className="h-12 w-auto" />
             <div>
               <div className="text-[11px] font-semibold tracking-[0.2em] uppercase">SWAN</div>
               <div className="text-[10px] text-muted-foreground">Industrial maintenance platform</div>

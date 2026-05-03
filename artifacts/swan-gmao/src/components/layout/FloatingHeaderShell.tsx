@@ -14,16 +14,14 @@ export function FloatingHeaderShell({ logo, title, rightContent, hideCenterNav }
   return (
     <header className="sticky top-0 z-50 px-6 pt-5 pb-0 lg:px-8">
       <div className="mx-auto flex max-w-7xl items-center justify-between rounded-full border border-border/60 bg-card/60 px-5 py-3 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.55)] backdrop-blur-md">
-        {/* Logo */}
         <Link href="/" className="flex items-center gap-3 transition-opacity hover:opacity-80 shrink-0">
-          <img src={logo} alt="SWAN" className="h-7 w-auto" />
+          <img src={logo} alt="SWAN" className="h-10 w-auto" />
           <div className="hidden sm:block">
             <div className="text-[11px] font-semibold tracking-[0.22em] uppercase text-foreground">Swan GMAO</div>
             <div className="text-[10px] text-muted-foreground leading-none">Industrial maintenance platform</div>
           </div>
         </Link>
 
-        {/* Center — nav links (public) or page title (dashboard) */}
         {hideCenterNav ? (
           <div className="hidden md:block text-sm font-semibold text-foreground tracking-tight">
             {title}
@@ -37,7 +35,6 @@ export function FloatingHeaderShell({ logo, title, rightContent, hideCenterNav }
           </nav>
         )}
 
-        {/* Right — notifications or CTA */}
         {rightContent ? (
           <div className="shrink-0">{rightContent}</div>
         ) : (
