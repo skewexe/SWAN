@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGetAssets } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
@@ -87,7 +87,7 @@ export default function SiteMapPage() {
     return saved.length > 0 ? saved[0].id : null;
   });
 
-  const activeMap = maps.find(m => m.id === activeMapId) ?? null;
+  const activeMap = useMemo(() => maps.find(m => m.id === activeMapId) ?? null, [maps, activeMapId]);
 
   const [drawMode, setDrawMode] = useState<DrawMode>("select");
   const [zoom, setZoom] = useState(1);
@@ -116,7 +116,6 @@ export default function SiteMapPage() {
   const [zoneLabel, setZoneLabel] = useState("");
   const [zoneColorIdx, setZoneColorIdx] = useState(0);
 
-  const [showLayers, setShowLayers] = useState(true);
   const [showMarkers, setShowMarkers] = useState(true);
   const [showZones, setShowZones] = useState(true);
 
@@ -172,6 +171,15 @@ export default function SiteMapPage() {
     e.target.value = "";
   };
 
+  const mapPointFromEvent = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    if (!svgRef.current) return { x: 0, y: 0 };
+    const rect = svgRef.current.getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left - pan.x) / zoom,
+      y: (e.clientY - rect.top - pan.y) / zoom,
+    };
+  }, [pan.x, pan.y, zoom]);
+
   const svgToMap = useCallback((clientX: number, clientY: number) => {
     if (!svgRef.current) return { x: 0, y: 0 };
     const rect = svgRef.current.getBoundingClientRect();
@@ -181,9 +189,7 @@ export default function SiteMapPage() {
   }, [pan, zoom]);
 
   const handleCanvasMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (e.target !== svgRef.current && (e.target as Element).tagName === "circle") return;
-    if (e.target !== svgRef.current && (e.target as Element).closest("[data-marker]")) return;
-    if (e.target !== svgRef.current && (e.target as Element).closest("[data-zone]")) return;
+    if ((e.target as Element).closest("[data-marker], [data-zone], [data-toolbar]")) return;
 
     if (drawMode === "pan") {
       setIsPanning(true);
@@ -197,7 +203,7 @@ export default function SiteMapPage() {
       return;
     }
     if (drawMode === "pin") {
-      const pos = svgToMap(e.clientX, e.clientY);
+      const pos = mapPointFromEvent(e);
       setPendingMarkerPos(pos);
       setEditMarker({ x: pos.x, y: pos.y, label: "", status: "unknown" });
       setShowMarkerDialog(true);
@@ -213,7 +219,7 @@ export default function SiteMapPage() {
       return;
     }
     if (draggingMarkerId && activeMap) {
-      const pos = svgToMap(e.clientX, e.clientY);
+      const pos = mapPointFromEvent(e);
       updateActiveMap(m => ({
         ...m,
         markers: m.markers.map(mk =>
@@ -223,11 +229,11 @@ export default function SiteMapPage() {
       return;
     }
     if (drawMode === "zone" && zoneDrawStart) {
-      setZoneDrawCurrent(svgToMap(e.clientX, e.clientY));
+      setZoneDrawCurrent(mapPointFromEvent(e));
     }
   };
 
-  const handleCanvasMouseUp = (e: React.MouseEvent<SVGSVGElement>) => {
+  const handleCanvasMouseUp = () => {
     if (isPanning) { setIsPanning(false); return; }
     if (draggingMarkerId) { setDraggingMarkerId(null); return; }
     if (drawMode === "zone" && zoneDrawStart && zoneDrawCurrent) {
@@ -271,8 +277,8 @@ export default function SiteMapPage() {
     } else {
       const newMarker: SiteMarker = {
         id: genId(),
-        x: editMarker.x ?? 100,
-        y: editMarker.y ?? 100,
+        x: pendingMarkerPos?.x ?? editMarker.x ?? 100,
+        y: pendingMarkerPos?.y ?? editMarker.y ?? 100,
         label: editMarker.label!,
         status: (editMarker.status as MarkerStatus) ?? "unknown",
         assetId: editMarker.assetId,
@@ -285,6 +291,12 @@ export default function SiteMapPage() {
     setEditMarker(null);
     setPendingMarkerPos(null);
     toast({ title: "Marqueur sauvegardé" });
+  };
+
+  const discardMarker = () => {
+    setShowMarkerDialog(false);
+    setEditMarker(null);
+    setPendingMarkerPos(null);
   };
 
   const deleteMarker = (id: string) => {
@@ -304,6 +316,8 @@ export default function SiteMapPage() {
     updateActiveMap(m => ({ ...m, zones: [...m.zones, newZone] }));
     setShowZoneDialog(false);
     setPendingZone(null);
+    setZoneDrawStart(null);
+    setZoneDrawCurrent(null);
     toast({ title: "Zone ajoutée" });
   };
 
@@ -318,6 +332,8 @@ export default function SiteMapPage() {
   const CANVAS_H = 800;
 
   const selectedMarker = activeMap?.markers.find(m => m.id === selectedMarkerId);
+  const canvasWidth = 1200;
+  const canvasHeight = 800;
 
   return (
     <div className="space-y-0 h-full flex flex-col -m-8">
@@ -401,7 +417,7 @@ export default function SiteMapPage() {
           ) : (
             <>
               {/* Toolbar */}
-              <div className="flex items-center gap-2 px-4 py-2 border-b border-border/40 bg-card/30 shrink-0 flex-wrap">
+              <div data-toolbar="true" className="flex items-center gap-2 px-4 py-2 border-b border-border/40 bg-card/30 shrink-0 flex-wrap">
                 <div className="flex items-center gap-1 bg-background/60 rounded-xl border border-border/60 p-1">
                   {([
                     { mode: "select" as DrawMode, icon: Move, label: "Sélectionner / Déplacer" },
@@ -488,8 +504,8 @@ export default function SiteMapPage() {
                   style={{ position: "absolute", inset: 0, userSelect: "none" }}
                   onMouseDown={handleCanvasMouseDown}
                   onMouseMove={handleCanvasMouseMove}
-                  onMouseUp={handleCanvasMouseUp}
-                  onMouseLeave={handleCanvasMouseUp}
+                onMouseUp={handleCanvasMouseUp}
+                onMouseLeave={handleCanvasMouseUp}
                   onWheel={(e) => {
                     e.preventDefault();
                     const delta = e.deltaY > 0 ? -0.1 : 0.1;
@@ -502,8 +518,8 @@ export default function SiteMapPage() {
                       <image
                         href={activeMap.backgroundImage}
                         x="0" y="0"
-                        width={CANVAS_W}
-                        height={CANVAS_H}
+                        width={canvasWidth}
+                        height={canvasHeight}
                         preserveAspectRatio="xMidYMid meet"
                         style={{ opacity: 0.85 }}
                       />
@@ -731,7 +747,7 @@ export default function SiteMapPage() {
       </div>
 
       {/* Marker dialog */}
-      <Dialog open={showMarkerDialog} onOpenChange={(o) => { if (!o) { setShowMarkerDialog(false); setEditMarker(null); setPendingMarkerPos(null); } }}>
+      <Dialog open={showMarkerDialog} onOpenChange={(o) => { if (!o) discardMarker(); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{editMarker?.id ? "Modifier l'équipement" : "Ajouter un équipement"}</DialogTitle>
@@ -799,14 +815,14 @@ export default function SiteMapPage() {
                 <Trash2 className="h-4 w-4" />Supprimer
               </Button>
             )}
-            <Button variant="ghost" onClick={() => { setShowMarkerDialog(false); setEditMarker(null); setPendingMarkerPos(null); }}>Annuler</Button>
+            <Button variant="ghost" onClick={discardMarker}>Annuler</Button>
             <Button onClick={saveMarker}>Sauvegarder</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Zone dialog */}
-      <Dialog open={showZoneDialog} onOpenChange={setShowZoneDialog}>
+      <Dialog open={showZoneDialog} onOpenChange={(o) => { if (!o) { setShowZoneDialog(false); setPendingZone(null); setZoneDrawStart(null); setZoneDrawCurrent(null); } }}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Nommer la zone</DialogTitle>
@@ -834,7 +850,7 @@ export default function SiteMapPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => { setShowZoneDialog(false); setPendingZone(null); }}>Annuler</Button>
+            <Button variant="ghost" onClick={() => { setShowZoneDialog(false); setPendingZone(null); setZoneDrawStart(null); setZoneDrawCurrent(null); }}>Annuler</Button>
             <Button onClick={saveZone}>Créer la zone</Button>
           </DialogFooter>
         </DialogContent>
