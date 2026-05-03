@@ -22,6 +22,7 @@ import ReportsPage from "@/pages/ReportsPage";
 import CalendarPage from "@/pages/CalendarPage";
 import SettingsPage from "@/pages/SettingsPage";
 import WhatsAppPage from "@/pages/WhatsAppPage";
+import SiteMapPage from "@/pages/SiteMapPage";
 
 const queryClient = new QueryClient();
 
@@ -69,6 +70,9 @@ function Router() {
       </Route>
       <Route path="/settings">
         <DashboardLayout><SettingsPage /></DashboardLayout>
+      </Route>
+      <Route path="/sitemaps">
+        <DashboardLayout><SiteMapPage /></DashboardLayout>
       </Route>
       <Route path="/whatsapp-admin">
         <DashboardLayout><WhatsAppPage /></DashboardLayout>
