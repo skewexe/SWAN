@@ -67,7 +67,7 @@ export default function LoginPage() {
           <p className="mt-2 text-muted-foreground">Accédez à votre espace de contrôle industriel</p>
         </div>
 
-        <div className="bg-card border border-border p-8 rounded-2xl shadow-xl shadow-background/50 space-y-5">
+        <div className="bg-card border border-border/60 p-8 rounded-3xl shadow-xl shadow-background/80 space-y-5">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
               <FormField
@@ -112,7 +112,7 @@ export default function LoginPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full h-12 text-base font-semibold" disabled={isLoading}>
+              <Button type="submit" className="w-full h-12 text-base font-semibold rounded-full" disabled={isLoading}>
                 {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
                 Se connecter
               </Button>

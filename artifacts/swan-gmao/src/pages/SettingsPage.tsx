@@ -128,8 +128,9 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground tracking-tight">Paramètres</h1>
-        <p className="text-sm text-muted-foreground mt-1">Configuration de la plateforme SWAN</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary mb-1">Administration</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Paramètres</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">Configuration de la plateforme SWAN</p>
       </div>
 
       <div className="flex gap-6">
@@ -139,10 +140,10 @@ export default function SettingsPage() {
             <button
               key={key}
               onClick={() => setActiveTab(key)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left ${
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium transition-colors text-left ${
                 activeTab === key
                   ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
               }`}
             >
               <Icon className="h-4 w-4" strokeWidth={1.5} />

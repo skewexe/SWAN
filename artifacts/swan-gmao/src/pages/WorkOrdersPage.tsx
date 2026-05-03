@@ -410,8 +410,9 @@ export default function WorkOrdersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Ordres de travail</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary mb-1">Maintenance</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Ordres de travail</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
             {isTechnicien
               ? "Mes interventions assignées"
               : "Gestion des interventions de maintenance"}
@@ -424,7 +425,7 @@ export default function WorkOrdersPage() {
           </p>
         </div>
         {!isReadOnly && !isTechnicien && (
-          <Button onClick={openCreate} className="gap-2" data-testid="button-create-workorder">
+          <Button onClick={openCreate} className="gap-2 rounded-full" data-testid="button-create-workorder">
             <Plus className="h-4 w-4" strokeWidth={1.5} />
             Nouvel OT
           </Button>
@@ -432,7 +433,7 @@ export default function WorkOrdersPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-3 flex-wrap">
+      <div className="flex gap-2 flex-wrap">
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-44" data-testid="select-wo-status"><SelectValue placeholder="Statut" /></SelectTrigger>
           <SelectContent>
@@ -467,7 +468,7 @@ export default function WorkOrdersPage() {
       </div>
 
       {/* Table */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-card border border-border/60 rounded-2xl overflow-hidden">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-card border border-border/60 rounded-3xl overflow-hidden">
         {isLoading ? (
           <div className="p-6 space-y-3">
             {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14" />)}

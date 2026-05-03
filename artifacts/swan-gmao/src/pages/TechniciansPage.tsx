@@ -148,10 +148,11 @@ export default function TechniciansPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Personnel</h1>
-          <p className="text-sm text-muted-foreground mt-1">Équipe de maintenance</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary mb-1">Ressources humaines</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Personnel</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Équipe de maintenance</p>
         </div>
-        <Button onClick={openCreate} className="gap-2" data-testid="button-create-tech">
+        <Button onClick={openCreate} className="gap-2 rounded-full" data-testid="button-create-tech">
           <Plus className="h-4 w-4" strokeWidth={1.5} />
           Nouveau technicien
         </Button>
@@ -172,7 +173,7 @@ export default function TechniciansPage() {
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.05 }}
-                className="bg-card border border-border/60 rounded-2xl p-6 flex flex-col gap-4"
+                className="bg-card border border-border/60 rounded-3xl p-6 flex flex-col gap-4"
                 data-testid={`card-technician-${tech.id}`}
               >
                 <div className="flex items-start justify-between">

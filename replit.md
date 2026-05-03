@@ -10,6 +10,15 @@ SWAN is a professional GMAO (Computerized Maintenance Management System) SaaS pl
 - **Font**: Inter
 - **UI Library**: shadcn/ui + Tailwind CSS + framer-motion
 
+### Premium Design Tokens (applied globally across all pages)
+- **Section label**: `text-[11px] font-semibold uppercase tracking-[0.22em] text-primary` — appears above every page `<h1>`
+- **Page heading**: `text-2xl font-semibold tracking-tight text-foreground`
+- **Primary action buttons**: `rounded-full`
+- **Table / list containers**: `rounded-3xl`
+- **Card components (technician cards, KPI cards)**: `rounded-3xl` (main) / `rounded-2xl` (small stat cards)
+- **Settings sidebar tabs**: `rounded-2xl` with `bg-primary/10 text-primary` active state
+- **Auth form cards (Login, Register)**: `rounded-3xl border-border/60 shadow-xl`
+
 ## Stack
 
 - **Monorepo tool**: pnpm workspaces

@@ -32,8 +32,9 @@ export default function ReportsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-foreground tracking-tight">Rapports & KPIs</h1>
-        <p className="text-sm text-muted-foreground mt-1">Indicateurs de performance de la maintenance</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary mb-1">Analytique</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Rapports & KPIs</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">Indicateurs de performance de la maintenance</p>
       </div>
 
       {/* KPI Metrics */}

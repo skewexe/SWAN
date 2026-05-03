@@ -127,10 +127,11 @@ export default function PreventivePage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Maintenance préventive</h1>
-          <p className="text-sm text-muted-foreground mt-1">Plans de maintenance périodique</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary mb-1">Planification</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Maintenance préventive</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Plans de maintenance périodique</p>
         </div>
-        <Button onClick={openCreate} className="gap-2" data-testid="button-create-plan">
+        <Button onClick={openCreate} className="gap-2 rounded-full" data-testid="button-create-plan">
           <Plus className="h-4 w-4" strokeWidth={1.5} />
           Nouveau plan
         </Button>
@@ -147,7 +148,7 @@ export default function PreventivePage() {
         </motion.div>
       )}
 
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-card border border-border/60 rounded-2xl overflow-x-auto">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-card border border-border/60 rounded-3xl overflow-x-auto">
         {isLoading ? (
           <div className="p-6 space-y-3">
             {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14" />)}

@@ -101,10 +101,11 @@ export default function InventoryPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Stock & pièces</h1>
-          <p className="text-sm text-muted-foreground mt-1">Gestion des pièces détachées et consommables</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary mb-1">Magasin</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Stock & pièces</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Pièces détachées et consommables</p>
         </div>
-        <Button onClick={openCreate} className="gap-2" data-testid="button-create-item">
+        <Button onClick={openCreate} className="gap-2 rounded-full" data-testid="button-create-item">
           <Plus className="h-4 w-4" strokeWidth={1.5} />
           Nouvel article
         </Button>
@@ -146,7 +147,7 @@ export default function InventoryPage() {
         </div>
       </div>
 
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-card border border-border/60 rounded-2xl overflow-hidden">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-card border border-border/60 rounded-3xl overflow-hidden">
         {isLoading ? (
           <div className="p-6 space-y-3">
             {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14" />)}

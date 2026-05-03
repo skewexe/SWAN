@@ -253,8 +253,9 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Tableau de bord</h1>
-          <p className="text-muted-foreground mt-0.5 text-sm">Vue d'ensemble opérationnelle — cliquez sur les graphiques pour filtrer</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary mb-1">Vue d'ensemble</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Tableau de bord</h1>
+          <p className="text-muted-foreground mt-0.5 text-sm">Opérations en temps réel — cliquez sur les graphiques pour filtrer</p>
         </div>
         {activeFilterCount > 0 && (
           <Button variant="outline" size="sm" onClick={clearAllFilters} className="gap-1.5 text-xs h-8">

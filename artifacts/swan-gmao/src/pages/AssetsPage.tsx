@@ -767,23 +767,24 @@ export default function AssetsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Équipements</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary mb-1">Parc matériel</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Équipements</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
             Gestion du parc matériel
-            {assets ? <span className="ml-2 text-muted-foreground/60">— {assets.length} équipements</span> : null}
+            {assets ? <span className="ml-1.5 text-muted-foreground/60">— {assets.length} équipements</span> : null}
           </p>
         </div>
         {!isReadOnly && (
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setImportOpen(true)} className="gap-1.5 text-xs">
+            <Button variant="outline" size="sm" onClick={() => setImportOpen(true)} className="gap-1.5 text-xs rounded-full">
               <FileSpreadsheet className="h-3.5 w-3.5" strokeWidth={1.5} />
               Import CSV / Excel
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setBulkOpen(true)} className="gap-1.5 text-xs">
+            <Button variant="outline" size="sm" onClick={() => setBulkOpen(true)} className="gap-1.5 text-xs rounded-full">
               <Layers className="h-3.5 w-3.5" strokeWidth={1.5} />
               Création par types
             </Button>
-            <Button onClick={openCreate} className="gap-2" size="sm" data-testid="button-create-asset">
+            <Button onClick={openCreate} className="gap-2 rounded-full" size="sm" data-testid="button-create-asset">
               <Plus className="h-4 w-4" strokeWidth={1.5} />
               Nouvel équipement
             </Button>

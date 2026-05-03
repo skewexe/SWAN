@@ -183,8 +183,9 @@ export default function CalendarPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Calendrier de maintenance</h1>
-          <p className="text-sm text-muted-foreground mt-1">Planification et suivi des interventions</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary mb-1">Planification</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Calendrier de maintenance</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Suivi et planification des interventions</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex rounded-lg border border-border/60 overflow-hidden">
@@ -228,7 +229,7 @@ export default function CalendarPage() {
             key={label}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-card border border-border/60 rounded-xl p-4 flex items-center gap-3"
+            className="bg-card border border-border/60 rounded-2xl p-4 flex items-center gap-3"
           >
             <div className="h-9 w-9 rounded-lg flex items-center justify-center" style={{ background: color + "15" }}>
               <Icon className="h-5 w-5" style={{ color }} strokeWidth={1.5} />
@@ -245,7 +246,7 @@ export default function CalendarPage() {
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-card border border-border/60 rounded-2xl overflow-hidden"
+        className="bg-card border border-border/60 rounded-3xl overflow-hidden"
       >
         {/* Navigation Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border/60">
