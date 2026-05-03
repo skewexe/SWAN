@@ -767,10 +767,10 @@ export default function AssetsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary mb-1">Parc matériel</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary mb-1">Parc matériel & pièces</p>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Équipements</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Gestion du parc matériel
+            Gestion du parc, des pièces, des emplacements et de l’historique complet
             {assets ? <span className="ml-1.5 text-muted-foreground/60">— {assets.length} équipements</span> : null}
           </p>
         </div>
@@ -790,6 +790,20 @@ export default function AssetsPage() {
             </Button>
           </div>
         )}
+      </div>
+      <div className="grid gap-3 md:grid-cols-3">
+        <div className="rounded-2xl border border-border/60 bg-card p-4">
+          <div className="text-xs font-semibold uppercase tracking-wide text-primary mb-1">GMAO</div>
+          <div className="text-sm text-foreground">Équipements, composants, nomenclatures et traçabilité.</div>
+        </div>
+        <div className="rounded-2xl border border-border/60 bg-card p-4">
+          <div className="text-xs font-semibold uppercase tracking-wide text-primary mb-1">Stocks</div>
+          <div className="text-sm text-foreground">Pièces de rechange, seuils, mouvements et réservations.</div>
+        </div>
+        <div className="rounded-2xl border border-border/60 bg-card p-4">
+          <div className="text-xs font-semibold uppercase tracking-wide text-primary mb-1">Conformité</div>
+          <div className="text-sm text-foreground">Historique, maintenance réglementaire et contrôle des actifs.</div>
+        </div>
       </div>
 
       {/* Filters */}

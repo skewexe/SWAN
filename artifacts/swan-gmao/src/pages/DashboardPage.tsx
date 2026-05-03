@@ -700,6 +700,11 @@ export default function DashboardPage() {
         variants={fadeIn} initial="initial" animate="animate" transition={{ duration: 0.5, delay: 0.58 }}
         className="bg-card border border-border/60 rounded-2xl p-6"
       >
+        <div className="mb-5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary mb-1">CMMS premium 2026</p>
+          <h3 className="text-sm font-semibold text-foreground">Suite maintenance complète</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Gestion technique, gammes opératoires, OT, stocks, planning, KPI, coût ABC et historique.</p>
+        </div>
         <div className="flex items-center justify-between mb-1">
           <h3 className="text-sm font-semibold text-foreground">Activité récente</h3>
           <span className="text-xs text-muted-foreground">Derniers événements</span>
