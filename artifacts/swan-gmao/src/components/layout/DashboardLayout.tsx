@@ -16,7 +16,7 @@ const ICON_MAP: Record<string, React.ComponentType<any>> = {
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
-  const { user, visibleNav, can } = useRBAC();
+  const { user, visibleNav } = useRBAC();
   const { isAuthenticated, logout } = useAuth();
   const roleMeta = ROLE_META[user.role];
 
@@ -71,7 +71,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          {can("settings") && (
+          {visibleNav.some(item => item.path === "/settings") && (
             <Link href="/settings" className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-colors ${location === "/settings" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"}`}>
               <Settings className="h-5 w-5" strokeWidth={1.5} />
               Paramètres
