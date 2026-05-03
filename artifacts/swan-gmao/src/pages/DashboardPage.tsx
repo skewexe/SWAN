@@ -9,8 +9,8 @@ import {
 } from "recharts";
 import {
   Activity, AlertTriangle, Package, Wrench, Clock, TrendingUp,
-  CalendarCheck, Gauge, CalendarDays, ChevronRight, X, Filter, GripVertical, Plus, Pencil, Trash2, Save, RotateCcw,
-  ArrowUpRight, ArrowDownRight, Minus
+  CalendarCheck, Gauge, CalendarDays, ChevronRight, X, Filter, GripVertical, Plus, Settings2, Trash2, RotateCcw,
+  ArrowUpRight, ArrowDownRight, Minus, ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -351,56 +351,41 @@ export default function DashboardPage() {
       .sort((a, b) => b.count - a.count);
   }, [allWOs, filters.status, filters.month]);
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="rounded-3xl border border-border/60 bg-card/80 p-5 lg:p-6 flex flex-col gap-5">
-        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-primary" />
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary">Pilotage opérationnel</p>
-            </div>
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground">Tableau de bord</h1>
-            <p className="text-sm text-muted-foreground max-w-2xl">
-              Vue consolidée des ordres de travail, des équipements, du stock et des alertes maintenance.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="rounded-2xl border border-border/60 bg-background/60 px-4 py-3">
-              <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Filtres actifs</div>
-              <div className="mt-1 text-sm font-semibold text-foreground">{activeFilterCount}</div>
-            </div>
-            {activeFilterCount > 0 && (
-              <Button variant="outline" size="sm" onClick={clearAllFilters} className="gap-1.5 text-xs h-9 rounded-xl">
-                <X className="h-3.5 w-3.5" strokeWidth={2} />
-                Réinitialiser
-              </Button>
-            )}
-          </div>
-        </div>
+  const todayLabel = today.toLocaleDateString("fr-DZ", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="rounded-2xl border border-border/60 bg-background/40 p-4">
-            <div className="text-xs text-muted-foreground">OT actifs</div>
-            <div className="mt-2 text-2xl font-semibold text-foreground">{filteredStats?.activeWorkOrders ?? "—"}</div>
-          </div>
-          <div className="rounded-2xl border border-border/60 bg-background/40 p-4">
-            <div className="text-xs text-muted-foreground">Alertes critiques</div>
-            <div className="mt-2 text-2xl font-semibold text-foreground">{filteredStats?.criticalAlerts ?? "—"}</div>
-          </div>
-          <div className="rounded-2xl border border-border/60 bg-background/40 p-4">
-            <div className="text-xs text-muted-foreground">Préventif du mois</div>
-            <div className="mt-2 text-2xl font-semibold text-foreground">{filteredStats?.plannedMaintenanceThisMonth ?? "—"}</div>
-          </div>
-          <div className="rounded-2xl border border-border/60 bg-background/40 p-4">
-            <div className="text-xs text-muted-foreground">Articles bas stock</div>
-            <div className="mt-2 text-2xl font-semibold text-foreground">{filteredStats?.lowStockItems?.length ?? "—"}</div>
-          </div>
+  return (
+    <div className="space-y-5">
+      {/* ── Header ────────────────────────────────────────────────── */}
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary">Pilotage opérationnel</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Tableau de bord</h1>
+          <p className="text-xs text-muted-foreground capitalize">{todayLabel}</p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0 pt-1">
+          <AnimatePresence>
+            {activeFilterCount > 0 && (
+              <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}>
+                <Button variant="outline" size="sm" onClick={clearAllFilters} className="gap-1.5 text-xs h-8 rounded-xl">
+                  <X className="h-3 w-3" strokeWidth={2.5} />
+                  {activeFilterCount} filtre{activeFilterCount > 1 ? "s" : ""}
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <Button
+            variant={editMode ? "default" : "outline"}
+            size="sm"
+            onClick={() => setEditMode(v => !v)}
+            className="gap-1.5 h-8 text-xs rounded-xl"
+          >
+            <Settings2 className="h-3.5 w-3.5" strokeWidth={1.5} />
+            {editMode ? "Terminer" : "Organiser"}
+          </Button>
         </div>
       </div>
 
-      {/* Active Filters */}
+      {/* ── Active filter chips ────────────────────────────────────── */}
       <AnimatePresence>
         {activeFilterCount > 0 && (
           <motion.div
@@ -409,45 +394,46 @@ export default function DashboardPage() {
             exit={{ opacity: 0, height: 0 }}
             className="flex items-center gap-2 flex-wrap"
           >
-            <span className="text-xs text-muted-foreground font-medium">Filtres actifs:</span>
-            {filters.category && <FilterChip label={`Catégorie: ${filters.category}`} onRemove={() => setFilter("category", null)} />}
-            {filters.status && <FilterChip label={`Statut: ${WO_STATUS_MAP[filters.status]?.label || filters.status}`} onRemove={() => setFilter("status", null)} />}
-            {filters.month && <FilterChip label={`Mois: ${filters.month}`} onRemove={() => setFilter("month", null)} />}
-            {filters.priority && <FilterChip label={`Priorité: ${filters.priority}`} onRemove={() => setFilter("priority", null)} />}
+            <span className="text-xs text-muted-foreground font-medium">Filtres :</span>
+            {filters.category && <FilterChip label={`Catégorie : ${filters.category}`} onRemove={() => setFilter("category", null)} />}
+            {filters.status && <FilterChip label={`Statut : ${WO_STATUS_MAP[filters.status]?.label || filters.status}`} onRemove={() => setFilter("status", null)} />}
+            {filters.month && <FilterChip label={`Mois : ${filters.month}`} onRemove={() => setFilter("month", null)} />}
+            {filters.priority && <FilterChip label={`Priorité : ${filters.priority}`} onRemove={() => setFilter("priority", null)} />}
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setEditMode(v => !v)} className="gap-2">
-            <Pencil className="h-4 w-4" />
-            {editMode ? "Quitter l’édition" : "Éditer le dashboard"}
-          </Button>
-          {editMode && (
-            <>
-              <Button variant="outline" size="sm" onClick={resetDashboard} className="gap-2">
-                <RotateCcw className="h-4 w-4" />
+      {/* ── Edit mode toolbar ──────────────────────────────────────── */}
+      <AnimatePresence>
+        {editMode && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3"
+          >
+            <div className="flex items-center gap-3">
+              <GripVertical className="h-4 w-4 text-primary shrink-0" strokeWidth={1.5} />
+              <span className="text-xs font-medium text-foreground">Glissez pour réorganiser · sélectionnez la taille</span>
+              <Button variant="ghost" size="sm" onClick={resetDashboard} className="gap-1.5 h-7 text-xs text-muted-foreground hover:text-foreground">
+                <RotateCcw className="h-3.5 w-3.5" strokeWidth={1.5} />
                 Réinitialiser
               </Button>
-              <Button variant="outline" size="sm" onClick={resetDashboard} className="gap-2">
-                <Save className="h-4 w-4" />
-                Sauver
-              </Button>
-            </>
-          )}
-        </div>
-        {editMode && (
-          <div className="flex flex-wrap gap-2">
-            {DEFAULT_WIDGETS.filter(w => !widgets.some(x => x.id === w.id)).map(w => (
-              <Button key={w.id} variant="outline" size="sm" onClick={() => addWidget(w.kind)} className="gap-2">
-                <Plus className="h-4 w-4" />
-                {w.title}
-              </Button>
-            ))}
-          </div>
+            </div>
+            {DEFAULT_WIDGETS.filter(w => !widgets.some(x => x.id === w.id)).length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-xs text-muted-foreground">Ajouter :</span>
+                {DEFAULT_WIDGETS.filter(w => !widgets.some(x => x.id === w.id)).map(w => (
+                  <Button key={w.id} variant="outline" size="sm" onClick={() => addWidget(w.kind)} className="gap-1 h-7 text-xs rounded-lg border-border/60">
+                    <Plus className="h-3 w-3" />
+                    {w.title}
+                  </Button>
+                ))}
+              </div>
+            )}
+          </motion.div>
         )}
-      </div>
+      </AnimatePresence>
 
       {/* Dashboard Builder */}
       <div className="grid grid-cols-12 gap-4">
