@@ -1,0 +1,31 @@
+kind = "api"
+previewPath = "/whatsapp"
+title = "WhatsApp Gateway"
+version = "1.0.0"
+id = "artifacts/whatsapp-gateway"
+
+[[services]]
+localPort = 8099
+name = "WhatsApp Gateway"
+paths = ["/whatsapp"]
+
+[services.env]
+PORT = "8099"
+
+[services.development]
+run = "pnpm --filter @workspace/whatsapp-gateway run dev"
+
+[services.production]
+
+[services.production.build]
+args = ["echo", "no-build"]
+
+[services.production.run]
+args = ["node", "artifacts/whatsapp-gateway/src/index.js"]
+
+[services.production.run.env]
+PORT = "8099"
+NODE_ENV = "production"
+
+[services.production.health.startup]
+path = "/whatsapp/healthz"

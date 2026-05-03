@@ -35,7 +35,8 @@ SWAN is a professional GMAO (Computerized Maintenance Management System) SaaS pl
 ## Artifacts
 
 - `artifacts/swan-gmao` — React+Vite web app (frontend), preview path `/`
-- `artifacts/api-server` — Express API server, path `/api`
+- `artifacts/api-server` — Express API server, paths `/api` AND `/whatsapp` (proxies to gateway)
+- `artifacts/whatsapp-gateway` — Standalone Node.js CJS service (Express + whatsapp-web.js), port 8099, workflow: "artifacts/whatsapp-gateway: WhatsApp Gateway" (autoStart: false — start manually)
 
 ## Key Commands
 
@@ -119,6 +120,7 @@ SWAN is a professional GMAO (Computerized Maintenance Management System) SaaS pl
 | `/technicians` | TechniciansPage | Personnel cards (CRUD) |
 | `/reports` | ReportsPage | KPIs + cost charts |
 | `/settings` | SettingsPage | Profile, Équipes RBAC, Notifications, Preferences |
+| `/whatsapp-admin` | WhatsAppPage | WhatsApp Gateway admin — QR code, numéros autorisés, send, journaux (admin only) |
 
 ## RBAC System
 
