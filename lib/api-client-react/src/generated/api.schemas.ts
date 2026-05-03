@@ -425,6 +425,7 @@ export interface Technician {
   activeWorkOrders?: number;
   completedThisMonth?: number;
   avgRating?: number;
+  photoUrl?: string;
   createdAt: string;
 }
 
@@ -445,6 +446,7 @@ export interface CreateTechnicianBody {
   specialization: string;
   skills?: string[];
   status?: CreateTechnicianBodyStatus;
+  photoUrl?: string;
 }
 
 export interface Site {

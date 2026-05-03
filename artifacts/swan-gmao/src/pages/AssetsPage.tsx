@@ -882,8 +882,21 @@ export default function AssetsPage() {
                     data-testid={`row-asset-${asset.id}`}
                   >
                     <td className="px-6 py-4">
-                      <div className="font-medium text-foreground">{asset.name}</div>
-                      {asset.serialNumber && <div className="text-xs text-muted-foreground mt-0.5">{asset.serialNumber}</div>}
+                      <div className="flex items-center gap-3">
+                        {asset.photoUrl ? (
+                          <div className="h-9 w-9 rounded-xl overflow-hidden border border-border/40 shrink-0">
+                            <img src={asset.photoUrl} alt={asset.name} className="h-full w-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                          </div>
+                        ) : (
+                          <div className="h-9 w-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                            <span className="text-xs font-bold text-primary">{asset.name.slice(0, 2).toUpperCase()}</span>
+                          </div>
+                        )}
+                        <div>
+                          <div className="font-medium text-foreground">{asset.name}</div>
+                          {asset.serialNumber && <div className="text-xs text-muted-foreground mt-0.5">{asset.serialNumber}</div>}
+                        </div>
+                      </div>
                     </td>
                     <td className="px-4 py-4 text-muted-foreground">{asset.category}</td>
                     <td className="px-4 py-4 text-xs">

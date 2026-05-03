@@ -15,6 +15,7 @@ export const techniciansTable = pgTable("technicians", {
   activeWorkOrders: integer("active_work_orders").notNull().default(0),
   completedThisMonth: integer("completed_this_month").notNull().default(0),
   avgRating: real("avg_rating"),
+  photoUrl: text("photo_url"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

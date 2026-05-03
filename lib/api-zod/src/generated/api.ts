@@ -762,6 +762,7 @@ export const GetTechniciansResponseItem = zod.object({
   activeWorkOrders: zod.number().optional(),
   completedThisMonth: zod.number().optional(),
   avgRating: zod.number().optional(),
+  photoUrl: zod.string().optional(),
   createdAt: zod.string(),
 });
 export const GetTechniciansResponse = zod.array(GetTechniciansResponseItem);
@@ -776,6 +777,7 @@ export const CreateTechnicianBody = zod.object({
   specialization: zod.string(),
   skills: zod.array(zod.string()).optional(),
   status: zod.enum(["available", "busy", "off", "leave"]).optional(),
+  photoUrl: zod.string().optional(),
 });
 
 /**
@@ -792,6 +794,7 @@ export const UpdateTechnicianBody = zod.object({
   specialization: zod.string(),
   skills: zod.array(zod.string()).optional(),
   status: zod.enum(["available", "busy", "off", "leave"]).optional(),
+  photoUrl: zod.string().optional(),
 });
 
 export const UpdateTechnicianResponse = zod.object({
@@ -805,6 +808,7 @@ export const UpdateTechnicianResponse = zod.object({
   activeWorkOrders: zod.number().optional(),
   completedThisMonth: zod.number().optional(),
   avgRating: zod.number().optional(),
+  photoUrl: zod.string().optional(),
   createdAt: zod.string(),
 });
 

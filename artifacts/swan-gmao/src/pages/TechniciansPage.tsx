@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Plus, Pencil, Trash2, AlertTriangle, Star, Briefcase, KeyRound, Eye, EyeOff,
   CheckCircle2, UserX, Users, TrendingUp, Award, Activity, BarChart3,
-  ArrowUpRight, ArrowDownRight, Minus, Phone, Mail, ChevronDown, ChevronUp
+  ArrowUpRight, ArrowDownRight, Minus, Phone, Mail, ChevronDown, ChevronUp, Upload, X, Camera
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
@@ -40,6 +40,24 @@ interface TechFormData {
   specialization: string;
   skills?: string;
   status: "available" | "busy" | "off" | "leave";
+  photoUrl?: string;
+}
+
+function TechAvatar({ name, photoUrl, size = "md" }: { name: string; photoUrl?: string | null; size?: "sm" | "md" | "lg" }) {
+  const dims = size === "sm" ? "h-8 w-8 text-xs" : size === "lg" ? "h-14 w-14 text-base" : "h-12 w-12 text-sm";
+  const initials = name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
+  if (photoUrl) {
+    return (
+      <div className={`${dims} rounded-2xl overflow-hidden border border-border/40 shrink-0`}>
+        <img src={photoUrl} alt={name} className="h-full w-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+      </div>
+    );
+  }
+  return (
+    <div className={`${dims} rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-bold border border-primary/20 shrink-0`}>
+      {initials}
+    </div>
+  );
 }
 
 interface PwDialogState {
@@ -139,7 +157,7 @@ export default function TechniciansPage() {
     setEditTech(t);
     form.reset({
       name: t.name, email: t.email, phone: t.phone, specialization: t.specialization,
-      skills: t.skills?.join(", ") || "", status: t.status,
+      skills: t.skills?.join(", ") || "", status: t.status, photoUrl: t.photoUrl || "",
     });
     setDialogOpen(true);
   };
@@ -149,6 +167,7 @@ export default function TechniciansPage() {
     const body = {
       ...data,
       skills: data.skills ? data.skills.split(",").map(s => s.trim()).filter(Boolean) : [],
+      photoUrl: data.photoUrl || undefined,
     };
     if (editTech) {
       updateTech.mutate({ id: editTech.id, data: body }, {
@@ -316,9 +335,15 @@ export default function TechniciansPage() {
                   <span className="text-xs font-semibold text-yellow-400 uppercase tracking-wide">Meilleur technicien</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-400 font-bold text-sm">
-                    {topTech.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
-                  </div>
+                  {(topTech as any).photoUrl ? (
+                    <div className="h-10 w-10 rounded-full overflow-hidden border border-yellow-500/40 shrink-0">
+                      <img src={(topTech as any).photoUrl} alt={topTech.name} className="h-full w-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className="h-10 w-10 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-400 font-bold text-sm shrink-0">
+                      {topTech.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
                   <div>
                     <div className="font-semibold text-foreground text-sm">{topTech.name}</div>
                     <div className="text-xs text-muted-foreground">{topTech.specialization}</div>
@@ -396,9 +421,7 @@ export default function TechniciansPage() {
                   >
                     <td className="px-6 py-3">
                       <div className="flex items-center gap-2.5">
-                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold shrink-0">
-                          {tech.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
-                        </div>
+                        <TechAvatar name={tech.name} photoUrl={(tech as any).photoUrl} size="sm" />
                         <span className="font-medium text-foreground text-sm">{tech.name}</span>
                       </div>
                     </td>
@@ -469,9 +492,7 @@ export default function TechniciansPage() {
                     {/* Header */}
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-bold text-sm border border-primary/20">
-                          {tech.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
-                        </div>
+                        <TechAvatar name={tech.name} photoUrl={(tech as any).photoUrl} size="md" />
                         <div>
                           <div className="font-semibold text-foreground leading-tight">{tech.name}</div>
                           <div className="text-xs text-muted-foreground mt-0.5">{tech.specialization}</div>
@@ -650,6 +671,53 @@ export default function TechniciansPage() {
                   <FormItem className="col-span-2">
                     <FormLabel>Compétences (séparées par des virgules)</FormLabel>
                     <FormControl><Input data-testid="input-tech-skills" placeholder="Ex: Hydraulique, Pneumatique, Soudure" {...field} /></FormControl>
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="photoUrl" render={({ field }) => (
+                  <FormItem className="col-span-2">
+                    <FormLabel className="flex items-center gap-1.5">
+                      <Camera className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.5} />
+                      Photo du technicien
+                    </FormLabel>
+                    <FormControl>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-3">
+                          {field.value ? (
+                            <div className="relative h-14 w-14 rounded-2xl overflow-hidden border border-border/40 shrink-0">
+                              <img src={field.value} alt="preview" className="h-full w-full object-cover" />
+                              <button type="button" onClick={() => field.onChange("")} className="absolute top-0.5 right-0.5 h-5 w-5 rounded-full bg-background/80 flex items-center justify-center text-muted-foreground hover:text-destructive">
+                                <X className="h-3 w-3" strokeWidth={2} />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="h-14 w-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary/50 shrink-0">
+                              <Camera className="h-5 w-5" strokeWidth={1.5} />
+                            </div>
+                          )}
+                          <div className="flex-1 space-y-1.5">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              id="tech-photo-upload"
+                              onChange={e => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                const reader = new FileReader();
+                                reader.onload = ev => field.onChange(ev.target?.result as string);
+                                reader.readAsDataURL(file);
+                              }}
+                            />
+                            <label htmlFor="tech-photo-upload">
+                              <Button type="button" variant="outline" size="sm" className="gap-1.5 text-xs h-8 cursor-pointer w-full" asChild>
+                                <span><Upload className="h-3.5 w-3.5" strokeWidth={1.5} />Choisir une photo</span>
+                              </Button>
+                            </label>
+                            <p className="text-[11px] text-muted-foreground">JPG, PNG · La photo sera stockée avec le profil</p>
+                          </div>
+                        </div>
+                      </div>
+                    </FormControl>
                   </FormItem>
                 )} />
               </div>
