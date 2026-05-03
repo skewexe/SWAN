@@ -5,7 +5,7 @@ import { FloatingHeaderShell } from "@/components/layout/FloatingHeaderShell";
 export function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
-      <FloatingHeaderShell logo={swanLogo} />
+      <FloatingHeaderShell logo={swanLogo} logoHref="/" />
 
       <main className="flex-1 flex flex-col pt-5">
         {children}

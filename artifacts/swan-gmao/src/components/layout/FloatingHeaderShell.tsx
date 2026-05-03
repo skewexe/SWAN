@@ -6,15 +6,16 @@ type Props = {
   title?: string;
   rightContent?: React.ReactNode;
   hideCenterNav?: boolean;
+  logoHref?: string;
 };
 
-export function FloatingHeaderShell({ logo, title, rightContent, hideCenterNav }: Props) {
+export function FloatingHeaderShell({ logo, title, rightContent, hideCenterNav, logoHref = "/" }: Props) {
   const [location] = useLocation();
 
   return (
     <header className="sticky top-0 z-50 px-6 pt-5 pb-0 lg:px-8">
       <div className="mx-auto flex max-w-7xl items-center justify-between rounded-full border border-border/60 bg-card/60 px-5 py-3 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.55)] backdrop-blur-md">
-        <Link href="/" className="flex items-center gap-3 transition-opacity hover:opacity-80 shrink-0">
+        <Link href={logoHref} className="flex items-center gap-3 transition-opacity hover:opacity-80 shrink-0">
           <img src={logo} alt="SWAN" className="h-10 w-auto" />
           <div className="hidden sm:block">
             <div className="text-[11px] font-semibold tracking-[0.22em] uppercase text-foreground">Swan GMAO</div>

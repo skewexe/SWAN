@@ -86,7 +86,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <FloatingHeaderShell logo={swanLogo} title={[...NAV_ITEMS, { path: "/settings", key: "settings", label: "Paramètres", icon: "Settings" }].find(i => location.startsWith(i.path))?.label || "GMAO"} rightContent={<NotificationsDropdown />} hideCenterNav />
+        <FloatingHeaderShell
+          logo={swanLogo}
+          logoHref="/dashboard"
+          title={[...NAV_ITEMS, { path: "/settings", key: "settings", label: "Paramètres", icon: "Settings" }].find(i => location.startsWith(i.path))?.label || "GMAO"}
+          rightContent={<NotificationsDropdown />}
+          hideCenterNav
+        />
         <main className="relative flex-1 overflow-y-auto p-8">
           <div className="mx-auto max-w-7xl">{children}</div>
         </main>
