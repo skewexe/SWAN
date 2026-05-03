@@ -354,18 +354,50 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary mb-1">Vue d'ensemble</p>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Tableau de bord</h1>
-          <p className="text-muted-foreground mt-0.5 text-sm">Opérations en temps réel — cliquez sur les graphiques pour filtrer</p>
+      <div className="rounded-3xl border border-border/60 bg-card/80 p-5 lg:p-6 flex flex-col gap-5">
+        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-primary" />
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary">Pilotage opérationnel</p>
+            </div>
+            <h1 className="text-3xl font-semibold tracking-tight text-foreground">Tableau de bord</h1>
+            <p className="text-sm text-muted-foreground max-w-2xl">
+              Vue consolidée des ordres de travail, des équipements, du stock et des alertes maintenance.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="rounded-2xl border border-border/60 bg-background/60 px-4 py-3">
+              <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Filtres actifs</div>
+              <div className="mt-1 text-sm font-semibold text-foreground">{activeFilterCount}</div>
+            </div>
+            {activeFilterCount > 0 && (
+              <Button variant="outline" size="sm" onClick={clearAllFilters} className="gap-1.5 text-xs h-9 rounded-xl">
+                <X className="h-3.5 w-3.5" strokeWidth={2} />
+                Réinitialiser
+              </Button>
+            )}
+          </div>
         </div>
-        {activeFilterCount > 0 && (
-          <Button variant="outline" size="sm" onClick={clearAllFilters} className="gap-1.5 text-xs h-8">
-            <X className="h-3.5 w-3.5" strokeWidth={2} />
-            Réinitialiser ({activeFilterCount})
-          </Button>
-        )}
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="rounded-2xl border border-border/60 bg-background/40 p-4">
+            <div className="text-xs text-muted-foreground">OT actifs</div>
+            <div className="mt-2 text-2xl font-semibold text-foreground">{filteredStats?.activeWorkOrders ?? "—"}</div>
+          </div>
+          <div className="rounded-2xl border border-border/60 bg-background/40 p-4">
+            <div className="text-xs text-muted-foreground">Alertes critiques</div>
+            <div className="mt-2 text-2xl font-semibold text-foreground">{filteredStats?.criticalAlerts ?? "—"}</div>
+          </div>
+          <div className="rounded-2xl border border-border/60 bg-background/40 p-4">
+            <div className="text-xs text-muted-foreground">Préventif du mois</div>
+            <div className="mt-2 text-2xl font-semibold text-foreground">{filteredStats?.plannedMaintenanceThisMonth ?? "—"}</div>
+          </div>
+          <div className="rounded-2xl border border-border/60 bg-background/40 p-4">
+            <div className="text-xs text-muted-foreground">Articles bas stock</div>
+            <div className="mt-2 text-2xl font-semibold text-foreground">{filteredStats?.lowStockItems?.length ?? "—"}</div>
+          </div>
+        </div>
       </div>
 
       {/* Active Filters */}
