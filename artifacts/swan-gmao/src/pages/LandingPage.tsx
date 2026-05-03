@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Activity, ShieldCheck, Settings, Users, BarChart3, Box } from "lucide-react";
-import swanLogo from "@assets/21778_1777542129715.png";
+import swanLogo from "@assets/ChatGPT Image 30 avr. 2026, 11_42_07.png";
 
 const fadeInUp = {
   initial: { opacity: 0, y: 20 },

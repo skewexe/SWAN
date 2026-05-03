@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import swanLogo from "@assets/21778_1777542129715.png";
+import swanLogo from "@assets/ChatGPT Image 30 avr. 2026, 11_42_07.png";
 import { Loader2 } from "lucide-react";
 
 const registerSchema = z.object({

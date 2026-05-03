@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import swanLogo from "@assets/21778_1777542129715.png";
+import swanLogo from "@assets/ChatGPT Image 30 avr. 2026, 11_42_07.png";
 import { 
   LayoutDashboard, 
   Wrench, 
