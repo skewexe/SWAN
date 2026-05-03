@@ -21,9 +21,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const roleMeta = ROLE_META[user.role];
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      setLocation("/login");
-    }
+    if (!isAuthenticated) setLocation("/login");
   }, [isAuthenticated, setLocation]);
 
   if (!isAuthenticated) return null;
@@ -36,18 +34,19 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex font-sans">
-      <aside className="w-64 border-r border-border/50 bg-card flex flex-col shrink-0 sticky top-0 h-screen">
+      <aside className="w-72 border-r border-border/50 bg-card/70 flex flex-col shrink-0 sticky top-0 h-screen backdrop-blur-md">
         <div className="h-16 flex items-center px-6 border-b border-border/50 shrink-0">
           <Link href="/dashboard" className="flex items-center gap-3 transition-opacity hover:opacity-80">
             <img src={swanLogo} alt="SWAN Logo" className="h-8 w-auto" />
-            <span className="font-semibold tracking-wide text-lg text-primary">SWAN</span>
+            <div>
+              <div className="text-[11px] font-semibold tracking-[0.2em] uppercase">SWAN</div>
+              <div className="text-[10px] text-muted-foreground">Industrial maintenance platform</div>
+            </div>
           </Link>
         </div>
 
         <div className="p-4 flex-1 overflow-y-auto space-y-1">
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 mt-2 px-2">
-            Opérations
-          </div>
+          <div className="px-2 mb-4 mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Opérations</div>
           {visibleNav.map((item) => {
             const Icon = ICON_MAP[item.icon] || Wrench;
             const isActive = location === item.path || location.startsWith(item.path + "/");
@@ -55,10 +54,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.path}
                 href={item.path}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-colors ${
+                  isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                 }`}
               >
                 <Icon className={`h-5 w-5 ${isActive ? "text-primary" : ""}`} strokeWidth={1.5} />
@@ -68,45 +65,26 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           })}
         </div>
 
-        <div className="p-4 border-t border-border/50 shrink-0">
-          <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-background/40 border border-border/30 mb-2">
-            <div
-              className="h-9 w-9 rounded-full flex items-center justify-center font-semibold text-sm shrink-0"
-              style={{ background: roleMeta.color + "20", color: roleMeta.color }}
-            >
+        <div className="p-4 border-t border-border/50 shrink-0 space-y-2">
+          <div className="flex items-center gap-3 rounded-2xl border border-border/40 bg-background/40 px-3 py-3">
+            <div className="h-9 w-9 rounded-full flex items-center justify-center font-semibold text-sm shrink-0" style={{ background: roleMeta.color + "20", color: roleMeta.color }}>
               {user.initials}
             </div>
             <div className="flex flex-col min-w-0">
               <span className="text-sm font-medium leading-none truncate">{user.name}</span>
-              <span
-                className="text-xs mt-1 font-medium truncate"
-                style={{ color: roleMeta.color }}
-              >
-                {roleMeta.label}
-              </span>
+              <span className="text-xs mt-1 font-medium truncate" style={{ color: roleMeta.color }}>{roleMeta.label}</span>
               <span className="text-xs text-muted-foreground/70 truncate">{user.site}</span>
             </div>
           </div>
 
           {can("settings") && (
-            <Link
-              href="/settings"
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors mt-1 ${
-                location === "/settings"
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
-            >
+            <Link href="/settings" className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-colors ${location === "/settings" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"}`}>
               <Settings className="h-5 w-5" strokeWidth={1.5} />
               Paramètres
             </Link>
           )}
 
-          <a
-            href="#"
-            onClick={handleLogout}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-destructive transition-colors mt-1"
-          >
+          <a href="#" onClick={handleLogout} className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-destructive">
             <LogOut className="h-5 w-5" strokeWidth={1.5} />
             Déconnexion
           </a>
@@ -114,17 +92,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="h-16 border-b border-border/50 bg-background/80 backdrop-blur-sm flex items-center justify-between px-8 sticky top-0 z-40 shrink-0">
-          <div className="font-medium text-lg tracking-tight text-foreground">
-            {[...NAV_ITEMS, { path: "/settings", key: "settings", label: "Paramètres", icon: "Settings" }]
-              .find(i => location.startsWith(i.path))?.label || "GMAO"}
+        <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-border/50 bg-background/80 px-8 backdrop-blur-md">
+          <div className="text-lg font-medium tracking-tight text-foreground">
+            {[...NAV_ITEMS, { path: "/settings", key: "settings", label: "Paramètres", icon: "Settings" }].find(i => location.startsWith(i.path))?.label || "GMAO"}
           </div>
-          <div className="flex items-center gap-4">
-            <NotificationsDropdown />
-          </div>
+          <NotificationsDropdown />
         </header>
-        <main className="flex-1 p-8 overflow-y-auto relative">
-          <div className="max-w-7xl mx-auto">{children}</div>
+        <main className="relative flex-1 overflow-y-auto p-8">
+          <div className="mx-auto max-w-7xl">{children}</div>
         </main>
       </div>
     </div>

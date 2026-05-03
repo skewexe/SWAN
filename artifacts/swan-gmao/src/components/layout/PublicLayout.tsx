@@ -7,31 +7,28 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
-      <header className="border-b border-border/50 bg-background/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+      <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-3 transition-opacity hover:opacity-80">
             <img src={swanLogo} alt="SWAN Logo" className="h-8 w-auto" />
-            <span className="font-semibold tracking-wide text-lg text-primary">SWAN GMAO</span>
+            <div className="hidden sm:block">
+              <div className="text-[11px] font-semibold tracking-[0.2em] uppercase text-foreground">Swan GMAO</div>
+              <div className="text-[10px] text-muted-foreground leading-none">Industrial maintenance platform</div>
+            </div>
           </Link>
-          
-          <nav className="hidden md:flex items-center gap-6">
-            <Link href="/" className={`text-sm font-medium transition-colors hover:text-primary ${location === '/' ? 'text-primary' : 'text-muted-foreground'}`}>
-              Accueil
-            </Link>
-            <Link href="/about" className={`text-sm font-medium transition-colors hover:text-primary ${location === '/about' ? 'text-primary' : 'text-muted-foreground'}`}>
-              À propos
-            </Link>
-            <Link href="/faq" className={`text-sm font-medium transition-colors hover:text-primary ${location === '/faq' ? 'text-primary' : 'text-muted-foreground'}`}>
-              FAQ
-            </Link>
+
+          <nav className="hidden md:flex items-center gap-8 text-[13px] text-muted-foreground">
+            <Link href="/" className={`transition-colors hover:text-foreground ${location === '/' ? 'text-foreground' : ''}`}>Accueil</Link>
+            <Link href="/about" className={`transition-colors hover:text-foreground ${location === '/about' ? 'text-foreground' : ''}`}>À propos</Link>
+            <Link href="/faq" className={`transition-colors hover:text-foreground ${location === '/faq' ? 'text-foreground' : ''}`}>FAQ</Link>
           </nav>
-          
-          <div className="flex items-center gap-4">
+
+          <div className="flex items-center gap-3">
             <Link href="/login">
-              <Button variant="ghost" className="text-muted-foreground hover:text-foreground">Connexion</Button>
+              <Button variant="ghost" className="rounded-full text-muted-foreground hover:text-foreground">Connexion</Button>
             </Link>
             <Link href="/register">
-              <Button>Commencer</Button>
+              <Button className="rounded-full">Commencer</Button>
             </Link>
           </div>
         </div>
@@ -41,16 +38,16 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
         {children}
       </main>
 
-      <footer className="border-t border-border/50 py-12 bg-card mt-auto">
-        <div className="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-6">
+      <footer className="border-t border-border/50 bg-card/30">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-6 py-10 sm:flex-row lg:px-8">
           <div className="flex items-center gap-3">
-            <img src={swanLogo} alt="SWAN Logo" className="h-6 w-auto opacity-70 grayscale" />
-            <span className="text-muted-foreground font-medium">© {new Date().getFullYear()} SWAN Industrial Intelligence.</span>
+            <img src={swanLogo} alt="SWAN Logo" className="h-6 w-auto opacity-60 grayscale" />
+            <span className="text-[13px] text-muted-foreground">© {new Date().getFullYear()} SWAN Industrial Intelligence</span>
           </div>
-          <div className="flex gap-6 text-sm text-muted-foreground">
-            <Link href="/about" className="hover:text-primary transition-colors">Mission</Link>
-            <Link href="/faq" className="hover:text-primary transition-colors">Support</Link>
-            <Link href="/login" className="hover:text-primary transition-colors">Espace Client</Link>
+          <div className="flex gap-7 text-[13px] text-muted-foreground">
+            <Link href="/about" className="hover:text-foreground transition-colors">Mission</Link>
+            <Link href="/faq" className="hover:text-foreground transition-colors">Support</Link>
+            <Link href="/login" className="hover:text-foreground transition-colors">Espace client</Link>
           </div>
         </div>
       </footer>
