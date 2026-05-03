@@ -51,11 +51,11 @@ const SECTORS = [
 ];
 
 const MILESTONES = [
-  { year: "2021", label: "Création de SWAN", desc: "Premiers prototypes développés à partir de retours terrain." },
-  { year: "2022", label: "Première installation", desc: "Déploiement dans un complexe industriel de la wilaya d'Oran." },
-  { year: "2023", label: "Multi-sites", desc: "Passage à l'architecture multi-sites avec RBAC avancé." },
-  { year: "2024", label: "Reporting direction", desc: "Intégration des KPIs stratégiques et du reporting exécutif." },
-  { year: "2025", label: "+500 sites", desc: "Présence dans 12 wilayas, 8 secteurs industriels distincts." },
+  { year: "2026", label: "Origine à Oran", desc: "Conçu par 3 ingénieurs informatiques dans 3 usines différentes, à partir d'un besoin réel." },
+  { year: "2026", label: "Création de SWAN", desc: "Premiers prototypes développés à partir de retours terrain et de contraintes industrielles concrètes." },
+  { year: "2026", label: "Premiers déploiements", desc: "Mise en production initiale dans des environnements industriels pilotes à Oran." },
+  { year: "2026", label: "Multi-sites", desc: "Passage à une architecture multi-sites avec RBAC avancé et suivi unifié." },
+  { year: "2026", label: "Reporting direction", desc: "Intégration des KPIs stratégiques et du reporting exécutif pour les managers et la direction." },
   { year: "2026", label: "SWAN 2026", desc: "Interface premium, IA prédictive et connecteurs SI en cours." },
 ];
 
@@ -222,7 +222,7 @@ export default function AboutPage() {
         <div className="mt-10 space-y-0">
           {MILESTONES.map((m, idx) => (
             <motion.div
-              key={m.year}
+              key={`${m.year}-${m.label}`}
               initial={{ opacity: 0, x: -12 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
