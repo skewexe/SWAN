@@ -56,9 +56,11 @@ router.put("/preventive/:id", async (req, res) => {
       createdAt: plan.createdAt.toISOString(),
       assetName: assets.find(a => a.id === plan.assetId)?.name,
     });
+    return;
   } catch (err) {
     req.log.error({ err }, "Error updating preventive plan");
     res.status(400).json({ error: "Invalid request" });
+    return;
   }
 });
 
@@ -116,9 +118,11 @@ router.post("/preventive/:id/execute", async (req, res) => {
       workOrder: wo,
       message: `Ordre de travail créé pour "${plan.name}"`,
     });
+    return;
   } catch (err) {
     req.log.error({ err }, "Error executing preventive plan");
     res.status(500).json({ error: "Internal server error" });
+    return;
   }
 });
 

@@ -74,9 +74,11 @@ router.get("/workorders/:id", async (req, res) => {
       assetName: assets.find(a => a.id === wo.assetId)?.name,
       technicianName: technicians.find(t => t.id === wo.technicianId)?.name,
     });
+    return;
   } catch (err) {
     req.log.error({ err }, "Error fetching work order");
     res.status(500).json({ error: "Internal server error" });
+    return;
   }
 });
 
@@ -94,9 +96,11 @@ router.put("/workorders/:id", async (req, res) => {
       assetName: assets.find(a => a.id === wo.assetId)?.name,
       technicianName: technicians.find(t => t.id === wo.technicianId)?.name,
     });
+    return;
   } catch (err) {
     req.log.error({ err }, "Error updating work order");
     res.status(400).json({ error: "Invalid request" });
+    return;
   }
 });
 

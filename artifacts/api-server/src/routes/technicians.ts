@@ -41,9 +41,11 @@ router.put("/technicians/:id", async (req, res) => {
     const [technician] = await db.update(techniciansTable).set(body).where(eq(techniciansTable.id, id)).returning();
     if (!technician) return res.status(404).json({ error: "Technician not found" });
     res.json({ ...technician, createdAt: technician.createdAt.toISOString() });
+    return;
   } catch (err) {
     req.log.error({ err }, "Error updating technician");
     res.status(400).json({ error: "Invalid request" });
+    return;
   }
 });
 

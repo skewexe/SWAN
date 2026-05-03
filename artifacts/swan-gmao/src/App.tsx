@@ -5,15 +5,11 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-
-// Pages — public
 import LandingPage from "@/pages/LandingPage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import AboutPage from "@/pages/AboutPage";
 import FaqPage from "@/pages/FaqPage";
-
-// Pages — dashboard
 import DashboardPage from "@/pages/DashboardPage";
 import AssetsPage from "@/pages/AssetsPage";
 import WorkOrdersPage from "@/pages/WorkOrdersPage";
@@ -44,7 +40,6 @@ function Router() {
       <Route path="/faq">
         <PublicLayout><FaqPage /></PublicLayout>
       </Route>
-
       <Route path="/dashboard">
         <DashboardLayout><DashboardPage /></DashboardLayout>
       </Route>
@@ -72,7 +67,6 @@ function Router() {
       <Route path="/settings">
         <DashboardLayout><SettingsPage /></DashboardLayout>
       </Route>
-
       <Route>
         <PublicLayout><NotFound /></PublicLayout>
       </Route>
@@ -84,7 +78,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}> 
           <Router />
         </WouterRouter>
         <Toaster />

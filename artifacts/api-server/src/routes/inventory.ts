@@ -70,9 +70,11 @@ router.put("/inventory/:id", async (req, res) => {
       isLowStock: item.quantity <= item.minQuantity,
       totalValue: item.unitCost != null ? item.quantity * item.unitCost : null,
     });
+    return;
   } catch (err) {
     req.log.error({ err }, "Error updating inventory item");
     res.status(400).json({ error: "Invalid request" });
+    return;
   }
 });
 

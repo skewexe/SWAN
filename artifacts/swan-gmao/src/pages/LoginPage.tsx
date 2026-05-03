@@ -30,14 +30,14 @@ export default function LoginPage() {
 
   function onSubmit(values: z.infer<typeof loginSchema>) {
     setIsLoading(true);
-    // Simulate login for demo
+    const isDemo = values.email.toLowerCase().includes("demo");
     setTimeout(() => {
       setIsLoading(false);
       toast({
-        title: "Connexion réussie",
-        description: "Bienvenue sur SWAN GMAO",
+        title: isDemo ? "Accès démo" : "Connexion réussie",
+        description: isDemo ? "Données de démonstration chargées" : "Bienvenue sur SWAN GMAO",
       });
-      setLocation("/dashboard");
+      setLocation(isDemo ? "/dashboard?mode=demo" : "/dashboard?mode=live");
     }, 1000);
   }
 
@@ -52,7 +52,12 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <div className="bg-card border border-border p-8 rounded-2xl shadow-xl shadow-background/50">
+        <div className="bg-card border border-border p-8 rounded-2xl shadow-xl shadow-background/50 space-y-4">
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm text-muted-foreground">
+            <div className="font-medium text-foreground mb-1">Mode démo</div>
+            Utilisez un email contenant <span className="text-primary font-medium">demo</span> pour voir les données de démonstration.
+            Les comptes normaux se connecteront à leurs propres données.
+          </div>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField

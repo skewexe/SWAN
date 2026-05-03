@@ -23,9 +23,11 @@ router.get("/workorders/:id/parts", async (req, res) => {
     }));
 
     res.json(enriched);
+    return;
   } catch (err) {
     req.log.error({ err }, "Error fetching work order parts");
     res.status(500).json({ error: "Internal server error" });
+    return;
   }
 });
 
@@ -75,9 +77,11 @@ router.post("/workorders/:id/parts", async (req, res) => {
     };
 
     res.status(201).json(enriched);
+    return;
   } catch (err) {
     req.log.error({ err }, "Error adding work order part");
     res.status(400).json({ error: "Invalid request" });
+    return;
   }
 });
 
@@ -107,9 +111,11 @@ router.delete("/workorders/:id/parts/:partId", async (req, res) => {
     await db.delete(workOrderPartsTable).where(eq(workOrderPartsTable.id, partId));
 
     res.status(204).send();
+    return;
   } catch (err) {
     req.log.error({ err }, "Error removing work order part");
     res.status(500).json({ error: "Internal server error" });
+    return;
   }
 });
 

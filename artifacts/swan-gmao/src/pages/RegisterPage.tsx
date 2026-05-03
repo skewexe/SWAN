@@ -35,14 +35,14 @@ export default function RegisterPage() {
 
   function onSubmit(values: z.infer<typeof registerSchema>) {
     setIsLoading(true);
-    // Simulate registration for demo
+    const isDemo = values.email.toLowerCase().includes("demo") || values.company.toLowerCase().includes("demo");
     setTimeout(() => {
       setIsLoading(false);
       toast({
-        title: "Inscription réussie",
-        description: "Votre espace a été créé avec succès.",
+        title: isDemo ? "Compte démo créé" : "Inscription réussie",
+        description: isDemo ? "Espace démo prêt avec données de démonstration" : "Votre espace a été créé avec succès.",
       });
-      setLocation("/dashboard");
+      setLocation(isDemo ? "/dashboard?mode=demo" : "/dashboard?mode=live");
     }, 1500);
   }
 
@@ -57,7 +57,11 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        <div className="bg-card border border-border p-8 rounded-2xl shadow-xl shadow-background/50">
+        <div className="bg-card border border-border p-8 rounded-2xl shadow-xl shadow-background/50 space-y-4">
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm text-muted-foreground">
+            <div className="font-medium text-foreground mb-1">Production ready</div>
+            Les comptes normaux utiliseront leurs propres données. Les comptes contenant <span className="text-primary font-medium">demo</span> activeront l'environnement de démonstration.
+          </div>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField

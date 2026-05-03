@@ -59,9 +59,11 @@ router.get("/assets/:id", async (req, res) => {
     const [asset] = await db.select().from(assetsTable).where(eq(assetsTable.id, id));
     if (!asset) return res.status(404).json({ error: "Asset not found" });
     res.json({ ...asset, createdAt: asset.createdAt.toISOString() });
+    return;
   } catch (err) {
     req.log.error({ err }, "Error fetching asset");
     res.status(500).json({ error: "Internal server error" });
+    return;
   }
 });
 
@@ -72,9 +74,11 @@ router.put("/assets/:id", async (req, res) => {
     const [asset] = await db.update(assetsTable).set(body).where(eq(assetsTable.id, id)).returning();
     if (!asset) return res.status(404).json({ error: "Asset not found" });
     res.json({ ...asset, createdAt: asset.createdAt.toISOString() });
+    return;
   } catch (err) {
     req.log.error({ err }, "Error updating asset");
     res.status(400).json({ error: "Invalid request" });
+    return;
   }
 });
 
@@ -91,9 +95,11 @@ router.get("/assets/:id/workorders", async (req, res) => {
       technicianName: technicians.find(t => t.id === wo.technicianId)?.name,
     }));
     res.json(enriched);
+    return;
   } catch (err) {
     req.log.error({ err }, "Error fetching asset work orders");
     res.status(500).json({ error: "Internal server error" });
+    return;
   }
 });
 
