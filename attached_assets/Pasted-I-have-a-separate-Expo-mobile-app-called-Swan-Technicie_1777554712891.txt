@@ -1,0 +1,77 @@
+I have a separate Expo mobile app called "Swan Technicien" (built in another Replit project) that needs to consume my GMAO backend over HTTPS. I want you to expose a clean, versioned REST/JSON API in THIS project that the mobile app can call. Do not change my existing UI or business logic — only add the API layer on top.
+
+REQUIREMENTS
+
+1) Base URL & CORS
+   - Mount everything under `/api/v1`.
+   - Enable CORS for any origin (the mobile app runs from Expo dev, web preview, and the published .replit.app domain). Allow methods GET, POST, PATCH, DELETE and headers `Authorization, Content-Type`.
+   - Always return JSON. On errors, return `{ "error": "human readable message", "code": "OPTIONAL_CODE" }` with the proper HTTP status.
+
+2) Authentication
+   - POST `/api/v1/auth/login`
+     Body: `{ "matricule": "T-1042", "pin": "1234" }`
+     Response 200: `{ "token": "<opaque bearer>", "technician": { "id": "...", "matricule": "T-1042", "name": "Karim Benali", "role": "Technicien Senior", "site": "Usine Lyon Sud" } }`
+     Response 401: `{ "error": "Identifiants invalides" }`
+   - POST `/api/v1/auth/logout` (Authorization: Bearer <token>) → 204
+   - GET `/api/v1/auth/me` (Authorization: Bearer <token>) → returns the current `technician` object.
+   - Implement token-based auth (JWT or DB-backed session token). All routes below require `Authorization: Bearer <token>`.
+
+3) Work Orders (Ordres de Travail)
+   - GET `/api/v1/work-orders?status=&priority=&q=&assignedTo=me&page=1&pageSize=50`
+     Returns paginated list filtered to the authenticated technician's assignments by default.
+     Response: `{ "items": [WorkOrder], "page": 1, "pageSize": 50, "total": 123 }`
+   - GET `/api/v1/work-orders/:id` → returns one WorkOrder.
+   - PATCH `/api/v1/work-orders/:id/status`
+     Body: `{ "status": "en_cours" | "en_pause" | "termine", "note": "optional" }`
+     Returns the updated WorkOrder. Server stamps `startedAt`, `pausedAt`, `completedAt`, accumulates `actualMinutes`, and appends a history event.
+   - PATCH `/api/v1/work-orders/:id/steps/:stepId`
+     Body: `{ "done": true }` → returns the updated WorkOrder.
+   - PATCH `/api/v1/work-orders/:id/notes`
+     Body: `{ "notes": "string" }` → returns the updated WorkOrder.
+
+   WorkOrder JSON shape (use exactly these field names so the mobile app does not need a translation layer):
+   {
+     "id": "string",
+     "otNumber": "OT-2026-0184",
+     "status": "en_attente" | "en_cours" | "en_pause" | "termine",
+     "priority": "basse" | "normale" | "haute" | "critique",
+     "equipment": "Compresseur d'air Atlas Copco GA-75",
+     "equipmentCode": "CMP-LYS-007",
+     "site": "Usine Lyon Sud",
+     "location": "Bâtiment B — Salle des compresseurs",
+     "description": "string",
+     "plannedDate": "2026-04-30T08:00:00.000Z",
+     "estimatedMinutes": 120,
+     "actualMinutes": 0,
+     "assignedTo": { "id": "...", "matricule": "T-1042", "name": "Karim Benali" },
+     "steps": [ { "id": "s1", "label": "Consigner l'équipement", "done": false } ],
+     "parts": [ { "id": "p1", "reference": "ATC-FLT-204", "label": "Filtre à air", "quantity": 1 } ],
+     "history": [ { "id": "h1", "at": "ISO-date", "type": "status_change" | "step_done" | "note" | "created", "label": "string", "by": "matricule" } ],
+     "notes": "string"
+   }
+
+4) Planning
+   - GET `/api/v1/planning?from=YYYY-MM-DD&to=YYYY-MM-DD` (defaults to current ISO week)
+     Response: `{ "items": [PlanningItem] }`
+   - PlanningItem shape:
+     { "id": "string", "workOrderId": "string", "otNumber": "OT-2026-0184", "equipment": "string", "site": "string", "start": "ISO-date", "end": "ISO-date", "priority": "basse|normale|haute|critique" }
+
+5) Profile stats
+   - GET `/api/v1/me/stats` →
+     { "completedThisMonth": 12, "hoursThisMonth": 47.5, "onTimeRate": 0.92 }
+
+6) Health
+   - GET `/api/v1/healthz` → `{ "status": "ok" }`
+
+CONSTRAINTS
+- Do NOT invent or seed fake data — wire these endpoints to my existing GMAO database/models. If a field is not yet stored, add the column rather than mocking it.
+- Validate request bodies and reject with 400 + a French error message.
+- Log every request with method, path, status, and duration.
+- Use my existing language stack (do not migrate frameworks). If I'm on Node/Express, add an Express router. If I'm on FastAPI/Django/etc., follow the same shape.
+- After you implement the endpoints, deploy the project (publish) so it has a stable HTTPS domain, then output:
+  1) The base URL (e.g. https://my-gmao.replit.app/api/v1)
+  2) An example login curl that returns a token
+  3) An example `GET /work-orders` curl using that token
+  Return exactly this block at the end so I can paste it into my mobile project.
+
+Start by listing the files you will add or modify, then implement.
