@@ -10,99 +10,81 @@ import {
   User, Bell, Shield, Building2, Plus, Pencil, Trash2,
   CheckCircle2, Save, Mail, Phone, AlertTriangle, Users
 } from "lucide-react";
-import { useGetTechnicians } from "@workspace/api-client-react";
+import { useRBAC, ROLE_META, ROLE_PERMISSIONS, RBACRole, RBACTeam } from "@/context/RBACContext";
 
 type TabKey = "profile" | "teams" | "notifications" | "preferences";
 
 const TABS: { key: TabKey; label: string; icon: any }[] = [
-  { key: "profile", label: "Profil", icon: User },
-  { key: "teams", label: "Équipes & Rôles", icon: Users },
-  { key: "notifications", label: "Notifications", icon: Bell },
-  { key: "preferences", label: "Préférences", icon: Building2 },
+  { key: "profile",       label: "Profil",          icon: User },
+  { key: "teams",         label: "Équipes & Rôles", icon: Users },
+  { key: "notifications", label: "Notifications",   icon: Bell },
+  { key: "preferences",   label: "Préférences",     icon: Building2 },
 ];
 
-const ROLES = [
-  { value: "admin", label: "Administrateur", desc: "Accès complet à toutes les fonctionnalités", color: "#EF4444" },
-  { value: "manager", label: "Responsable maintenance", desc: "Gestion des équipes, rapports et planification", color: "#F59E0B" },
-  { value: "chef_equipe", label: "Chef d'équipe", desc: "Supervision des techniciens et validation des OT", color: "#0A6DFF" },
-  { value: "technicien", label: "Technicien", desc: "Saisie des OT assignés uniquement", color: "#22C55E" },
-  { value: "lecteur", label: "Lecteur seul", desc: "Consultation des données sans modification", color: "#64748B" },
+const ROLES: { value: RBACRole; label: string; desc: string; color: string }[] = [
+  { value: "admin",       label: ROLE_META.admin.label,       desc: ROLE_META.admin.desc,       color: ROLE_META.admin.color },
+  { value: "manager",     label: ROLE_META.manager.label,     desc: ROLE_META.manager.desc,     color: ROLE_META.manager.color },
+  { value: "chef_equipe", label: ROLE_META.chef_equipe.label, desc: ROLE_META.chef_equipe.desc, color: ROLE_META.chef_equipe.color },
+  { value: "technicien",  label: ROLE_META.technicien.label,  desc: ROLE_META.technicien.desc,  color: ROLE_META.technicien.color },
+  { value: "lecteur",     label: ROLE_META.lecteur.label,     desc: ROLE_META.lecteur.desc,     color: ROLE_META.lecteur.color },
 ];
 
-const ROLE_PERMISSIONS: Record<string, string[]> = {
-  admin: ["Tableau de bord", "Équipements", "Ordres de travail", "Préventive", "Stock & pièces", "Personnel", "Rapports", "Paramètres"],
-  manager: ["Tableau de bord", "Équipements", "Ordres de travail", "Préventive", "Stock & pièces", "Personnel", "Rapports"],
-  chef_equipe: ["Tableau de bord", "Ordres de travail", "Préventive", "Personnel"],
-  technicien: ["Tableau de bord", "Ordres de travail (assignés)"],
-  lecteur: ["Tableau de bord", "Rapports (lecture)"],
+const MODULE_PERMISSIONS: Record<RBACRole, string[]> = {
+  admin:       ["Tableau de bord", "Équipements", "Ordres de travail", "Préventive", "Stock & pièces", "Personnel", "Rapports", "Calendrier", "Paramètres"],
+  manager:     ["Tableau de bord", "Équipements", "Ordres de travail", "Préventive", "Stock & pièces", "Personnel", "Rapports", "Calendrier"],
+  chef_equipe: ["Tableau de bord", "Ordres de travail", "Préventive", "Personnel", "Calendrier"],
+  technicien:  ["Tableau de bord", "Ordres de travail (assignés)"],
+  lecteur:     ["Tableau de bord", "Rapports (lecture)"],
 };
-
-interface Team {
-  id: number;
-  name: string;
-  role: string;
-  site: string;
-  memberCount: number;
-  color: string;
-}
 
 const TEAM_COLORS = ["#0A6DFF", "#22C55E", "#F59E0B", "#EF4444", "#8B5CF6", "#38BDF8"];
 
-const defaultTeams: Team[] = [
-  { id: 1, name: "Équipe Électrique", role: "technicien", site: "Usine Centrale", memberCount: 4, color: "#0A6DFF" },
-  { id: 2, name: "Équipe Mécanique", role: "technicien", site: "Atelier A", memberCount: 6, color: "#22C55E" },
-  { id: 3, name: "Équipe Instrumentation", role: "chef_equipe", site: "Zone Nord", memberCount: 3, color: "#F59E0B" },
-  { id: 4, name: "Supervision", role: "manager", site: "Direction", memberCount: 2, color: "#8B5CF6" },
-];
+const ALL_MODULES = ["Tableau de bord", "Équipements", "Ordres de travail", "Préventive", "Calendrier", "Stock & pièces", "Personnel", "Rapports", "Paramètres"];
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("profile");
   const [saved, setSaved] = useState(false);
   const { toast } = useToast();
-  const { data: technicians = [] } = useGetTechnicians({});
+  const { user, setUser, teams, setTeams } = useRBAC();
 
-  // Profile state
   const [profile, setProfile] = useState({
-    name: "Admin Système",
-    email: "admin@swan-gmao.dz",
+    name: user.name,
+    email: user.email,
     phone: "+213 555 123 456",
-    role: "admin",
-    site: "Usine Centrale",
+    role: user.role as string,
+    site: user.site,
     company: "SWAN Industriel",
   });
 
-  // Notifications state
   const [notifs, setNotifs] = useState({
-    breakdown: true,
-    lowStock: true,
-    overdueWO: true,
-    preventiveDue: true,
-    newAssignment: true,
-    dailyReport: false,
-    weeklyReport: true,
-    emailNotifs: true,
-    appNotifs: true,
+    breakdown: true, lowStock: true, overdueWO: true,
+    preventiveDue: true, newAssignment: true,
+    dailyReport: false, weeklyReport: true,
+    emailNotifs: true, appNotifs: true,
   });
 
-  // Preferences
   const [prefs, setPrefs] = useState({
-    language: "fr",
-    timezone: "Africa/Algiers",
-    dateFormat: "DD/MM/YYYY",
-    currency: "DZD",
-    itemsPerPage: "25",
-    defaultView: "dashboard",
+    language: "fr", timezone: "Africa/Algiers",
+    dateFormat: "DD/MM/YYYY", currency: "DZD",
+    itemsPerPage: "25", defaultView: "dashboard",
   });
 
-  // Teams
-  const [teams, setTeams] = useState<Team[]>(defaultTeams);
-  const [teamDialog, setTeamDialog] = useState<Team | null | "new">(null);
-  const [teamForm, setTeamForm] = useState({ name: "", role: "technicien", site: "", color: "#0A6DFF" });
+  const [teamDialog, setTeamDialog] = useState<RBACTeam | null | "new">(null);
+  const [teamForm, setTeamForm] = useState({ name: "", role: "technicien" as RBACRole, site: "", color: "#0A6DFF" });
+  const [deleteTeamConfirm, setDeleteTeamConfirm] = useState<RBACTeam | null>(null);
 
   const handleSaveProfile = () => {
     setSaved(true);
+    setUser({
+      ...user,
+      name: profile.name,
+      email: profile.email,
+      role: profile.role as RBACRole,
+      site: profile.site,
+      initials: profile.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase(),
+    });
     setTimeout(() => setSaved(false), 2000);
-    toast({ title: "Profil enregistré", description: "Vos modifications ont été sauvegardées." });
+    toast({ title: "Profil enregistré", description: "Les modifications ont été appliquées." });
   };
 
   const openCreateTeam = () => {
@@ -110,7 +92,7 @@ export default function SettingsPage() {
     setTeamDialog("new");
   };
 
-  const openEditTeam = (team: Team) => {
+  const openEditTeam = (team: RBACTeam) => {
     setTeamForm({ name: team.name, role: team.role, site: team.site, color: team.color });
     setTeamDialog(team);
   };
@@ -118,18 +100,14 @@ export default function SettingsPage() {
   const saveTeam = () => {
     if (!teamForm.name) return;
     if (teamDialog === "new") {
-      setTeams(prev => [...prev, {
-        id: Date.now(),
-        name: teamForm.name,
-        role: teamForm.role,
-        site: teamForm.site,
-        memberCount: 0,
-        color: teamForm.color,
+      setTeams([...teams, {
+        id: Date.now(), name: teamForm.name, role: teamForm.role,
+        site: teamForm.site, memberCount: 0, color: teamForm.color,
       }]);
       toast({ title: "Équipe créée" });
     } else if (teamDialog && typeof teamDialog !== "string") {
-      setTeams(prev => prev.map(t =>
-        t.id === (teamDialog as Team).id
+      setTeams(teams.map(t =>
+        t.id === (teamDialog as RBACTeam).id
           ? { ...t, name: teamForm.name, role: teamForm.role, site: teamForm.site, color: teamForm.color }
           : t
       ));
@@ -138,9 +116,11 @@ export default function SettingsPage() {
     setTeamDialog(null);
   };
 
-  const deleteTeam = (id: number) => {
-    setTeams(prev => prev.filter(t => t.id !== id));
+  const confirmDeleteTeam = () => {
+    if (!deleteTeamConfirm) return;
+    setTeams(teams.filter(t => t.id !== deleteTeamConfirm.id));
     toast({ title: "Équipe supprimée" });
+    setDeleteTeamConfirm(null);
   };
 
   const selectedRole = ROLES.find(r => r.value === profile.role);
@@ -171,7 +151,6 @@ export default function SettingsPage() {
           ))}
         </aside>
 
-        {/* Content */}
         <div className="flex-1 min-w-0">
           <motion.div
             key={activeTab}
@@ -179,17 +158,23 @@ export default function SettingsPage() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.2 }}
           >
-
             {/* ── PROFILE ── */}
             {activeTab === "profile" && (
               <div className="bg-card border border-border/60 rounded-2xl p-6 space-y-6">
                 <div>
                   <h2 className="text-base font-semibold text-foreground">Profil utilisateur</h2>
-                  <p className="text-sm text-muted-foreground mt-0.5">Informations du compte administrateur</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">Informations du compte — les modifications s'appliquent en temps réel</p>
                 </div>
 
                 <div className="flex items-center gap-5">
-                  <div className="h-16 w-16 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center text-primary font-bold text-2xl">
+                  <div
+                    className="h-16 w-16 rounded-full border-2 flex items-center justify-center font-bold text-2xl"
+                    style={{
+                      background: (selectedRole?.color || "#0A6DFF") + "20",
+                      borderColor: (selectedRole?.color || "#0A6DFF") + "50",
+                      color: selectedRole?.color || "#0A6DFF"
+                    }}
+                  >
                     {profile.name.slice(0, 2).toUpperCase()}
                   </div>
                   <div>
@@ -244,7 +229,7 @@ export default function SettingsPage() {
                       Modules accessibles pour ce rôle
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {(ROLE_PERMISSIONS[profile.role] || []).map(perm => (
+                      {(MODULE_PERMISSIONS[profile.role as RBACRole] || []).map(perm => (
                         <div
                           key={perm}
                           className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-green-500/10 text-green-400 border border-green-500/30"
@@ -273,7 +258,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between mb-5">
                     <div>
                       <h2 className="text-base font-semibold text-foreground">Équipes de maintenance</h2>
-                      <p className="text-sm text-muted-foreground mt-0.5">Profils RBAC par équipe</p>
+                      <p className="text-sm text-muted-foreground mt-0.5">Profils RBAC par équipe — chaque rôle contrôle les pages accessibles</p>
                     </div>
                     <Button onClick={openCreateTeam} size="sm" className="gap-1.5">
                       <Plus className="h-4 w-4" strokeWidth={1.5} />
@@ -284,7 +269,7 @@ export default function SettingsPage() {
                   <div className="space-y-3">
                     {teams.map((team, idx) => {
                       const role = ROLES.find(r => r.value === team.role);
-                      const perms = ROLE_PERMISSIONS[team.role] || [];
+                      const perms = MODULE_PERMISSIONS[team.role] || [];
                       return (
                         <motion.div
                           key={team.id}
@@ -303,7 +288,9 @@ export default function SettingsPage() {
                               </div>
                               <div>
                                 <div className="font-medium text-foreground text-sm">{team.name}</div>
-                                <div className="text-xs text-muted-foreground mt-0.5">{team.site || "—"} · {team.memberCount} membres</div>
+                                <div className="text-xs text-muted-foreground mt-0.5">
+                                  {team.site || "—"} · {team.memberCount} membres
+                                </div>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
@@ -316,7 +303,7 @@ export default function SettingsPage() {
                               <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => openEditTeam(team)}>
                                 <Pencil className="h-3.5 w-3.5" strokeWidth={1.5} />
                               </Button>
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => deleteTeam(team.id)}>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => setDeleteTeamConfirm(team)}>
                                 <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
                               </Button>
                             </div>
@@ -335,7 +322,7 @@ export default function SettingsPage() {
                 {/* Role Matrix */}
                 <div className="bg-card border border-border/60 rounded-2xl p-6">
                   <h2 className="text-base font-semibold text-foreground mb-1">Matrice des droits</h2>
-                  <p className="text-sm text-muted-foreground mb-5">Permissions par rôle</p>
+                  <p className="text-sm text-muted-foreground mb-5">Permissions par rôle — lecture seule</p>
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs">
                       <thead>
@@ -349,11 +336,13 @@ export default function SettingsPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {["Tableau de bord", "Équipements", "Ordres de travail", "Préventive", "Stock & pièces", "Personnel", "Rapports", "Paramètres"].map(module => (
+                        {ALL_MODULES.map(module => (
                           <tr key={module} className="border-b border-border/30 last:border-0">
                             <td className="py-2 pr-4 text-foreground font-medium">{module}</td>
                             {ROLES.map(r => {
-                              const has = (ROLE_PERMISSIONS[r.value] || []).some(p => p.includes(module.split(" ")[0]));
+                              const has = (MODULE_PERMISSIONS[r.value] || []).some(p =>
+                                p.toLowerCase().includes(module.split(" ")[0].toLowerCase())
+                              );
                               return (
                                 <td key={r.value} className="text-center py-2 px-3">
                                   {has ? (
@@ -384,11 +373,11 @@ export default function SettingsPage() {
                 <div className="space-y-1">
                   <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Alertes opérationnelles</div>
                   {[
-                    { key: "breakdown", label: "Pannes critiques", desc: "Nouvelle panne signalée sur un équipement" },
-                    { key: "lowStock", label: "Stock faible", desc: "Pièce en dessous du seuil minimum" },
-                    { key: "overdueWO", label: "OT en retard", desc: "Ordre de travail dépassé" },
-                    { key: "preventiveDue", label: "Préventive à échéance", desc: "Plan de maintenance dû dans 48h" },
-                    { key: "newAssignment", label: "Nouvelles affectations", desc: "Un OT vous est assigné" },
+                    { key: "breakdown",      label: "Pannes critiques",        desc: "Nouvelle panne signalée sur un équipement" },
+                    { key: "lowStock",       label: "Stock faible",            desc: "Pièce en dessous du seuil minimum" },
+                    { key: "overdueWO",      label: "OT en retard",            desc: "Ordre de travail dépassé" },
+                    { key: "preventiveDue",  label: "Préventive à échéance",   desc: "Plan de maintenance dû dans 48h" },
+                    { key: "newAssignment",  label: "Nouvelles affectations",  desc: "Un OT vous est assigné" },
                   ].map(({ key, label, desc }) => (
                     <div key={key} className="flex items-center justify-between py-3 border-b border-border/30 last:border-0">
                       <div>
@@ -406,8 +395,8 @@ export default function SettingsPage() {
                 <div className="space-y-1">
                   <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Rapports automatiques</div>
                   {[
-                    { key: "dailyReport", label: "Rapport quotidien", desc: "Résumé des activités du jour à 18h00" },
-                    { key: "weeklyReport", label: "Rapport hebdomadaire", desc: "Bilan de la semaine chaque lundi à 08h00" },
+                    { key: "dailyReport",   label: "Rapport quotidien",     desc: "Résumé des activités du jour à 18h00" },
+                    { key: "weeklyReport",  label: "Rapport hebdomadaire",  desc: "Bilan de la semaine chaque lundi à 08h00" },
                   ].map(({ key, label, desc }) => (
                     <div key={key} className="flex items-center justify-between py-3 border-b border-border/30 last:border-0">
                       <div>
@@ -425,8 +414,8 @@ export default function SettingsPage() {
                 <div className="space-y-1">
                   <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Canaux de notification</div>
                   {[
-                    { key: "emailNotifs", label: "Notifications email", desc: "Envoi par email à " + profile.email },
-                    { key: "appNotifs", label: "Notifications in-app", desc: "Alertes dans la barre de notification" },
+                    { key: "emailNotifs",  label: "Notifications email",   desc: "Envoi par email à " + profile.email },
+                    { key: "appNotifs",    label: "Notifications in-app",  desc: "Alertes dans la barre de notification" },
                   ].map(({ key, label, desc }) => (
                     <div key={key} className="flex items-center justify-between py-3 border-b border-border/30 last:border-0">
                       <div>
@@ -470,8 +459,8 @@ export default function SettingsPage() {
                     {
                       key: "timezone", label: "Fuseau horaire", options: [
                         { value: "Africa/Algiers", label: "Algiers (UTC+1)" },
-                        { value: "Europe/Paris", label: "Paris (UTC+2)" },
-                        { value: "UTC", label: "UTC" },
+                        { value: "Europe/Paris",   label: "Paris (UTC+2)" },
+                        { value: "UTC",            label: "UTC" },
                       ]
                     },
                     {
@@ -490,17 +479,17 @@ export default function SettingsPage() {
                     },
                     {
                       key: "itemsPerPage", label: "Éléments par page", options: [
-                        { value: "10", label: "10" },
-                        { value: "25", label: "25" },
-                        { value: "50", label: "50" },
+                        { value: "10",  label: "10" },
+                        { value: "25",  label: "25" },
+                        { value: "50",  label: "50" },
                         { value: "100", label: "100" },
                       ]
                     },
                     {
                       key: "defaultView", label: "Page d'accueil", options: [
-                        { value: "dashboard", label: "Tableau de bord" },
+                        { value: "dashboard",  label: "Tableau de bord" },
                         { value: "workorders", label: "Ordres de travail" },
-                        { value: "assets", label: "Équipements" },
+                        { value: "assets",     label: "Équipements" },
                       ]
                     },
                   ].map(({ key, label, options }) => (
@@ -535,7 +524,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Team Dialog */}
+      {/* Team Create/Edit Dialog */}
       <Dialog open={teamDialog !== null} onOpenChange={() => setTeamDialog(null)}>
         <DialogContent className="max-w-md bg-card border-border">
           <DialogHeader>
@@ -552,13 +541,13 @@ export default function SettingsPage() {
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">Rôle RBAC</label>
-              <Select value={teamForm.role} onValueChange={v => setTeamForm(f => ({ ...f, role: v }))}>
+              <Select value={teamForm.role} onValueChange={v => setTeamForm(f => ({ ...f, role: v as RBACRole }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {ROLES.map(r => (
                     <SelectItem key={r.value} value={r.value}>
                       <div>
-                        <div className="font-medium">{r.label}</div>
+                        <div className="font-medium" style={{ color: r.color }}>{r.label}</div>
                         <div className="text-xs text-muted-foreground">{r.desc}</div>
                       </div>
                     </SelectItem>
@@ -575,7 +564,7 @@ export default function SettingsPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Couleur</label>
+              <label className="text-xs font-medium text-muted-foreground">Couleur de l'équipe</label>
               <div className="flex gap-2">
                 {TEAM_COLORS.map(c => (
                   <button
@@ -590,9 +579,9 @@ export default function SettingsPage() {
 
             {teamForm.role && (
               <div className="bg-background/50 border border-border/40 rounded-lg p-3">
-                <div className="text-xs font-medium text-muted-foreground mb-2">Accès pour ce rôle:</div>
+                <div className="text-xs font-medium text-muted-foreground mb-2">Accès pour ce rôle :</div>
                 <div className="flex flex-wrap gap-1.5">
-                  {(ROLE_PERMISSIONS[teamForm.role] || []).map(p => (
+                  {(MODULE_PERMISSIONS[teamForm.role] || []).map(p => (
                     <span key={p} className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">{p}</span>
                   ))}
                 </div>
@@ -601,7 +590,29 @@ export default function SettingsPage() {
           </div>
           <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setTeamDialog(null)}>Annuler</Button>
-            <Button onClick={saveTeam}>{teamDialog === "new" ? "Créer" : "Enregistrer"}</Button>
+            <Button onClick={saveTeam} disabled={!teamForm.name}>
+              {teamDialog === "new" ? "Créer" : "Enregistrer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirm */}
+      <Dialog open={!!deleteTeamConfirm} onOpenChange={() => setDeleteTeamConfirm(null)}>
+        <DialogContent className="max-w-sm bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Supprimer l'équipe
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Supprimer <span className="font-semibold text-foreground">"{deleteTeamConfirm?.name}"</span> ?
+            Cette action est irréversible.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTeamConfirm(null)}>Annuler</Button>
+            <Button variant="destructive" onClick={confirmDeleteTeam}>Supprimer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

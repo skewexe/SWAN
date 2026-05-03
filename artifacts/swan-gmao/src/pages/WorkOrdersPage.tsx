@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   useGetWorkOrders, useCreateWorkOrder, useUpdateWorkOrder, useDeleteWorkOrder,
@@ -14,10 +14,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, AlertTriangle, Package, X, AlertCircle, ExternalLink } from "lucide-react";
+import { Plus, Pencil, Trash2, AlertTriangle, Package, X, AlertCircle, ExternalLink, Lock } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { WorkOrderDetailSheet } from "@/components/WorkOrderDetailSheet";
+import { useRBAC } from "@/context/RBACContext";
 
 type WOType = "corrective" | "preventive" | "predictive" | "inspection";
 type WOPriority = "low" | "medium" | "high" | "critical";
@@ -304,6 +305,8 @@ export default function WorkOrdersPage() {
   const [detailWO, setDetailWO] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user, isReadOnly } = useRBAC();
+  const isTechnicien = user.role === "technicien";
 
   const params = {
     status: statusFilter !== "all" ? statusFilter : undefined,
@@ -311,9 +314,17 @@ export default function WorkOrdersPage() {
     type: typeFilter !== "all" ? typeFilter : undefined,
   };
 
-  const { data: workOrders, isLoading } = useGetWorkOrders(params, {
+  const { data: rawWorkOrders, isLoading } = useGetWorkOrders(params, {
     query: { queryKey: getGetWorkOrdersQueryKey(params) }
   });
+
+  const workOrders = useMemo(() => {
+    if (!rawWorkOrders) return rawWorkOrders;
+    if (isTechnicien && user.technicianId) {
+      return (rawWorkOrders as any[]).filter(wo => wo.technicianId === user.technicianId);
+    }
+    return rawWorkOrders;
+  }, [rawWorkOrders, isTechnicien, user.technicianId]);
 
   const { data: assets } = useGetAssets();
   const { data: technicians } = useGetTechnicians();
@@ -375,12 +386,24 @@ export default function WorkOrdersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Ordres de travail</h1>
-          <p className="text-sm text-muted-foreground mt-1">Gestion des interventions de maintenance</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {isTechnicien
+              ? "Mes interventions assignées"
+              : "Gestion des interventions de maintenance"}
+            {isTechnicien && (
+              <span className="ml-2 inline-flex items-center gap-1 text-xs text-yellow-400">
+                <Lock className="h-3 w-3" strokeWidth={2} />
+                Vue technicien
+              </span>
+            )}
+          </p>
         </div>
-        <Button onClick={openCreate} className="gap-2" data-testid="button-create-workorder">
-          <Plus className="h-4 w-4" strokeWidth={1.5} />
-          Nouvel OT
-        </Button>
+        {!isReadOnly && !isTechnicien && (
+          <Button onClick={openCreate} className="gap-2" data-testid="button-create-workorder">
+            <Plus className="h-4 w-4" strokeWidth={1.5} />
+            Nouvel OT
+          </Button>
+        )}
       </div>
 
       {/* Filters */}

@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { motion } from "framer-motion";
+import * as XLSX from "xlsx";
 import {
   useGetAssets, useCreateAsset, useUpdateAsset, useDeleteAsset,
   getGetAssetsQueryKey
@@ -15,25 +16,26 @@ import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import {
   Plus, Search, Pencil, Trash2, AlertTriangle, Copy, Upload,
-  FileSpreadsheet, Download, CheckCircle2, X, Wrench
+  FileSpreadsheet, Download, CheckCircle2, X, Wrench, Layers, Trash
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { useRBAC } from "@/context/RBACContext";
 
 type AssetStatus = "operational" | "maintenance" | "breakdown" | "decommissioned";
 type AssetCriticality = "low" | "medium" | "high" | "critical";
 
 const STATUS_LABELS: Record<AssetStatus, { label: string; className: string }> = {
-  operational: { label: "Opérationnel", className: "bg-green-500/10 text-green-400 border-green-500/30" },
-  maintenance: { label: "En maintenance", className: "bg-yellow-500/10 text-yellow-400 border-yellow-500/30" },
-  breakdown: { label: "En panne", className: "bg-red-500/10 text-red-400 border-red-500/30" },
-  decommissioned: { label: "Hors service", className: "bg-muted text-muted-foreground border-border" },
+  operational:   { label: "Opérationnel",   className: "bg-green-500/10 text-green-400 border-green-500/30" },
+  maintenance:   { label: "En maintenance", className: "bg-yellow-500/10 text-yellow-400 border-yellow-500/30" },
+  breakdown:     { label: "En panne",       className: "bg-red-500/10 text-red-400 border-red-500/30" },
+  decommissioned:{ label: "Hors service",   className: "bg-muted text-muted-foreground border-border" },
 };
 
 const CRITICALITY_LABELS: Record<AssetCriticality, { label: string; className: string }> = {
-  low: { label: "Faible", className: "text-muted-foreground" },
-  medium: { label: "Moyenne", className: "text-yellow-400" },
-  high: { label: "Élevée", className: "text-orange-400" },
+  low:      { label: "Faible",   className: "text-muted-foreground" },
+  medium:   { label: "Moyenne",  className: "text-yellow-400" },
+  high:     { label: "Élevée",   className: "text-orange-400" },
   critical: { label: "Critique", className: "text-red-400" },
 };
 
@@ -49,20 +51,19 @@ interface AssetFormData {
   criticality: AssetCriticality;
 }
 
-// CSV column mapping
 const CSV_COLUMNS = [
-  { key: "name", label: "Nom", required: true },
-  { key: "category", label: "Catégorie", required: true },
-  { key: "serialNumber", label: "N° de série", required: false },
-  { key: "location", label: "Localisation", required: false },
-  { key: "status", label: "Statut", required: false },
-  { key: "manufacturer", label: "Fabricant", required: false },
-  { key: "model", label: "Modèle", required: false },
-  { key: "criticality", label: "Criticité", required: false },
-  { key: "installDate", label: "Date installation", required: false },
+  { key: "name",         label: "Nom",                required: true },
+  { key: "category",     label: "Catégorie",          required: true },
+  { key: "serialNumber", label: "N° de série",        required: false },
+  { key: "location",     label: "Localisation",       required: false },
+  { key: "status",       label: "Statut",             required: false },
+  { key: "manufacturer", label: "Fabricant",          required: false },
+  { key: "model",        label: "Modèle",             required: false },
+  { key: "criticality",  label: "Criticité",          required: false },
+  { key: "installDate",  label: "Date installation",  required: false },
 ];
 
-function parseCSV(text: string): Record<string, string>[] {
+function parseCSVText(text: string): Record<string, string>[] {
   const lines = text.split(/\r?\n/).filter(l => l.trim());
   if (lines.length < 2) return [];
   const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, ""));
@@ -72,6 +73,17 @@ function parseCSV(text: string): Record<string, string>[] {
     headers.forEach((h, i) => { row[h] = vals[i] || ""; });
     return row;
   }).filter(row => Object.values(row).some(v => v));
+}
+
+function parseXLSX(buffer: ArrayBuffer): Record<string, string>[] {
+  const wb = XLSX.read(buffer, { type: "array" });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows: Record<string, string>[] = XLSX.utils.sheet_to_json(ws, { defval: "" });
+  return rows.map(r => {
+    const out: Record<string, string> = {};
+    for (const k in r) out[k] = String(r[k]);
+    return out;
+  });
 }
 
 function normalizeAssetRow(row: Record<string, string>): AssetFormData | null {
@@ -101,157 +113,280 @@ function normalizeAssetRow(row: Record<string, string>): AssetFormData | null {
     name,
     category,
     serialNumber: row["serialNumber"] || row["N° de série"] || row["serial"] || undefined,
-    location: row["location"] || row["Localisation"] || undefined,
+    location:     row["location"] || row["Localisation"] || undefined,
     status,
     manufacturer: row["manufacturer"] || row["Fabricant"] || undefined,
-    model: row["model"] || row["Modèle"] || undefined,
-    installDate: row["installDate"] || row["Date installation"] || undefined,
+    model:        row["model"] || row["Modèle"] || undefined,
+    installDate:  row["installDate"] || row["Date installation"] || undefined,
     criticality,
   };
 }
 
-// ── Bulk Creation Dialog ──────────────────────────────────────────────────────
-function BulkCreateDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [prefix, setPrefix] = useState("Machine");
-  const [category, setCategory] = useState("Équipement");
-  const [count, setCount] = useState(5);
-  const [serialPrefix, setSerialPrefix] = useState("SN");
-  const [location, setLocation] = useState("");
-  const [status, setStatus] = useState<AssetStatus>("operational");
-  const [criticality, setCriticality] = useState<AssetCriticality>("medium");
-  const [manufacturer, setManufacturer] = useState("");
-  const [model, setModel] = useState("");
+// ── Multi-Type Bulk Creation ──────────────────────────────────────────────────
+
+interface MachineType {
+  id: number;
+  prefix: string;
+  category: string;
+  count: number;
+  serialPrefix: string;
+  location: string;
+  manufacturer: string;
+  model: string;
+  status: AssetStatus;
+  criticality: AssetCriticality;
+  color: string;
+}
+
+const TYPE_COLORS = ["#0A6DFF","#22C55E","#F59E0B","#EF4444","#8B5CF6","#38BDF8","#EC4899","#84CC16"];
+
+function emptyType(id: number): MachineType {
+  return {
+    id,
+    prefix: `Type ${String.fromCharCode(64 + id)}`,
+    category: "Équipement",
+    count: 5,
+    serialPrefix: `T${id}`,
+    location: "",
+    manufacturer: "",
+    model: "",
+    status: "operational",
+    criticality: "medium",
+    color: TYPE_COLORS[(id - 1) % TYPE_COLORS.length],
+  };
+}
+
+function BulkTypesDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [types, setTypes] = useState<MachineType[]>([emptyType(1), emptyType(2)]);
   const [progress, setProgress] = useState(0);
   const [creating, setCreating] = useState(false);
   const [done, setDone] = useState(false);
+  const [currentType, setCurrentType] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const createAsset = useCreateAsset();
 
-  const preview = Array.from({ length: Math.min(count, 5) }, (_, i) => ({
-    name: `${prefix}-${String(i + 1).padStart(3, "0")}`,
-    serial: `${serialPrefix}-${String(i + 1).padStart(4, "0")}`,
-  }));
+  const totalCount = types.reduce((s, t) => s + t.count, 0);
+
+  const addType = () => setTypes(prev => [...prev, emptyType(prev.length + 1)]);
+  const removeType = (id: number) => setTypes(prev => prev.filter(t => t.id !== id));
+  const updateType = (id: number, patch: Partial<MachineType>) =>
+    setTypes(prev => prev.map(t => t.id === id ? { ...t, ...patch } : t));
 
   const handleCreate = async () => {
     setCreating(true);
     setProgress(0);
     let created = 0;
-    const pad = (n: number) => String(n).padStart(3, "0");
-    for (let i = 1; i <= count; i++) {
-      await new Promise<void>((resolve, reject) => {
-        createAsset.mutate({
-          data: {
-            name: `${prefix}-${pad(i)}`,
-            category,
-            serialNumber: `${serialPrefix}-${String(i).padStart(4, "0")}`,
-            location: location || undefined,
-            status,
-            criticality,
-            manufacturer: manufacturer || undefined,
-            model: model || undefined,
-          }
-        }, {
-          onSuccess: () => { created++; resolve(); },
-          onError: () => resolve(),
+    let total = totalCount;
+    let done_count = 0;
+
+    for (const type of types) {
+      setCurrentType(type.prefix);
+      for (let i = 1; i <= type.count; i++) {
+        const pad = (n: number) => String(n).padStart(3, "0");
+        await new Promise<void>((resolve) => {
+          createAsset.mutate({
+            data: {
+              name: `${type.prefix}-${pad(i)}`,
+              category: type.category,
+              serialNumber: `${type.serialPrefix}-${String(i).padStart(4, "0")}`,
+              location: type.location || undefined,
+              status: type.status,
+              criticality: type.criticality,
+              manufacturer: type.manufacturer || undefined,
+              model: type.model || undefined,
+            }
+          }, {
+            onSuccess: () => { created++; resolve(); },
+            onError: () => resolve(),
+          });
         });
-      });
-      setProgress(Math.round((i / count) * 100));
+        done_count++;
+        setProgress(Math.round((done_count / total) * 100));
+      }
     }
+
     await queryClient.invalidateQueries({ queryKey: getGetAssetsQueryKey() });
     setCreating(false);
     setDone(true);
-    toast({ title: `${created} équipements créés avec succès` });
-    setTimeout(() => { setDone(false); onClose(); setProgress(0); }, 1500);
+    toast({ title: `${created} équipements créés (${types.length} types)` });
+    setTimeout(() => {
+      setDone(false); setProgress(0); setCurrentType("");
+      setTypes([emptyType(1), emptyType(2)]);
+      onClose();
+    }, 1500);
+  };
+
+  const handleClose = () => {
+    if (creating) return;
+    setTypes([emptyType(1), emptyType(2)]);
+    setProgress(0); setDone(false);
+    onClose();
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-xl bg-card border-border">
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="max-w-4xl bg-card border-border max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Copy className="h-4 w-4 text-primary" strokeWidth={1.5} />
-            Création en masse d'équipements
+            <Layers className="h-4 w-4 text-primary" strokeWidth={1.5} />
+            Création par types d'équipements
           </DialogTitle>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Définissez plusieurs types de machines et créez-les tous en une seule opération.
+          </p>
         </DialogHeader>
-        <div className="space-y-4 mt-2">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Préfixe du nom *</label>
-              <Input placeholder="Machine A" value={prefix} onChange={e => setPrefix(e.target.value)} />
-              <p className="text-xs text-muted-foreground/70">Ex: Machine A → Machine A-001</p>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Nombre d'équipements *</label>
-              <Input
-                type="number" min={1} max={100} value={count}
-                onChange={e => setCount(Math.max(1, Math.min(100, Number(e.target.value))))}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Catégorie *</label>
-              <Input placeholder="Ex: Compresseur" value={category} onChange={e => setCategory(e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Préfixe N° de série</label>
-              <Input placeholder="SN" value={serialPrefix} onChange={e => setSerialPrefix(e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Localisation</label>
-              <Input placeholder="Ex: Atelier A" value={location} onChange={e => setLocation(e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Fabricant</label>
-              <Input placeholder="Ex: Siemens" value={manufacturer} onChange={e => setManufacturer(e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Modèle</label>
-              <Input placeholder="Ex: S7-300" value={model} onChange={e => setModel(e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Statut initial</label>
-              <Select value={status} onValueChange={v => setStatus(v as AssetStatus)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="operational">Opérationnel</SelectItem>
-                  <SelectItem value="maintenance">En maintenance</SelectItem>
-                  <SelectItem value="breakdown">En panne</SelectItem>
-                  <SelectItem value="decommissioned">Hors service</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Criticité</label>
-              <Select value={criticality} onValueChange={v => setCriticality(v as AssetCriticality)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">Faible</SelectItem>
-                  <SelectItem value="medium">Moyenne</SelectItem>
-                  <SelectItem value="high">Élevée</SelectItem>
-                  <SelectItem value="critical">Critique</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
 
-          {/* Preview */}
-          <div className="bg-background/50 border border-border/40 rounded-xl p-3">
-            <div className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
-              Aperçu ({count} équipements seront créés)
+        <div className="flex-1 overflow-y-auto space-y-3 mt-2 pr-1">
+          {types.map((type, idx) => (
+            <motion.div
+              key={type.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.04 }}
+              className="border border-border/50 rounded-xl p-4 bg-background/40"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div
+                    className="h-5 w-5 rounded-full shrink-0"
+                    style={{ background: type.color }}
+                  />
+                  <span className="text-sm font-semibold text-foreground">{type.prefix}</span>
+                  <span className="text-xs text-muted-foreground">— {type.count} machine(s)</span>
+                </div>
+                <button
+                  onClick={() => removeType(type.id)}
+                  disabled={types.length <= 1}
+                  className="text-muted-foreground hover:text-destructive transition-colors disabled:opacity-30"
+                >
+                  <Trash className="h-4 w-4" strokeWidth={1.5} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-4 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Préfixe nom *</label>
+                  <Input
+                    value={type.prefix}
+                    onChange={e => updateType(type.id, { prefix: e.target.value })}
+                    placeholder="Machine A"
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Quantité *</label>
+                  <Input
+                    type="number" min={1} max={200}
+                    value={type.count}
+                    onChange={e => updateType(type.id, { count: Math.max(1, Math.min(200, Number(e.target.value))) })}
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Catégorie *</label>
+                  <Input
+                    value={type.category}
+                    onChange={e => updateType(type.id, { category: e.target.value })}
+                    placeholder="Compresseur"
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Préfixe N° série</label>
+                  <Input
+                    value={type.serialPrefix}
+                    onChange={e => updateType(type.id, { serialPrefix: e.target.value })}
+                    placeholder="SN"
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Localisation</label>
+                  <Input
+                    value={type.location}
+                    onChange={e => updateType(type.id, { location: e.target.value })}
+                    placeholder="Atelier A"
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Fabricant</label>
+                  <Input
+                    value={type.manufacturer}
+                    onChange={e => updateType(type.id, { manufacturer: e.target.value })}
+                    placeholder="Siemens"
+                    className="h-8 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Statut initial</label>
+                  <Select value={type.status} onValueChange={v => updateType(type.id, { status: v as AssetStatus })}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="operational">Opérationnel</SelectItem>
+                      <SelectItem value="maintenance">En maintenance</SelectItem>
+                      <SelectItem value="breakdown">En panne</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Criticité</label>
+                  <Select value={type.criticality} onValueChange={v => updateType(type.id, { criticality: v as AssetCriticality })}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Faible</SelectItem>
+                      <SelectItem value="medium">Moyenne</SelectItem>
+                      <SelectItem value="high">Élevée</SelectItem>
+                      <SelectItem value="critical">Critique</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Mini-preview */}
+              <div className="mt-3 flex items-center gap-2 flex-wrap">
+                {Array.from({ length: Math.min(type.count, 4) }, (_, i) => (
+                  <span
+                    key={i}
+                    className="text-xs px-2 py-0.5 rounded-full font-medium border"
+                    style={{ background: type.color + "15", color: type.color, borderColor: type.color + "40" }}
+                  >
+                    {type.prefix}-{String(i + 1).padStart(3, "0")}
+                  </span>
+                ))}
+                {type.count > 4 && (
+                  <span className="text-xs text-muted-foreground/70">... +{type.count - 4} autres</span>
+                )}
+              </div>
+            </motion.div>
+          ))}
+
+          <Button
+            variant="outline"
+            onClick={addType}
+            disabled={creating}
+            className="w-full gap-2 border-dashed text-muted-foreground h-9"
+          >
+            <Plus className="h-4 w-4" strokeWidth={1.5} />
+            Ajouter un type de machine
+          </Button>
+
+          {/* Summary */}
+          <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex items-center justify-between">
+            <div className="text-xs text-muted-foreground">
+              <span className="font-semibold text-primary">{types.length} types</span> · <span className="font-semibold text-foreground">{totalCount} équipements</span> au total
             </div>
-            <div className="space-y-1">
-              {preview.map((p, i) => (
-                <div key={i} className="flex items-center gap-3 text-xs text-muted-foreground">
-                  <span className="font-medium text-foreground w-36 truncate">{p.name}</span>
-                  <span>{p.serial}</span>
-                  <span className="text-muted-foreground/60">{category} · {location || "—"}</span>
-                </div>
+            <div className="flex gap-1.5">
+              {types.map(t => (
+                <span
+                  key={t.id}
+                  className="text-xs px-2 py-0.5 rounded-full font-medium"
+                  style={{ background: t.color + "20", color: t.color }}
+                >
+                  {t.prefix} ×{t.count}
+                </span>
               ))}
-              {count > 5 && (
-                <div className="text-xs text-muted-foreground/60 pt-1">
-                  ... et {count - 5} autres
-                </div>
-              )}
             </div>
           </div>
 
@@ -260,23 +395,28 @@ function BulkCreateDialog({ open, onClose }: { open: boolean; onClose: () => voi
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">
-                  {done ? "Terminé !" : `Création en cours... ${Math.round(progress / 100 * count)}/${count}`}
+                  {done ? "Terminé !" : `Création de ${currentType}... ${progress}%`}
                 </span>
-                <span className="font-medium text-foreground">{progress}%</span>
+                <span className="font-semibold text-foreground">{progress}%</span>
               </div>
               <Progress value={progress} className="h-2" />
             </div>
           )}
         </div>
-        <DialogFooter className="mt-2">
-          <Button variant="outline" onClick={onClose} disabled={creating}>Annuler</Button>
-          <Button onClick={handleCreate} disabled={creating || done || !prefix || !category} className="gap-2 min-w-32">
+
+        <DialogFooter className="mt-4 shrink-0">
+          <Button variant="outline" onClick={handleClose} disabled={creating}>Annuler</Button>
+          <Button
+            onClick={handleCreate}
+            disabled={creating || done || types.some(t => !t.prefix || !t.category)}
+            className="gap-2 min-w-40"
+          >
             {done ? (
               <><CheckCircle2 className="h-4 w-4 text-green-400" /> Créé !</>
             ) : creating ? (
               `Création... ${progress}%`
             ) : (
-              <><Copy className="h-4 w-4" strokeWidth={1.5} /> Créer {count} équipements</>
+              <><Layers className="h-4 w-4" strokeWidth={1.5} /> Créer {totalCount} équipements</>
             )}
           </Button>
         </DialogFooter>
@@ -285,8 +425,9 @@ function BulkCreateDialog({ open, onClose }: { open: boolean; onClose: () => voi
   );
 }
 
-// ── CSV Import Dialog ─────────────────────────────────────────────────────────
-function CSVImportDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+// ── Import Dialog (CSV + Excel) ───────────────────────────────────────────────
+
+function ImportDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [rows, setRows] = useState<AssetFormData[]>([]);
   const [rawCount, setRawCount] = useState(0);
   const [errors, setErrors] = useState<number[]>([]);
@@ -299,30 +440,46 @@ function CSVImportDialog({ open, onClose }: { open: boolean; onClose: () => void
   const queryClient = useQueryClient();
   const createAsset = useCreateAsset();
 
+  const processRows = (parsed: Record<string, string>[]) => {
+    setRawCount(parsed.length);
+    const normalized: AssetFormData[] = [];
+    const errs: number[] = [];
+    parsed.forEach((row, idx) => {
+      const n = normalizeAssetRow(row);
+      if (n) normalized.push(n);
+      else errs.push(idx + 1);
+    });
+    setRows(normalized);
+    setErrors(errs);
+  };
+
   const handleFile = (file: File) => {
     setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
-      const parsed = parseCSV(text);
-      setRawCount(parsed.length);
-      const normalized: AssetFormData[] = [];
-      const errs: number[] = [];
-      parsed.forEach((row, idx) => {
-        const n = normalizeAssetRow(row);
-        if (n) normalized.push(n);
-        else errs.push(idx + 1);
-      });
-      setRows(normalized);
-      setErrors(errs);
-    };
-    reader.readAsText(file);
+    const isExcel = file.name.match(/\.xlsx?$/i);
+
+    if (isExcel) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const buf = e.target?.result as ArrayBuffer;
+        const parsed = parseXLSX(buf);
+        processRows(parsed);
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        const parsed = parseCSVText(text);
+        processRows(parsed);
+      };
+      reader.readAsText(file);
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
-    if (file && (file.name.endsWith(".csv") || file.name.endsWith(".txt"))) handleFile(file);
+    if (file && file.name.match(/\.(csv|txt|xlsx|xls)$/i)) handleFile(file);
   };
 
   const handleImport = async () => {
@@ -346,17 +503,24 @@ function CSVImportDialog({ open, onClose }: { open: boolean; onClose: () => void
   };
 
   const downloadTemplate = () => {
-    const headers = "name,category,serialNumber,location,status,manufacturer,model,criticality,installDate";
-    const example = "Compresseur A-001,Compresseur,CA-0001,Atelier A - Zone 1,operational,Atlas Copco,GA37,medium,2024-01-15";
-    const blob = new Blob([headers + "\n" + example], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = "template_equipements.csv"; a.click();
-    URL.revokeObjectURL(url);
+    const ws = XLSX.utils.aoa_to_sheet([
+      ["name","category","serialNumber","location","status","manufacturer","model","criticality","installDate"],
+      ["Compresseur A-001","Compresseur","CA-0001","Atelier A - Zone 1","operational","Atlas Copco","GA37","medium","2024-01-15"],
+      ["Pompe B-001","Pompe","PB-0001","Zone Nord","operational","KSB","Mega","high","2023-06-20"],
+    ]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Equipements");
+    XLSX.writeFile(wb, "template_equipements.xlsx");
+  };
+
+  const resetDialog = () => {
+    if (importing) return;
+    setRows([]); setFileName(""); setProgress(0); setDone(false); setErrors([]);
+    onClose();
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={resetDialog}>
       <DialogContent className="max-w-2xl bg-card border-border max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -365,14 +529,14 @@ function CSVImportDialog({ open, onClose }: { open: boolean; onClose: () => void
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 mt-2 flex-1 overflow-y-auto">
-          {/* Download template */}
+          {/* Template download */}
           <div className="flex items-center justify-between bg-primary/5 border border-primary/20 rounded-xl p-3">
             <div className="text-xs text-muted-foreground">
-              Téléchargez le modèle CSV pour un import correct
+              Téléchargez le modèle Excel pour un import correct
             </div>
             <Button variant="outline" size="sm" onClick={downloadTemplate} className="gap-1.5 text-xs h-7">
               <Download className="h-3.5 w-3.5" strokeWidth={1.5} />
-              Modèle CSV
+              Modèle Excel
             </Button>
           </div>
 
@@ -386,19 +550,22 @@ function CSVImportDialog({ open, onClose }: { open: boolean; onClose: () => void
             <Upload className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" strokeWidth={1} />
             {fileName ? (
               <div>
-                <div className="text-sm font-medium text-foreground">{fileName}</div>
-                <div className="text-xs text-muted-foreground mt-1">{rawCount} lignes trouvées, {rows.length} valides</div>
+                <div className="text-sm font-medium text-foreground flex items-center gap-2 justify-center">
+                  <FileSpreadsheet className="h-4 w-4 text-green-400" strokeWidth={1.5} />
+                  {fileName}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">{rawCount} lignes trouvées · {rows.length} valides · {errors.length} ignorées</div>
               </div>
             ) : (
               <div>
                 <div className="text-sm font-medium text-foreground mb-1">Glisser-déposer ou cliquer</div>
-                <div className="text-xs text-muted-foreground">Fichiers CSV acceptés</div>
+                <div className="text-xs text-muted-foreground">Formats acceptés : CSV, Excel (.xlsx, .xls)</div>
               </div>
             )}
             <input
               ref={fileRef}
               type="file"
-              accept=".csv,.txt"
+              accept=".csv,.txt,.xlsx,.xls"
               className="hidden"
               onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])}
             />
@@ -425,7 +592,7 @@ function CSVImportDialog({ open, onClose }: { open: boolean; onClose: () => void
             <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-3 flex gap-2">
               <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" strokeWidth={1.5} />
               <div className="text-xs text-muted-foreground">
-                <span className="font-medium text-red-400">{errors.length} lignes ignorées</span> (nom ou catégorie manquants): lignes {errors.slice(0, 5).join(", ")}{errors.length > 5 ? "..." : ""}
+                <span className="font-medium text-red-400">{errors.length} lignes ignorées</span> (nom ou catégorie manquants) : lignes {errors.slice(0, 5).join(", ")}{errors.length > 5 ? "..." : ""}
               </div>
             </div>
           )}
@@ -490,7 +657,7 @@ function CSVImportDialog({ open, onClose }: { open: boolean; onClose: () => void
           )}
         </div>
         <DialogFooter className="mt-4">
-          <Button variant="outline" onClick={onClose} disabled={importing}>Annuler</Button>
+          <Button variant="outline" onClick={resetDialog} disabled={importing}>Annuler</Button>
           <Button
             onClick={handleImport}
             disabled={rows.length === 0 || importing || done}
@@ -519,9 +686,10 @@ export default function AssetsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<any>(null);
   const [detailAsset, setDetailAsset] = useState<any>(null);
   const [bulkOpen, setBulkOpen] = useState(false);
-  const [csvOpen, setCsvOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isReadOnly } = useRBAC();
 
   const params = {
     search: search || undefined,
@@ -593,20 +761,22 @@ export default function AssetsPage() {
             {assets ? <span className="ml-2 text-muted-foreground/60">— {assets.length} équipements</span> : null}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setCsvOpen(true)} className="gap-1.5 text-xs">
-            <FileSpreadsheet className="h-3.5 w-3.5" strokeWidth={1.5} />
-            Importer CSV
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setBulkOpen(true)} className="gap-1.5 text-xs">
-            <Copy className="h-3.5 w-3.5" strokeWidth={1.5} />
-            Création en masse
-          </Button>
-          <Button onClick={openCreate} className="gap-2" size="sm" data-testid="button-create-asset">
-            <Plus className="h-4 w-4" strokeWidth={1.5} />
-            Nouvel équipement
-          </Button>
-        </div>
+        {!isReadOnly && (
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setImportOpen(true)} className="gap-1.5 text-xs">
+              <FileSpreadsheet className="h-3.5 w-3.5" strokeWidth={1.5} />
+              Import CSV / Excel
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setBulkOpen(true)} className="gap-1.5 text-xs">
+              <Layers className="h-3.5 w-3.5" strokeWidth={1.5} />
+              Création par types
+            </Button>
+            <Button onClick={openCreate} className="gap-2" size="sm" data-testid="button-create-asset">
+              <Plus className="h-4 w-4" strokeWidth={1.5} />
+              Nouvel équipement
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Filters */}
@@ -681,24 +851,26 @@ export default function AssetsPage() {
                     </td>
                     <td className={`px-4 py-4 text-xs font-medium ${crit.className}`}>{crit.label}</td>
                     <td className="px-4 py-4">
-                      {asset.availabilityRate != null ? (
+                      {(asset as any).availabilityRate != null ? (
                         <span className={`text-sm font-semibold ${
-                          asset.availabilityRate >= 95 ? "text-green-400" :
-                          asset.availabilityRate >= 85 ? "text-yellow-400" : "text-red-400"
+                          (asset as any).availabilityRate >= 95 ? "text-green-400" :
+                          (asset as any).availabilityRate >= 85 ? "text-yellow-400" : "text-red-400"
                         }`}>
-                          {asset.availabilityRate.toFixed(1)}%
+                          {(asset as any).availabilityRate.toFixed(1)}%
                         </span>
                       ) : "—"}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 justify-end" onClick={e => e.stopPropagation()}>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => openEdit(asset)} data-testid={`button-edit-asset-${asset.id}`}>
-                          <Pencil className="h-4 w-4" strokeWidth={1.5} />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setDeleteConfirm(asset)} data-testid={`button-delete-asset-${asset.id}`}>
-                          <Trash2 className="h-4 w-4" strokeWidth={1.5} />
-                        </Button>
-                      </div>
+                      {!isReadOnly && (
+                        <div className="flex items-center gap-2 justify-end" onClick={e => e.stopPropagation()}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => openEdit(asset)} data-testid={`button-edit-asset-${asset.id}`}>
+                            <Pencil className="h-4 w-4" strokeWidth={1.5} />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setDeleteConfirm(asset)} data-testid={`button-delete-asset-${asset.id}`}>
+                            <Trash2 className="h-4 w-4" strokeWidth={1.5} />
+                          </Button>
+                        </div>
+                      )}
                     </td>
                   </motion.tr>
                 );
@@ -707,7 +879,7 @@ export default function AssetsPage() {
                   <td colSpan={7} className="text-center py-16 text-muted-foreground">
                     <Wrench className="h-8 w-8 mx-auto mb-3 text-muted-foreground/20" strokeWidth={1} />
                     <div className="text-sm font-medium">Aucun équipement trouvé</div>
-                    <div className="text-xs mt-1 text-muted-foreground/60">Créez des équipements ou importez un fichier CSV</div>
+                    <div className="text-xs mt-1 text-muted-foreground/60">Créez des équipements ou importez un fichier CSV/Excel</div>
                   </td>
                 </tr>
               )}
@@ -717,8 +889,8 @@ export default function AssetsPage() {
       </motion.div>
 
       <AssetDetailSheet asset={detailAsset} open={!!detailAsset} onClose={() => setDetailAsset(null)} />
-      <BulkCreateDialog open={bulkOpen} onClose={() => setBulkOpen(false)} />
-      <CSVImportDialog open={csvOpen} onClose={() => setCsvOpen(false)} />
+      <BulkTypesDialog open={bulkOpen} onClose={() => setBulkOpen(false)} />
+      <ImportDialog open={importOpen} onClose={() => setImportOpen(false)} />
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -750,21 +922,27 @@ export default function AssetsPage() {
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="location" render={({ field }) => (
-                  <FormItem className="col-span-2">
+                  <FormItem>
                     <FormLabel>Localisation</FormLabel>
-                    <FormControl><Input data-testid="input-asset-location" placeholder="Ex: Atelier A - Zone 1" {...field} /></FormControl>
+                    <FormControl><Input data-testid="input-asset-location" placeholder="Ex: Atelier A - Zone 2" {...field} /></FormControl>
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="manufacturer" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Fabricant</FormLabel>
-                    <FormControl><Input data-testid="input-asset-manufacturer" placeholder="Ex: Siemens" {...field} /></FormControl>
+                    <FormControl><Input data-testid="input-asset-manufacturer" {...field} /></FormControl>
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="model" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Modèle</FormLabel>
                     <FormControl><Input data-testid="input-asset-model" {...field} /></FormControl>
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="installDate" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Date d'installation</FormLabel>
+                    <FormControl><Input type="date" data-testid="input-asset-installdate" {...field} /></FormControl>
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="status" render={({ field }) => (
@@ -782,7 +960,7 @@ export default function AssetsPage() {
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="criticality" render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="col-span-2">
                     <FormLabel>Criticité</FormLabel>
                     <Select value={field.value} onValueChange={field.onChange}>
                       <SelectTrigger data-testid="select-asset-criticality"><SelectValue /></SelectTrigger>
@@ -795,14 +973,8 @@ export default function AssetsPage() {
                     </Select>
                   </FormItem>
                 )} />
-                <FormField control={form.control} name="installDate" render={({ field }) => (
-                  <FormItem className="col-span-2">
-                    <FormLabel>Date d'installation</FormLabel>
-                    <FormControl><Input type="date" data-testid="input-asset-install-date" {...field} /></FormControl>
-                  </FormItem>
-                )} />
               </div>
-              <DialogFooter className="mt-2">
+              <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Annuler</Button>
                 <Button type="submit" disabled={createAsset.isPending || updateAsset.isPending} data-testid="button-submit-asset">
                   {editAsset ? "Enregistrer" : "Créer"}
@@ -822,15 +994,10 @@ export default function AssetsPage() {
               Supprimer l'équipement
             </DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            Voulez-vous supprimer <span className="font-semibold text-foreground">"{deleteConfirm?.name}"</span> ?
-            Cette action est irréversible.
-          </p>
+          <p className="text-sm text-muted-foreground">Supprimer <span className="font-semibold text-foreground">"{deleteConfirm?.name}"</span> définitivement ?</p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Annuler</Button>
-            <Button variant="destructive" onClick={confirmDelete} disabled={deleteAsset.isPending} data-testid="button-confirm-delete-asset">
-              Supprimer
-            </Button>
+            <Button variant="destructive" onClick={confirmDelete} disabled={deleteAsset.isPending} data-testid="button-confirm-delete-asset">Supprimer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

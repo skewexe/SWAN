@@ -16,7 +16,7 @@ SWAN is a professional GMAO (Computerized Maintenance Management System) SaaS pl
 - **Node.js version**: 24
 - **Package manager**: pnpm
 - **TypeScript version**: 5.9
-- **Frontend**: React + Vite (wouter routing, framer-motion, recharts, react-hook-form, shadcn/ui)
+- **Frontend**: React + Vite (wouter routing, framer-motion, recharts, react-hook-form, shadcn/ui, xlsx)
 - **API framework**: Express 5
 - **Database**: PostgreSQL + Drizzle ORM
 - **Validation**: Zod (`zod/v4`), `drizzle-zod`
@@ -69,40 +69,60 @@ SWAN is a professional GMAO (Computerized Maintenance Management System) SaaS pl
 - **Generated hooks** live in `lib/api-client-react/src/generated/api.ts` — import from `@workspace/api-client-react`
 - **Route paths on server**: without `/api` prefix (e.g. `/workorders`, not `/api/workorders`)
 - **Logo asset**: `attached_assets/ChatGPT Image 30 avr. 2026, 11_42_07.png` — used across all surfaces
+- **RBAC context**: `artifacts/swan-gmao/src/context/RBACContext.tsx` — wraps entire app via `RBACProvider` in App.tsx
 
 ## Pages
 
 | Route | Component | Description |
 |---|---|---|
 | `/` | LandingPage | Public landing with hero, features, pricing, CTA |
-| `/login` | LoginPage | Login form |
+| `/login` | LoginPage | Login form (demo vs live mode split) |
 | `/register` | RegisterPage | Registration form |
 | `/about` | AboutPage | Mission & values |
 | `/faq` | FAQPage | Accordion FAQ |
-| `/dashboard` | DashboardPage | KPI cards, charts, activity feed |
-| `/assets` | AssetsPage | Equipment management (CRUD) |
-| `/workorders` | WorkOrdersPage | Work orders + parts management (stock deduction) |
+| `/dashboard` | DashboardPage | KPI cards, cross-filter charts, activity feed |
+| `/assets` | AssetsPage | Equipment: CRUD + bulk-types creation + CSV/Excel import |
+| `/workorders` | WorkOrdersPage | Work orders + parts (RBAC: techniciens see only assigned OTs) |
 | `/preventive` | PreventivePage | Preventive plans + Execute button |
+| `/calendar` | CalendarPage | Month/week calendar: WOs + preventive plans |
 | `/inventory` | InventoryPage | Stock management (CRUD) |
 | `/technicians` | TechniciansPage | Personnel cards (CRUD) |
 | `/reports` | ReportsPage | KPIs + cost charts |
+| `/settings` | SettingsPage | Profile, Équipes RBAC, Notifications, Preferences |
+
+## RBAC System
+
+`RBACContext.tsx` provides:
+- **Roles**: `admin` | `manager` | `chef_equipe` | `technicien` | `lecteur`
+- `visibleNav` — filtered nav items per role
+- `can(key)` — check permission by module key
+- `isReadOnly` — true for `lecteur` role
+- Teams managed in Settings → Équipes & Rôles tab
+- Technician role: work orders filtered to `technicianId` only
+- Role change in Settings → Profil applies live to entire app
+
+## Assets — Bulk & Import Features
+
+- **"Création par types"**: multi-type batch dialog — define N types (prefix, count, category, location, etc.) each with a color, creates all in one operation with progress bar
+- **"Import CSV / Excel"**: supports `.csv`, `.xlsx`, `.xls` files; drag-and-drop; column auto-mapping (FR/EN headers); preview table; downloadable template; error row reporting
 
 ## Shared Components
 
-- `DashboardLayout` — sidebar nav, notification bell header
+- `DashboardLayout` — sidebar nav (RBAC-filtered), user role badge, notification bell header
 - `PublicLayout` — public nav/footer
+- `RBACProvider` / `useRBAC` — global role/team/permission context
 - `NotificationsDropdown` — real-time bell with polling, dismiss support
-- `WorkOrderDetailSheet` — right-side panel: status progression, parts list, WO details (opens on row click or detail button)
-- `AssetDetailSheet` — right-side panel: KPI pills (availability/MTBF/MTTR), asset info, WO history via `GET /api/assets/:id/workorders`
+- `WorkOrderDetailSheet` — right-side panel: status progression, parts list, WO details
+- `AssetDetailSheet` — right-side panel: KPI pills, asset info, WO history
 
 ## Dashboard Sections
 
 - 8 KPI cards (totals, availability, MTBF, MTTR, stock alert, planned maintenance)
-- Bar chart: interventions by month (corrective vs preventive)
-- Pie chart: assets by category
-- **Agenda de la semaine**: upcoming WOs in next 7 days with priority dot + status badge
-- **Plans en retard**: overdue preventive plans with due date
-- Activity feed: recent platform events
+- Bar chart: interventions by month (corrective vs preventive) — clickable to filter
+- Pie chart: assets by category — clickable to filter
+- **Agenda de la semaine**: upcoming WOs in next 7 days
+- **Plans en retard**: overdue preventive plans
+- Activity feed + cross-filter chips
 
 ## Backend Notes
 
