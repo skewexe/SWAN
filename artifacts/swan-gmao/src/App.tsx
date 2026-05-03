@@ -6,15 +6,14 @@ import NotFound from "@/pages/not-found";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 
-// Pages
-// public
+// Pages — public
 import LandingPage from "@/pages/LandingPage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import AboutPage from "@/pages/AboutPage";
 import FaqPage from "@/pages/FaqPage";
 
-// dashboard
+// Pages — dashboard
 import DashboardPage from "@/pages/DashboardPage";
 import AssetsPage from "@/pages/AssetsPage";
 import WorkOrdersPage from "@/pages/WorkOrdersPage";
@@ -22,6 +21,8 @@ import PreventivePage from "@/pages/PreventivePage";
 import InventoryPage from "@/pages/InventoryPage";
 import TechniciansPage from "@/pages/TechniciansPage";
 import ReportsPage from "@/pages/ReportsPage";
+import CalendarPage from "@/pages/CalendarPage";
+import SettingsPage from "@/pages/SettingsPage";
 
 const queryClient = new QueryClient();
 
@@ -64,6 +65,12 @@ function Router() {
       </Route>
       <Route path="/reports">
         <DashboardLayout><ReportsPage /></DashboardLayout>
+      </Route>
+      <Route path="/calendar">
+        <DashboardLayout><CalendarPage /></DashboardLayout>
+      </Route>
+      <Route path="/settings">
+        <DashboardLayout><SettingsPage /></DashboardLayout>
       </Route>
 
       <Route>

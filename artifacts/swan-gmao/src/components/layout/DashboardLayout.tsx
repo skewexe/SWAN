@@ -1,14 +1,16 @@
 import { Link, useLocation } from "wouter";
 import swanLogo from "@assets/ChatGPT Image 30 avr. 2026, 11_42_07.png";
-import { 
-  LayoutDashboard, 
-  Wrench, 
-  ClipboardList, 
-  CalendarClock, 
-  PackageSearch, 
-  Users, 
+import {
+  LayoutDashboard,
+  Wrench,
+  ClipboardList,
+  CalendarClock,
+  PackageSearch,
+  Users,
   LineChart,
   LogOut,
+  Calendar,
+  Settings,
 } from "lucide-react";
 import { NotificationsDropdown } from "@/components/NotificationsDropdown";
 
@@ -17,6 +19,7 @@ const navItems = [
   { path: "/assets", label: "Équipements", icon: Wrench },
   { path: "/workorders", label: "Ordres de travail", icon: ClipboardList },
   { path: "/preventive", label: "Préventive", icon: CalendarClock },
+  { path: "/calendar", label: "Calendrier", icon: Calendar },
   { path: "/inventory", label: "Stock & pièces", icon: PackageSearch },
   { path: "/technicians", label: "Personnel", icon: Users },
   { path: "/reports", label: "Rapports & KPIs", icon: LineChart },
@@ -42,7 +45,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </div>
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location === item.path || location.startsWith(item.path + '/');
+            const isActive = location === item.path || location.startsWith(item.path + "/");
             return (
               <Link
                 key={item.path}
@@ -70,7 +73,21 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               <span className="text-xs text-muted-foreground mt-1">Usine Centrale</span>
             </div>
           </div>
-          <Link href="/login" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-destructive transition-colors mt-2">
+          <Link
+            href="/settings"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors mt-1 ${
+              location === "/settings"
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            }`}
+          >
+            <Settings className="h-5 w-5" strokeWidth={1.5} />
+            Paramètres
+          </Link>
+          <Link
+            href="/login"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-destructive transition-colors mt-1"
+          >
             <LogOut className="h-5 w-5" strokeWidth={1.5} />
             Déconnexion
           </Link>
@@ -82,7 +99,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         {/* Top Header */}
         <header className="h-16 border-b border-border/50 bg-background/80 backdrop-blur-sm flex items-center justify-between px-8 sticky top-0 z-40 shrink-0">
           <div className="font-medium text-lg tracking-tight text-foreground">
-            {navItems.find(i => location.startsWith(i.path))?.label || "GMAO"}
+            {[...navItems, { path: "/settings", label: "Paramètres" }].find(i => location.startsWith(i.path))?.label || "GMAO"}
           </div>
           <div className="flex items-center gap-4">
             <NotificationsDropdown />

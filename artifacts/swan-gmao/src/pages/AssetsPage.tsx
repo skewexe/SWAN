@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   useGetAssets, useCreateAsset, useUpdateAsset, useDeleteAsset,
@@ -12,7 +12,11 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import {
+  Plus, Search, Pencil, Trash2, AlertTriangle, Copy, Upload,
+  FileSpreadsheet, Download, CheckCircle2, X, Wrench
+} from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 
@@ -45,6 +49,468 @@ interface AssetFormData {
   criticality: AssetCriticality;
 }
 
+// CSV column mapping
+const CSV_COLUMNS = [
+  { key: "name", label: "Nom", required: true },
+  { key: "category", label: "Catégorie", required: true },
+  { key: "serialNumber", label: "N° de série", required: false },
+  { key: "location", label: "Localisation", required: false },
+  { key: "status", label: "Statut", required: false },
+  { key: "manufacturer", label: "Fabricant", required: false },
+  { key: "model", label: "Modèle", required: false },
+  { key: "criticality", label: "Criticité", required: false },
+  { key: "installDate", label: "Date installation", required: false },
+];
+
+function parseCSV(text: string): Record<string, string>[] {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, ""));
+  return lines.slice(1).map(line => {
+    const vals = line.split(",").map(v => v.trim().replace(/^"|"$/g, ""));
+    const row: Record<string, string> = {};
+    headers.forEach((h, i) => { row[h] = vals[i] || ""; });
+    return row;
+  }).filter(row => Object.values(row).some(v => v));
+}
+
+function normalizeAssetRow(row: Record<string, string>): AssetFormData | null {
+  const name = row["name"] || row["Nom"] || row["NAME"] || "";
+  const category = row["category"] || row["Catégorie"] || row["CATEGORY"] || "";
+  if (!name || !category) return null;
+
+  const rawStatus = (row["status"] || row["Statut"] || "operational").toLowerCase();
+  const statusMap: Record<string, AssetStatus> = {
+    operational: "operational", opérationnel: "operational", operationnel: "operational",
+    maintenance: "maintenance", "en maintenance": "maintenance",
+    breakdown: "breakdown", "en panne": "breakdown", panne: "breakdown",
+    decommissioned: "decommissioned", "hors service": "decommissioned",
+  };
+  const status = statusMap[rawStatus] || "operational";
+
+  const rawCrit = (row["criticality"] || row["Criticité"] || "medium").toLowerCase();
+  const critMap: Record<string, AssetCriticality> = {
+    low: "low", faible: "low",
+    medium: "medium", moyenne: "medium", moyen: "medium",
+    high: "high", élevée: "high", elevee: "high",
+    critical: "critical", critique: "critical",
+  };
+  const criticality = critMap[rawCrit] || "medium";
+
+  return {
+    name,
+    category,
+    serialNumber: row["serialNumber"] || row["N° de série"] || row["serial"] || undefined,
+    location: row["location"] || row["Localisation"] || undefined,
+    status,
+    manufacturer: row["manufacturer"] || row["Fabricant"] || undefined,
+    model: row["model"] || row["Modèle"] || undefined,
+    installDate: row["installDate"] || row["Date installation"] || undefined,
+    criticality,
+  };
+}
+
+// ── Bulk Creation Dialog ──────────────────────────────────────────────────────
+function BulkCreateDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [prefix, setPrefix] = useState("Machine");
+  const [category, setCategory] = useState("Équipement");
+  const [count, setCount] = useState(5);
+  const [serialPrefix, setSerialPrefix] = useState("SN");
+  const [location, setLocation] = useState("");
+  const [status, setStatus] = useState<AssetStatus>("operational");
+  const [criticality, setCriticality] = useState<AssetCriticality>("medium");
+  const [manufacturer, setManufacturer] = useState("");
+  const [model, setModel] = useState("");
+  const [progress, setProgress] = useState(0);
+  const [creating, setCreating] = useState(false);
+  const [done, setDone] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const createAsset = useCreateAsset();
+
+  const preview = Array.from({ length: Math.min(count, 5) }, (_, i) => ({
+    name: `${prefix}-${String(i + 1).padStart(3, "0")}`,
+    serial: `${serialPrefix}-${String(i + 1).padStart(4, "0")}`,
+  }));
+
+  const handleCreate = async () => {
+    setCreating(true);
+    setProgress(0);
+    let created = 0;
+    const pad = (n: number) => String(n).padStart(3, "0");
+    for (let i = 1; i <= count; i++) {
+      await new Promise<void>((resolve, reject) => {
+        createAsset.mutate({
+          data: {
+            name: `${prefix}-${pad(i)}`,
+            category,
+            serialNumber: `${serialPrefix}-${String(i).padStart(4, "0")}`,
+            location: location || undefined,
+            status,
+            criticality,
+            manufacturer: manufacturer || undefined,
+            model: model || undefined,
+          }
+        }, {
+          onSuccess: () => { created++; resolve(); },
+          onError: () => resolve(),
+        });
+      });
+      setProgress(Math.round((i / count) * 100));
+    }
+    await queryClient.invalidateQueries({ queryKey: getGetAssetsQueryKey() });
+    setCreating(false);
+    setDone(true);
+    toast({ title: `${created} équipements créés avec succès` });
+    setTimeout(() => { setDone(false); onClose(); setProgress(0); }, 1500);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-xl bg-card border-border">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Copy className="h-4 w-4 text-primary" strokeWidth={1.5} />
+            Création en masse d'équipements
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 mt-2">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Préfixe du nom *</label>
+              <Input placeholder="Machine A" value={prefix} onChange={e => setPrefix(e.target.value)} />
+              <p className="text-xs text-muted-foreground/70">Ex: Machine A → Machine A-001</p>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Nombre d'équipements *</label>
+              <Input
+                type="number" min={1} max={100} value={count}
+                onChange={e => setCount(Math.max(1, Math.min(100, Number(e.target.value))))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Catégorie *</label>
+              <Input placeholder="Ex: Compresseur" value={category} onChange={e => setCategory(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Préfixe N° de série</label>
+              <Input placeholder="SN" value={serialPrefix} onChange={e => setSerialPrefix(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Localisation</label>
+              <Input placeholder="Ex: Atelier A" value={location} onChange={e => setLocation(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Fabricant</label>
+              <Input placeholder="Ex: Siemens" value={manufacturer} onChange={e => setManufacturer(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Modèle</label>
+              <Input placeholder="Ex: S7-300" value={model} onChange={e => setModel(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Statut initial</label>
+              <Select value={status} onValueChange={v => setStatus(v as AssetStatus)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="operational">Opérationnel</SelectItem>
+                  <SelectItem value="maintenance">En maintenance</SelectItem>
+                  <SelectItem value="breakdown">En panne</SelectItem>
+                  <SelectItem value="decommissioned">Hors service</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Criticité</label>
+              <Select value={criticality} onValueChange={v => setCriticality(v as AssetCriticality)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Faible</SelectItem>
+                  <SelectItem value="medium">Moyenne</SelectItem>
+                  <SelectItem value="high">Élevée</SelectItem>
+                  <SelectItem value="critical">Critique</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Preview */}
+          <div className="bg-background/50 border border-border/40 rounded-xl p-3">
+            <div className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
+              Aperçu ({count} équipements seront créés)
+            </div>
+            <div className="space-y-1">
+              {preview.map((p, i) => (
+                <div key={i} className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground w-36 truncate">{p.name}</span>
+                  <span>{p.serial}</span>
+                  <span className="text-muted-foreground/60">{category} · {location || "—"}</span>
+                </div>
+              ))}
+              {count > 5 && (
+                <div className="text-xs text-muted-foreground/60 pt-1">
+                  ... et {count - 5} autres
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Progress */}
+          {(creating || done) && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">
+                  {done ? "Terminé !" : `Création en cours... ${Math.round(progress / 100 * count)}/${count}`}
+                </span>
+                <span className="font-medium text-foreground">{progress}%</span>
+              </div>
+              <Progress value={progress} className="h-2" />
+            </div>
+          )}
+        </div>
+        <DialogFooter className="mt-2">
+          <Button variant="outline" onClick={onClose} disabled={creating}>Annuler</Button>
+          <Button onClick={handleCreate} disabled={creating || done || !prefix || !category} className="gap-2 min-w-32">
+            {done ? (
+              <><CheckCircle2 className="h-4 w-4 text-green-400" /> Créé !</>
+            ) : creating ? (
+              `Création... ${progress}%`
+            ) : (
+              <><Copy className="h-4 w-4" strokeWidth={1.5} /> Créer {count} équipements</>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── CSV Import Dialog ─────────────────────────────────────────────────────────
+function CSVImportDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [rows, setRows] = useState<AssetFormData[]>([]);
+  const [rawCount, setRawCount] = useState(0);
+  const [errors, setErrors] = useState<number[]>([]);
+  const [importing, setImporting] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [done, setDone] = useState(false);
+  const [fileName, setFileName] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const createAsset = useCreateAsset();
+
+  const handleFile = (file: File) => {
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const parsed = parseCSV(text);
+      setRawCount(parsed.length);
+      const normalized: AssetFormData[] = [];
+      const errs: number[] = [];
+      parsed.forEach((row, idx) => {
+        const n = normalizeAssetRow(row);
+        if (n) normalized.push(n);
+        else errs.push(idx + 1);
+      });
+      setRows(normalized);
+      setErrors(errs);
+    };
+    reader.readAsText(file);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file && (file.name.endsWith(".csv") || file.name.endsWith(".txt"))) handleFile(file);
+  };
+
+  const handleImport = async () => {
+    setImporting(true);
+    setProgress(0);
+    let created = 0;
+    for (let i = 0; i < rows.length; i++) {
+      await new Promise<void>((resolve) => {
+        createAsset.mutate({ data: rows[i] }, {
+          onSuccess: () => { created++; resolve(); },
+          onError: () => resolve(),
+        });
+      });
+      setProgress(Math.round(((i + 1) / rows.length) * 100));
+    }
+    await queryClient.invalidateQueries({ queryKey: getGetAssetsQueryKey() });
+    setImporting(false);
+    setDone(true);
+    toast({ title: `${created} équipements importés avec succès` });
+    setTimeout(() => { setDone(false); onClose(); setRows([]); setFileName(""); setProgress(0); }, 1500);
+  };
+
+  const downloadTemplate = () => {
+    const headers = "name,category,serialNumber,location,status,manufacturer,model,criticality,installDate";
+    const example = "Compresseur A-001,Compresseur,CA-0001,Atelier A - Zone 1,operational,Atlas Copco,GA37,medium,2024-01-15";
+    const blob = new Blob([headers + "\n" + example], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "template_equipements.csv"; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl bg-card border-border max-h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <FileSpreadsheet className="h-4 w-4 text-primary" strokeWidth={1.5} />
+            Importation CSV / Excel
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 mt-2 flex-1 overflow-y-auto">
+          {/* Download template */}
+          <div className="flex items-center justify-between bg-primary/5 border border-primary/20 rounded-xl p-3">
+            <div className="text-xs text-muted-foreground">
+              Téléchargez le modèle CSV pour un import correct
+            </div>
+            <Button variant="outline" size="sm" onClick={downloadTemplate} className="gap-1.5 text-xs h-7">
+              <Download className="h-3.5 w-3.5" strokeWidth={1.5} />
+              Modèle CSV
+            </Button>
+          </div>
+
+          {/* Drop zone */}
+          <div
+            onDrop={handleDrop}
+            onDragOver={e => e.preventDefault()}
+            className="border-2 border-dashed border-border/60 rounded-xl p-8 text-center hover:border-primary/40 transition-colors cursor-pointer"
+            onClick={() => fileRef.current?.click()}
+          >
+            <Upload className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" strokeWidth={1} />
+            {fileName ? (
+              <div>
+                <div className="text-sm font-medium text-foreground">{fileName}</div>
+                <div className="text-xs text-muted-foreground mt-1">{rawCount} lignes trouvées, {rows.length} valides</div>
+              </div>
+            ) : (
+              <div>
+                <div className="text-sm font-medium text-foreground mb-1">Glisser-déposer ou cliquer</div>
+                <div className="text-xs text-muted-foreground">Fichiers CSV acceptés</div>
+              </div>
+            )}
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".csv,.txt"
+              className="hidden"
+              onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])}
+            />
+          </div>
+
+          {/* Column reference */}
+          <div className="bg-background/50 border border-border/40 rounded-xl p-3">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Colonnes attendues</div>
+            <div className="flex flex-wrap gap-2">
+              {CSV_COLUMNS.map(col => (
+                <span key={col.key} className={`text-xs px-2 py-0.5 rounded-full ${
+                  col.required
+                    ? "bg-primary/10 text-primary border border-primary/30"
+                    : "bg-muted text-muted-foreground"
+                }`}>
+                  {col.label} {col.required && "*"}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Errors */}
+          {errors.length > 0 && (
+            <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-3 flex gap-2">
+              <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" strokeWidth={1.5} />
+              <div className="text-xs text-muted-foreground">
+                <span className="font-medium text-red-400">{errors.length} lignes ignorées</span> (nom ou catégorie manquants): lignes {errors.slice(0, 5).join(", ")}{errors.length > 5 ? "..." : ""}
+              </div>
+            </div>
+          )}
+
+          {/* Preview table */}
+          {rows.length > 0 && (
+            <div>
+              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                Aperçu ({rows.length} équipements à importer)
+              </div>
+              <div className="border border-border/40 rounded-xl overflow-hidden">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-muted/30 border-b border-border/40">
+                      <th className="text-left px-3 py-2 text-muted-foreground font-medium">Nom</th>
+                      <th className="text-left px-3 py-2 text-muted-foreground font-medium">Catégorie</th>
+                      <th className="text-left px-3 py-2 text-muted-foreground font-medium">Localisation</th>
+                      <th className="text-left px-3 py-2 text-muted-foreground font-medium">Statut</th>
+                      <th className="text-left px-3 py-2 text-muted-foreground font-medium">Criticité</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.slice(0, 8).map((row, i) => {
+                      const statusInfo = STATUS_LABELS[row.status] || STATUS_LABELS.operational;
+                      const critInfo = CRITICALITY_LABELS[row.criticality] || CRITICALITY_LABELS.medium;
+                      return (
+                        <tr key={i} className="border-b border-border/20 last:border-0">
+                          <td className="px-3 py-2 font-medium text-foreground">{row.name}</td>
+                          <td className="px-3 py-2 text-muted-foreground">{row.category}</td>
+                          <td className="px-3 py-2 text-muted-foreground">{row.location || "—"}</td>
+                          <td className="px-3 py-2">
+                            <span className={`text-xs px-2 py-0.5 rounded-full border ${statusInfo.className}`}>
+                              {statusInfo.label}
+                            </span>
+                          </td>
+                          <td className={`px-3 py-2 font-medium ${critInfo.className}`}>{critInfo.label}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {rows.length > 8 && (
+                  <div className="text-center py-2 text-xs text-muted-foreground border-t border-border/20">
+                    ... et {rows.length - 8} autres lignes
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Progress */}
+          {(importing || done) && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">
+                  {done ? "Import terminé !" : `Import en cours... ${Math.round(progress / 100 * rows.length)}/${rows.length}`}
+                </span>
+                <span className="font-medium text-foreground">{progress}%</span>
+              </div>
+              <Progress value={progress} className="h-2" />
+            </div>
+          )}
+        </div>
+        <DialogFooter className="mt-4">
+          <Button variant="outline" onClick={onClose} disabled={importing}>Annuler</Button>
+          <Button
+            onClick={handleImport}
+            disabled={rows.length === 0 || importing || done}
+            className="gap-2 min-w-36"
+          >
+            {done ? (
+              <><CheckCircle2 className="h-4 w-4 text-green-400" /> Importé !</>
+            ) : importing ? (
+              `Import... ${progress}%`
+            ) : (
+              <><Upload className="h-4 w-4" strokeWidth={1.5} /> Importer {rows.length} équipements</>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
 export default function AssetsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -52,6 +518,8 @@ export default function AssetsPage() {
   const [editAsset, setEditAsset] = useState<any>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<any>(null);
   const [detailAsset, setDetailAsset] = useState<any>(null);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [csvOpen, setCsvOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -69,9 +537,7 @@ export default function AssetsPage() {
   const deleteAsset = useDeleteAsset();
 
   const form = useForm<AssetFormData>({
-    defaultValues: {
-      name: "", category: "", status: "operational", criticality: "medium",
-    }
+    defaultValues: { name: "", category: "", status: "operational", criticality: "medium" }
   });
 
   const openCreate = () => {
@@ -122,12 +588,25 @@ export default function AssetsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Équipements</h1>
-          <p className="text-sm text-muted-foreground mt-1">Gestion du parc matériel</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Gestion du parc matériel
+            {assets ? <span className="ml-2 text-muted-foreground/60">— {assets.length} équipements</span> : null}
+          </p>
         </div>
-        <Button onClick={openCreate} className="gap-2" data-testid="button-create-asset">
-          <Plus className="h-4 w-4" strokeWidth={1.5} />
-          Nouvel équipement
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setCsvOpen(true)} className="gap-1.5 text-xs">
+            <FileSpreadsheet className="h-3.5 w-3.5" strokeWidth={1.5} />
+            Importer CSV
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setBulkOpen(true)} className="gap-1.5 text-xs">
+            <Copy className="h-3.5 w-3.5" strokeWidth={1.5} />
+            Création en masse
+          </Button>
+          <Button onClick={openCreate} className="gap-2" size="sm" data-testid="button-create-asset">
+            <Plus className="h-4 w-4" strokeWidth={1.5} />
+            Nouvel équipement
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -165,7 +644,7 @@ export default function AssetsPage() {
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border/60">
+              <tr className="border-b border-border/60 bg-muted/20">
                 <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-4">Équipement</th>
                 <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-4">Catégorie</th>
                 <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-4">Localisation</th>
@@ -184,7 +663,7 @@ export default function AssetsPage() {
                     key={asset.id}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ delay: idx * 0.03 }}
+                    transition={{ delay: idx * 0.02 }}
                     className="border-b border-border/40 last:border-0 hover:bg-muted/30 transition-colors cursor-pointer"
                     onClick={() => setDetailAsset(asset)}
                     data-testid={`row-asset-${asset.id}`}
@@ -224,15 +703,22 @@ export default function AssetsPage() {
                   </motion.tr>
                 );
               }) : (
-                <tr><td colSpan={7} className="text-center py-12 text-muted-foreground">Aucun équipement trouvé</td></tr>
+                <tr>
+                  <td colSpan={7} className="text-center py-16 text-muted-foreground">
+                    <Wrench className="h-8 w-8 mx-auto mb-3 text-muted-foreground/20" strokeWidth={1} />
+                    <div className="text-sm font-medium">Aucun équipement trouvé</div>
+                    <div className="text-xs mt-1 text-muted-foreground/60">Créez des équipements ou importez un fichier CSV</div>
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
         )}
       </motion.div>
 
-      {/* Asset Detail Sheet */}
       <AssetDetailSheet asset={detailAsset} open={!!detailAsset} onClose={() => setDetailAsset(null)} />
+      <BulkCreateDialog open={bulkOpen} onClose={() => setBulkOpen(false)} />
+      <CSVImportDialog open={csvOpen} onClose={() => setCsvOpen(false)} />
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -327,7 +813,7 @@ export default function AssetsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirm Dialog */}
+      {/* Delete Confirm */}
       <Dialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
         <DialogContent className="max-w-sm bg-card border-border">
           <DialogHeader>
