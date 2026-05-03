@@ -32,11 +32,11 @@ export const ROLE_META: Record<RBACRole, { label: string; color: string; desc: s
 };
 
 export const ROLE_PERMISSIONS: Record<RBACRole, string[]> = {
-  admin:       ["dashboard", "assets", "workorders", "preventive", "calendar", "inventory", "technicians", "reports", "settings", "whatsapp", "sitemaps"],
-  manager:     ["dashboard", "assets", "workorders", "preventive", "calendar", "inventory", "technicians", "reports", "sitemaps"],
-  chef_equipe: ["dashboard", "workorders", "preventive", "calendar", "technicians", "sitemaps"],
-  technicien:  ["dashboard", "workorders", "sitemaps"],
-  lecteur:     ["dashboard", "reports", "sitemaps"],
+  admin:       ["dashboard", "assets", "workorders", "preventive", "calendar", "inventory", "technicians", "reports", "settings", "whatsapp"],
+  manager:     ["dashboard", "assets", "workorders", "preventive", "calendar", "inventory", "technicians", "reports"],
+  chef_equipe: ["dashboard", "workorders", "preventive", "calendar", "technicians"],
+  technicien:  ["dashboard", "workorders"],
+  lecteur:     ["dashboard", "reports"],
 };
 
 export const NAV_ITEMS = [
@@ -48,7 +48,6 @@ export const NAV_ITEMS = [
   { path: "/inventory",       key: "inventory",   label: "Stock & pièces",    icon: "PackageSearch" },
   { path: "/technicians",     key: "technicians", label: "Personnel",         icon: "Users" },
   { path: "/reports",         key: "reports",     label: "Rapports & KPIs",   icon: "LineChart" },
-  { path: "/sitemaps",        key: "sitemaps",    label: "Plans de site",     icon: "MapPin" },
   { path: "/whatsapp-admin",  key: "whatsapp",    label: "WhatsApp Gateway",  icon: "MessageSquare" },
 ];
 
