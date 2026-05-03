@@ -2,6 +2,9 @@ import { motion } from "framer-motion";
 import {
   ShieldCheck, Zap, Users, BarChart3, Globe2, Wrench,
   CheckCircle2, ArrowRight, Factory, Building2, Landmark,
+  ClipboardList, Wrench as WrenchTool, CalendarDays, ClipboardCheck,
+  Barcode, Handshake, Clock3, BadgeInfo, ClipboardPenLine, Archive,
+  Activity, ChartColumnBig, FileBarChart2, History, ListChecks, Cog,
 } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -39,6 +42,24 @@ const VALUES = [
     title: "Déploiement rapide",
     desc: "Import CSV/Excel, configuration progressive, mise en production en 48h. Pas de projet de 6 mois pour démarrer.",
   },
+];
+
+const MODULES = [
+  { icon: WrenchTool, title: "Gestion technique", desc: "Équipements, organes associés, pièces de rechange et gammes opératoires." },
+  { icon: ClipboardList, title: "Interventions", desc: "Préventives, curatives, demandes de travaux et bons de travaux structurés." },
+  { icon: ClipboardCheck, title: "Cycle d'exécution", desc: "Ouverture, lancement, suspension, clôture et traçabilité complète." },
+  { icon: Barcode, title: "Pointage barcodes", desc: "Saisie des pointages par code-barres pour les équipes et les interventions." },
+  { icon: Handshake, title: "Sous-traitance", desc: "Gestion des prestataires, suivi des interventions et contrôle d'exécution." },
+  { icon: CalendarDays, title: "Planning atelier", desc: "Planification des ressources humaines, matérielles et des activités." },
+  { icon: Clock3, title: "Disponibilité", desc: "Gestion de la disponibilité des ressources humaines et matérielles." },
+  { icon: BadgeInfo, title: "Motifs d'intervention", desc: "Saisie du motif pour produire des statistiques par cause et par panne." },
+  { icon: Archive, title: "Ressources maintenance", desc: "Moyens humains, moyens matériels et pièces liées aux stocks et approvisionnements." },
+  { icon: Activity, title: "OT préventifs automatiques", desc: "Génération automatique des bons de travaux préventifs." },
+  { icon: ChartColumnBig, title: "Indicateurs de gestion", desc: "MTTR, MTBF, indice de réactivité et analyse de la main d'œuvre." },
+  { icon: FileBarChart2, title: "Analyses coûts", desc: "ABC des coûts de revient, coûts de maintenance et consommation pièces." },
+  { icon: History, title: "Historique équipement", desc: "Historique complet des interventions sur chaque équipement." },
+  { icon: ListChecks, title: "Classement des équipements", desc: "Classement selon le nombre d'interventions et d'autres critères opérationnels." },
+  { icon: Cog, title: "Éditions d'états", desc: "États de consommation pièces, coûts par équipement et rapports exploitables." },
 ];
 
 const SECTORS = [
@@ -139,6 +160,42 @@ export default function AboutPage() {
               <div className="text-lg font-semibold">{title}</div>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{desc}</p>
             </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="py-20 border-t border-border/50">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, ease: easeOut }}
+          className="max-w-3xl"
+        >
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary">Modules</p>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Tout le périmètre CMMS attendu en entreprise.</h2>
+          <p className="mt-3 text-[1rem] leading-relaxed text-muted-foreground">
+            Les modules ci-dessous couvrent la gestion technique, la planification, les interventions, les ressources,
+            les indicateurs et les éditions d'états.
+          </p>
+        </motion.div>
+
+        <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          {MODULES.map((item, idx) => (
+            <motion.div
+              key={item.title}
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4, delay: idx * 0.03, ease: easeOut }}
+              className="rounded-3xl border border-border/60 bg-card/70 p-6"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border/60 bg-background/50">
+                <item.icon className="h-[1.1rem] w-[1.1rem] text-primary" strokeWidth={1.5} />
+              </div>
+              <h3 className="mt-5 text-[1.05rem] font-semibold">{item.title}</h3>
+              <p className="mt-2.5 text-[0.9rem] leading-relaxed text-muted-foreground">{item.desc}</p>
+            </motion.div>
           ))}
         </div>
       </section>
@@ -251,21 +308,32 @@ export default function AboutPage() {
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary">Plateforme</p>
               <h2 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">Ce que SWAN offre en standard.</h2>
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                Pas de modules optionnels payants sur les fonctionnalités essentielles.
-                Tout ce dont une direction industrielle a besoin, inclus dès le premier jour.
+                Tous les modules essentiels de la maintenance industrielle sont inclus dès le départ.
               </p>
             </div>
             <div className="grid grid-cols-1 gap-2">
               {[
-                "Gestion multi-sites et multi-zones",
-                "Ordres de travail avec affectation intelligente",
-                "Maintenance préventive planifiée",
-                "Stock & pièces avec alertes de seuil",
-                "RBAC à 5 niveaux de permission",
-                "KPIs direction : MTBF, MTTR, disponibilité",
-                "Calendrier industriel mensuel/hebdomadaire",
-                "Import CSV/Excel en un clic",
-                "Support francophone dédié",
+                "Gestion des équipements et organes associés",
+                "Gestion des pièces de rechange associées",
+                "Gestion des gammes opératoires",
+                "Interventions préventives et curatives",
+                "Demandes de travaux et bons de travaux",
+                "Ouverture, lancement, suspension, clôture",
+                "Pointage par codes barres",
+                "Gestion de la sous-traitance",
+                "Motifs d'intervention et statistiques par cause",
+                "Génération automatique des bons préventifs",
+                "Gestion des ressources liées à la maintenance",
+                "Moyens humains et moyens matériels",
+                "Planning atelier et disponibilité des ressources",
+                "Planification RH, matérielle et activités",
+                "Indicateurs MTTR, MTBF et indice de réactivité",
+                "Analyse de l'utilisation de la main d'œuvre",
+                "ABC des coûts de revient et causes de pannes",
+                "Consommations pièces par machine, structure et référence",
+                "État des coûts de maintenance par équipement",
+                "Historique des interventions par équipement",
+                "Classement des équipements par nombre d'interventions",
               ].map((feat) => (
                 <div key={feat} className="flex items-center gap-3 text-sm text-muted-foreground">
                   <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" strokeWidth={2} />
