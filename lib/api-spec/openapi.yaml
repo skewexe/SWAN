@@ -23,6 +23,10 @@ tags:
     description: Human resource management
   - name: reports
     description: Reports & analytics
+  - name: sites
+    description: Multi-site management
+  - name: zones
+    description: Zone management
 
 paths:
   /healthz:
@@ -171,6 +175,119 @@ paths:
       summary: Delete an asset
       parameters:
         - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /assets/{id}/workorders:
+    get:
+      operationId: getAssetWorkOrders
+      tags: [assets]
+      summary: Get work orders for an asset
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Work orders for asset
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkOrder"
+
+  /assets/{id}/parts:
+    get:
+      operationId: getAssetParts
+      tags: [assets]
+      summary: Get spare parts catalog for an asset
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Asset parts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AssetPart"
+    post:
+      operationId: createAssetPart
+      tags: [assets]
+      summary: Add a part to the asset parts catalog
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAssetPartBody"
+      responses:
+        "201":
+          description: Created asset part
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssetPart"
+
+  /assets/{id}/parts/{partId}:
+    put:
+      operationId: updateAssetPart
+      tags: [assets]
+      summary: Update an asset part
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: partId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAssetPartBody"
+      responses:
+        "200":
+          description: Updated asset part
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssetPart"
+    delete:
+      operationId: deleteAssetPart
+      tags: [assets]
+      summary: Remove a part from the asset parts catalog
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: partId
           in: path
           required: true
           schema:
@@ -360,6 +477,34 @@ paths:
                 items:
                   $ref: "#/components/schemas/Notification"
 
+  /notifications/{id}/read:
+    put:
+      operationId: markNotificationRead
+      tags: [dashboard]
+      summary: Mark a notification as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Updated notification
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notification"
+
+  /notifications/read-all:
+    put:
+      operationId: markAllNotificationsRead
+      tags: [dashboard]
+      summary: Mark all notifications as read
+      responses:
+        "200":
+          description: Success
+
   /preventive:
     get:
       operationId: getPreventivePlans
@@ -429,6 +574,25 @@ paths:
       responses:
         "204":
           description: Deleted
+
+  /preventive/{id}/execute:
+    post:
+      operationId: executePreventivePlan
+      tags: [preventive]
+      summary: Execute a preventive plan (creates WO + updates dates)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "201":
+          description: Work order created from plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrder"
 
   /inventory:
     get:
@@ -605,6 +769,151 @@ paths:
               schema:
                 $ref: "#/components/schemas/CostReport"
 
+  /sites:
+    get:
+      operationId: getSites
+      tags: [sites]
+      summary: List all sites
+      responses:
+        "200":
+          description: List of sites
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Site"
+    post:
+      operationId: createSite
+      tags: [sites]
+      summary: Create a site
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSiteBody"
+      responses:
+        "201":
+          description: Created site
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Site"
+
+  /sites/{id}:
+    put:
+      operationId: updateSite
+      tags: [sites]
+      summary: Update a site
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSiteBody"
+      responses:
+        "200":
+          description: Updated site
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Site"
+    delete:
+      operationId: deleteSite
+      tags: [sites]
+      summary: Delete a site
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /zones:
+    get:
+      operationId: getZones
+      tags: [zones]
+      summary: List all zones
+      parameters:
+        - name: siteId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of zones
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Zone"
+    post:
+      operationId: createZone
+      tags: [zones]
+      summary: Create a zone
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateZoneBody"
+      responses:
+        "201":
+          description: Created zone
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Zone"
+
+  /zones/{id}:
+    put:
+      operationId: updateZone
+      tags: [zones]
+      summary: Update a zone
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateZoneBody"
+      responses:
+        "200":
+          description: Updated zone
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Zone"
+    delete:
+      operationId: deleteZone
+      tags: [zones]
+      summary: Delete a zone
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
 components:
   schemas:
     HealthStatus:
@@ -741,6 +1050,16 @@ components:
         criticality:
           type: string
           enum: [low, medium, high, critical]
+        siteId:
+          type: integer
+        siteName:
+          type: string
+        zoneId:
+          type: integer
+        zoneName:
+          type: string
+        photoUrl:
+          type: string
         createdAt:
           type: string
       required:
@@ -774,11 +1093,69 @@ components:
         criticality:
           type: string
           enum: [low, medium, high, critical]
+        siteId:
+          type: integer
+        zoneId:
+          type: integer
+        photoUrl:
+          type: string
       required:
         - name
         - category
         - status
         - criticality
+
+    AssetPart:
+      type: object
+      properties:
+        id:
+          type: integer
+        assetId:
+          type: integer
+        inventoryItemId:
+          type: integer
+        partName:
+          type: string
+        reference:
+          type: string
+        quantity:
+          type: number
+        unit:
+          type: string
+        note:
+          type: string
+        createdAt:
+          type: string
+        inventoryItemName:
+          type: string
+        inventoryItemQuantity:
+          type: integer
+        inventoryItemUnit:
+          type: string
+      required:
+        - id
+        - assetId
+        - partName
+        - quantity
+        - createdAt
+
+    CreateAssetPartBody:
+      type: object
+      properties:
+        inventoryItemId:
+          type: integer
+        partName:
+          type: string
+        reference:
+          type: string
+        quantity:
+          type: number
+        unit:
+          type: string
+        note:
+          type: string
+      required:
+        - partName
 
     WorkOrder:
       type: object
@@ -814,6 +1191,17 @@ components:
           type: string
         completedDate:
           type: string
+        siteId:
+          type: integer
+        siteName:
+          type: string
+        zoneId:
+          type: integer
+        zoneName:
+          type: string
+        assignmentMode:
+          type: string
+          enum: [by_technician, by_zone, by_machine, by_type]
         createdAt:
           type: string
       required:
@@ -848,20 +1236,72 @@ components:
           type: number
         scheduledDate:
           type: string
+        siteId:
+          type: integer
+        zoneId:
+          type: integer
+        assignmentMode:
+          type: string
+          enum: [by_technician, by_zone, by_machine, by_type]
       required:
         - title
         - type
         - priority
-        - status
+
+    WorkOrderPart:
+      type: object
+      properties:
+        id:
+          type: integer
+        workOrderId:
+          type: integer
+        inventoryItemId:
+          type: integer
+        quantityUsed:
+          type: number
+        unitCostAtTime:
+          type: number
+        note:
+          type: string
+        createdAt:
+          type: string
+        itemName:
+          type: string
+        itemReference:
+          type: string
+        itemUnit:
+          type: string
+        totalCost:
+          type: number
+        newStockLevel:
+          type: number
+      required:
+        - id
+        - workOrderId
+        - inventoryItemId
+        - quantityUsed
+        - createdAt
+        - itemName
+
+    AddWorkOrderPartBody:
+      type: object
+      properties:
+        inventoryItemId:
+          type: integer
+        quantityUsed:
+          type: number
+        note:
+          type: string
+      required:
+        - inventoryItemId
+        - quantityUsed
 
     PreventivePlan:
       type: object
       properties:
         id:
           type: integer
-        name:
-          type: string
-        description:
+        title:
           type: string
         assetId:
           type: integer
@@ -869,21 +1309,26 @@ components:
           type: string
         frequency:
           type: string
-          enum: [daily, weekly, monthly, quarterly, annually]
-        lastExecuted:
+        nextDueDate:
           type: string
-        nextDue:
+        lastExecutedDate:
           type: string
         status:
           type: string
-          enum: [active, inactive, overdue]
-        estimatedDuration:
+          enum: [active, overdue, completed, paused]
+        technicianId:
+          type: integer
+        technicianName:
+          type: string
+        estimatedHours:
           type: number
+        description:
+          type: string
         createdAt:
           type: string
       required:
         - id
-        - name
+        - title
         - frequency
         - status
         - createdAt
@@ -891,21 +1336,25 @@ components:
     CreatePreventivePlanBody:
       type: object
       properties:
-        name:
-          type: string
-        description:
+        title:
           type: string
         assetId:
           type: integer
         frequency:
           type: string
-          enum: [daily, weekly, monthly, quarterly, annually]
-        nextDue:
+        nextDueDate:
           type: string
-        estimatedDuration:
+        technicianId:
+          type: integer
+        estimatedHours:
           type: number
+        description:
+          type: string
+        status:
+          type: string
+          enum: [active, overdue, completed, paused]
       required:
-        - name
+        - title
         - frequency
 
     InventoryItem:
@@ -931,8 +1380,6 @@ components:
           type: string
         unitCost:
           type: number
-        totalValue:
-          type: number
         isLowStock:
           type: boolean
         createdAt:
@@ -942,7 +1389,6 @@ components:
         - name
         - quantity
         - minQuantity
-        - isLowStock
         - createdAt
 
     CreateInventoryItemBody:
@@ -1030,6 +1476,75 @@ components:
         - email
         - specialization
 
+    Site:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        location:
+          type: string
+        city:
+          type: string
+        country:
+          type: string
+        zoneCount:
+          type: integer
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - country
+        - createdAt
+
+    CreateSiteBody:
+      type: object
+      properties:
+        name:
+          type: string
+        location:
+          type: string
+        city:
+          type: string
+        country:
+          type: string
+      required:
+        - name
+
+    Zone:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        siteId:
+          type: integer
+        siteName:
+          type: string
+        description:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - createdAt
+
+    CreateZoneBody:
+      type: object
+      properties:
+        name:
+          type: string
+        siteId:
+          type: integer
+        description:
+          type: string
+      required:
+        - name
+
     KpiReport:
       type: object
       properties:
@@ -1091,54 +1606,6 @@ components:
         - totalPartsCost
         - totalDowntimeCost
         - totalCost
-
-    WorkOrderPart:
-      type: object
-      properties:
-        id:
-          type: integer
-        workOrderId:
-          type: integer
-        inventoryItemId:
-          type: integer
-        quantityUsed:
-          type: number
-        unitCostAtTime:
-          type: number
-        note:
-          type: string
-        createdAt:
-          type: string
-        itemName:
-          type: string
-        itemReference:
-          type: string
-        itemUnit:
-          type: string
-        totalCost:
-          type: number
-        newStockLevel:
-          type: number
-      required:
-        - id
-        - workOrderId
-        - inventoryItemId
-        - quantityUsed
-        - createdAt
-        - itemName
-
-    AddWorkOrderPartBody:
-      type: object
-      properties:
-        inventoryItemId:
-          type: integer
-        quantityUsed:
-          type: number
-        note:
-          type: string
-      required:
-        - inventoryItemId
-        - quantityUsed
 
     Notification:
       type: object

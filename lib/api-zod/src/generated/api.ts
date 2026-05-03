@@ -97,6 +97,11 @@ export const GetAssetsResponseItem = zod.object({
   mttr: zod.number().optional(),
   availabilityRate: zod.number().optional(),
   criticality: zod.enum(["low", "medium", "high", "critical"]),
+  siteId: zod.number().optional(),
+  siteName: zod.string().optional(),
+  zoneId: zod.number().optional(),
+  zoneName: zod.string().optional(),
+  photoUrl: zod.string().optional(),
   createdAt: zod.string(),
 });
 export const GetAssetsResponse = zod.array(GetAssetsResponseItem);
@@ -119,6 +124,9 @@ export const CreateAssetBody = zod.object({
   model: zod.string().optional(),
   installDate: zod.string().optional(),
   criticality: zod.enum(["low", "medium", "high", "critical"]),
+  siteId: zod.number().optional(),
+  zoneId: zod.number().optional(),
+  photoUrl: zod.string().optional(),
 });
 
 /**
@@ -148,6 +156,11 @@ export const GetAssetResponse = zod.object({
   mttr: zod.number().optional(),
   availabilityRate: zod.number().optional(),
   criticality: zod.enum(["low", "medium", "high", "critical"]),
+  siteId: zod.number().optional(),
+  siteName: zod.string().optional(),
+  zoneId: zod.number().optional(),
+  zoneName: zod.string().optional(),
+  photoUrl: zod.string().optional(),
   createdAt: zod.string(),
 });
 
@@ -173,6 +186,9 @@ export const UpdateAssetBody = zod.object({
   model: zod.string().optional(),
   installDate: zod.string().optional(),
   criticality: zod.enum(["low", "medium", "high", "critical"]),
+  siteId: zod.number().optional(),
+  zoneId: zod.number().optional(),
+  photoUrl: zod.string().optional(),
 });
 
 export const UpdateAssetResponse = zod.object({
@@ -195,6 +211,11 @@ export const UpdateAssetResponse = zod.object({
   mttr: zod.number().optional(),
   availabilityRate: zod.number().optional(),
   criticality: zod.enum(["low", "medium", "high", "critical"]),
+  siteId: zod.number().optional(),
+  siteName: zod.string().optional(),
+  zoneId: zod.number().optional(),
+  zoneName: zod.string().optional(),
+  photoUrl: zod.string().optional(),
   createdAt: zod.string(),
 });
 
@@ -203,6 +224,126 @@ export const UpdateAssetResponse = zod.object({
  */
 export const DeleteAssetParams = zod.object({
   id: zod.coerce.number(),
+});
+
+/**
+ * @summary Get work orders for an asset
+ */
+export const GetAssetWorkOrdersParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetAssetWorkOrdersResponseItem = zod.object({
+  id: zod.number(),
+  title: zod.string(),
+  description: zod.string().optional(),
+  type: zod.enum(["corrective", "preventive", "predictive", "inspection"]),
+  priority: zod.enum(["low", "medium", "high", "critical"]),
+  status: zod.enum([
+    "open",
+    "in_progress",
+    "completed",
+    "cancelled",
+    "on_hold",
+  ]),
+  assetId: zod.number().optional(),
+  assetName: zod.string().optional(),
+  technicianId: zod.number().optional(),
+  technicianName: zod.string().optional(),
+  estimatedHours: zod.number().optional(),
+  actualHours: zod.number().optional(),
+  scheduledDate: zod.string().optional(),
+  completedDate: zod.string().optional(),
+  siteId: zod.number().optional(),
+  siteName: zod.string().optional(),
+  zoneId: zod.number().optional(),
+  zoneName: zod.string().optional(),
+  assignmentMode: zod
+    .enum(["by_technician", "by_zone", "by_machine", "by_type"])
+    .optional(),
+  createdAt: zod.string(),
+});
+export const GetAssetWorkOrdersResponse = zod.array(
+  GetAssetWorkOrdersResponseItem,
+);
+
+/**
+ * @summary Get spare parts catalog for an asset
+ */
+export const GetAssetPartsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetAssetPartsResponseItem = zod.object({
+  id: zod.number(),
+  assetId: zod.number(),
+  inventoryItemId: zod.number().optional(),
+  partName: zod.string(),
+  reference: zod.string().optional(),
+  quantity: zod.number(),
+  unit: zod.string().optional(),
+  note: zod.string().optional(),
+  createdAt: zod.string(),
+  inventoryItemName: zod.string().optional(),
+  inventoryItemQuantity: zod.number().optional(),
+  inventoryItemUnit: zod.string().optional(),
+});
+export const GetAssetPartsResponse = zod.array(GetAssetPartsResponseItem);
+
+/**
+ * @summary Add a part to the asset parts catalog
+ */
+export const CreateAssetPartParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CreateAssetPartBody = zod.object({
+  inventoryItemId: zod.number().optional(),
+  partName: zod.string(),
+  reference: zod.string().optional(),
+  quantity: zod.number().optional(),
+  unit: zod.string().optional(),
+  note: zod.string().optional(),
+});
+
+/**
+ * @summary Update an asset part
+ */
+export const UpdateAssetPartParams = zod.object({
+  id: zod.coerce.number(),
+  partId: zod.coerce.number(),
+});
+
+export const UpdateAssetPartBody = zod.object({
+  inventoryItemId: zod.number().optional(),
+  partName: zod.string(),
+  reference: zod.string().optional(),
+  quantity: zod.number().optional(),
+  unit: zod.string().optional(),
+  note: zod.string().optional(),
+});
+
+export const UpdateAssetPartResponse = zod.object({
+  id: zod.number(),
+  assetId: zod.number(),
+  inventoryItemId: zod.number().optional(),
+  partName: zod.string(),
+  reference: zod.string().optional(),
+  quantity: zod.number(),
+  unit: zod.string().optional(),
+  note: zod.string().optional(),
+  createdAt: zod.string(),
+  inventoryItemName: zod.string().optional(),
+  inventoryItemQuantity: zod.number().optional(),
+  inventoryItemUnit: zod.string().optional(),
+});
+
+/**
+ * @summary Remove a part from the asset parts catalog
+ */
+export const DeleteAssetPartParams = zod.object({
+  id: zod.coerce.number(),
+  partId: zod.coerce.number(),
 });
 
 /**
@@ -235,6 +376,13 @@ export const GetWorkOrdersResponseItem = zod.object({
   actualHours: zod.number().optional(),
   scheduledDate: zod.string().optional(),
   completedDate: zod.string().optional(),
+  siteId: zod.number().optional(),
+  siteName: zod.string().optional(),
+  zoneId: zod.number().optional(),
+  zoneName: zod.string().optional(),
+  assignmentMode: zod
+    .enum(["by_technician", "by_zone", "by_machine", "by_type"])
+    .optional(),
   createdAt: zod.string(),
 });
 export const GetWorkOrdersResponse = zod.array(GetWorkOrdersResponseItem);
@@ -247,17 +395,18 @@ export const CreateWorkOrderBody = zod.object({
   description: zod.string().optional(),
   type: zod.enum(["corrective", "preventive", "predictive", "inspection"]),
   priority: zod.enum(["low", "medium", "high", "critical"]),
-  status: zod.enum([
-    "open",
-    "in_progress",
-    "completed",
-    "cancelled",
-    "on_hold",
-  ]),
+  status: zod
+    .enum(["open", "in_progress", "completed", "cancelled", "on_hold"])
+    .optional(),
   assetId: zod.number().optional(),
   technicianId: zod.number().optional(),
   estimatedHours: zod.number().optional(),
   scheduledDate: zod.string().optional(),
+  siteId: zod.number().optional(),
+  zoneId: zod.number().optional(),
+  assignmentMode: zod
+    .enum(["by_technician", "by_zone", "by_machine", "by_type"])
+    .optional(),
 });
 
 /**
@@ -288,6 +437,13 @@ export const GetWorkOrderResponse = zod.object({
   actualHours: zod.number().optional(),
   scheduledDate: zod.string().optional(),
   completedDate: zod.string().optional(),
+  siteId: zod.number().optional(),
+  siteName: zod.string().optional(),
+  zoneId: zod.number().optional(),
+  zoneName: zod.string().optional(),
+  assignmentMode: zod
+    .enum(["by_technician", "by_zone", "by_machine", "by_type"])
+    .optional(),
   createdAt: zod.string(),
 });
 
@@ -303,17 +459,18 @@ export const UpdateWorkOrderBody = zod.object({
   description: zod.string().optional(),
   type: zod.enum(["corrective", "preventive", "predictive", "inspection"]),
   priority: zod.enum(["low", "medium", "high", "critical"]),
-  status: zod.enum([
-    "open",
-    "in_progress",
-    "completed",
-    "cancelled",
-    "on_hold",
-  ]),
+  status: zod
+    .enum(["open", "in_progress", "completed", "cancelled", "on_hold"])
+    .optional(),
   assetId: zod.number().optional(),
   technicianId: zod.number().optional(),
   estimatedHours: zod.number().optional(),
   scheduledDate: zod.string().optional(),
+  siteId: zod.number().optional(),
+  zoneId: zod.number().optional(),
+  assignmentMode: zod
+    .enum(["by_technician", "by_zone", "by_machine", "by_type"])
+    .optional(),
 });
 
 export const UpdateWorkOrderResponse = zod.object({
@@ -337,6 +494,13 @@ export const UpdateWorkOrderResponse = zod.object({
   actualHours: zod.number().optional(),
   scheduledDate: zod.string().optional(),
   completedDate: zod.string().optional(),
+  siteId: zod.number().optional(),
+  siteName: zod.string().optional(),
+  zoneId: zod.number().optional(),
+  zoneName: zod.string().optional(),
+  assignmentMode: zod
+    .enum(["by_technician", "by_zone", "by_machine", "by_type"])
+    .optional(),
   createdAt: zod.string(),
 });
 
@@ -407,19 +571,37 @@ export const GetNotificationsResponseItem = zod.object({
 export const GetNotificationsResponse = zod.array(GetNotificationsResponseItem);
 
 /**
+ * @summary Mark a notification as read
+ */
+export const MarkNotificationReadParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const MarkNotificationReadResponse = zod.object({
+  id: zod.string(),
+  type: zod.enum(["critical", "warning", "info"]),
+  title: zod.string(),
+  message: zod.string(),
+  timestamp: zod.string(),
+  read: zod.boolean(),
+});
+
+/**
  * @summary List all preventive maintenance plans
  */
 export const GetPreventivePlansResponseItem = zod.object({
   id: zod.number(),
-  name: zod.string(),
-  description: zod.string().optional(),
+  title: zod.string(),
   assetId: zod.number().optional(),
   assetName: zod.string().optional(),
-  frequency: zod.enum(["daily", "weekly", "monthly", "quarterly", "annually"]),
-  lastExecuted: zod.string().optional(),
-  nextDue: zod.string().optional(),
-  status: zod.enum(["active", "inactive", "overdue"]),
-  estimatedDuration: zod.number().optional(),
+  frequency: zod.string(),
+  nextDueDate: zod.string().optional(),
+  lastExecutedDate: zod.string().optional(),
+  status: zod.enum(["active", "overdue", "completed", "paused"]),
+  technicianId: zod.number().optional(),
+  technicianName: zod.string().optional(),
+  estimatedHours: zod.number().optional(),
+  description: zod.string().optional(),
   createdAt: zod.string(),
 });
 export const GetPreventivePlansResponse = zod.array(
@@ -430,12 +612,14 @@ export const GetPreventivePlansResponse = zod.array(
  * @summary Create a preventive plan
  */
 export const CreatePreventivePlanBody = zod.object({
-  name: zod.string(),
-  description: zod.string().optional(),
+  title: zod.string(),
   assetId: zod.number().optional(),
-  frequency: zod.enum(["daily", "weekly", "monthly", "quarterly", "annually"]),
-  nextDue: zod.string().optional(),
-  estimatedDuration: zod.number().optional(),
+  frequency: zod.string(),
+  nextDueDate: zod.string().optional(),
+  technicianId: zod.number().optional(),
+  estimatedHours: zod.number().optional(),
+  description: zod.string().optional(),
+  status: zod.enum(["active", "overdue", "completed", "paused"]).optional(),
 });
 
 /**
@@ -446,25 +630,29 @@ export const UpdatePreventivePlanParams = zod.object({
 });
 
 export const UpdatePreventivePlanBody = zod.object({
-  name: zod.string(),
-  description: zod.string().optional(),
+  title: zod.string(),
   assetId: zod.number().optional(),
-  frequency: zod.enum(["daily", "weekly", "monthly", "quarterly", "annually"]),
-  nextDue: zod.string().optional(),
-  estimatedDuration: zod.number().optional(),
+  frequency: zod.string(),
+  nextDueDate: zod.string().optional(),
+  technicianId: zod.number().optional(),
+  estimatedHours: zod.number().optional(),
+  description: zod.string().optional(),
+  status: zod.enum(["active", "overdue", "completed", "paused"]).optional(),
 });
 
 export const UpdatePreventivePlanResponse = zod.object({
   id: zod.number(),
-  name: zod.string(),
-  description: zod.string().optional(),
+  title: zod.string(),
   assetId: zod.number().optional(),
   assetName: zod.string().optional(),
-  frequency: zod.enum(["daily", "weekly", "monthly", "quarterly", "annually"]),
-  lastExecuted: zod.string().optional(),
-  nextDue: zod.string().optional(),
-  status: zod.enum(["active", "inactive", "overdue"]),
-  estimatedDuration: zod.number().optional(),
+  frequency: zod.string(),
+  nextDueDate: zod.string().optional(),
+  lastExecutedDate: zod.string().optional(),
+  status: zod.enum(["active", "overdue", "completed", "paused"]),
+  technicianId: zod.number().optional(),
+  technicianName: zod.string().optional(),
+  estimatedHours: zod.number().optional(),
+  description: zod.string().optional(),
   createdAt: zod.string(),
 });
 
@@ -472,6 +660,13 @@ export const UpdatePreventivePlanResponse = zod.object({
  * @summary Delete a preventive plan
  */
 export const DeletePreventivePlanParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Execute a preventive plan (creates WO + updates dates)
+ */
+export const ExecutePreventivePlanParams = zod.object({
   id: zod.coerce.number(),
 });
 
@@ -494,8 +689,7 @@ export const GetInventoryItemsResponseItem = zod.object({
   location: zod.string().optional(),
   supplier: zod.string().optional(),
   unitCost: zod.number().optional(),
-  totalValue: zod.number().optional(),
-  isLowStock: zod.boolean(),
+  isLowStock: zod.boolean().optional(),
   createdAt: zod.string(),
 });
 export const GetInventoryItemsResponse = zod.array(
@@ -547,8 +741,7 @@ export const UpdateInventoryItemResponse = zod.object({
   location: zod.string().optional(),
   supplier: zod.string().optional(),
   unitCost: zod.number().optional(),
-  totalValue: zod.number().optional(),
-  isLowStock: zod.boolean(),
+  isLowStock: zod.boolean().optional(),
   createdAt: zod.string(),
 });
 
@@ -661,4 +854,114 @@ export const GetCostReportResponse = zod.object({
       }),
     )
     .optional(),
+});
+
+/**
+ * @summary List all sites
+ */
+export const GetSitesResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  location: zod.string().optional(),
+  city: zod.string().optional(),
+  country: zod.string(),
+  zoneCount: zod.number().optional(),
+  createdAt: zod.string(),
+});
+export const GetSitesResponse = zod.array(GetSitesResponseItem);
+
+/**
+ * @summary Create a site
+ */
+export const CreateSiteBody = zod.object({
+  name: zod.string(),
+  location: zod.string().optional(),
+  city: zod.string().optional(),
+  country: zod.string().optional(),
+});
+
+/**
+ * @summary Update a site
+ */
+export const UpdateSiteParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateSiteBody = zod.object({
+  name: zod.string(),
+  location: zod.string().optional(),
+  city: zod.string().optional(),
+  country: zod.string().optional(),
+});
+
+export const UpdateSiteResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  location: zod.string().optional(),
+  city: zod.string().optional(),
+  country: zod.string(),
+  zoneCount: zod.number().optional(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary Delete a site
+ */
+export const DeleteSiteParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary List all zones
+ */
+export const GetZonesQueryParams = zod.object({
+  siteId: zod.coerce.number().optional(),
+});
+
+export const GetZonesResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  siteId: zod.number().optional(),
+  siteName: zod.string().optional(),
+  description: zod.string().optional(),
+  createdAt: zod.string(),
+});
+export const GetZonesResponse = zod.array(GetZonesResponseItem);
+
+/**
+ * @summary Create a zone
+ */
+export const CreateZoneBody = zod.object({
+  name: zod.string(),
+  siteId: zod.number().optional(),
+  description: zod.string().optional(),
+});
+
+/**
+ * @summary Update a zone
+ */
+export const UpdateZoneParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateZoneBody = zod.object({
+  name: zod.string(),
+  siteId: zod.number().optional(),
+  description: zod.string().optional(),
+});
+
+export const UpdateZoneResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  siteId: zod.number().optional(),
+  siteName: zod.string().optional(),
+  description: zod.string().optional(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary Delete a zone
+ */
+export const DeleteZoneParams = zod.object({
+  id: zod.coerce.number(),
 });

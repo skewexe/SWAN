@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, workOrdersTable, assetsTable, techniciansTable } from "@workspace/db";
+import { db, workOrdersTable, assetsTable, techniciansTable, sitesTable, zonesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import {
   CreateWorkOrderBody,
@@ -12,31 +12,29 @@ import {
 
 const router = Router();
 
+const enrich = (wo: any, assets: any[], technicians: any[], sites: any[], zones: any[]) => ({
+  ...wo,
+  createdAt: wo.createdAt.toISOString(),
+  assetName: assets.find(a => a.id === wo.assetId)?.name,
+  technicianName: technicians.find(t => t.id === wo.technicianId)?.name,
+  siteName: sites.find(s => s.id === wo.siteId)?.name,
+  zoneName: zones.find(z => z.id === wo.zoneId)?.name,
+});
+
 router.get("/workorders", async (req, res) => {
   try {
     const params = GetWorkOrdersQueryParams.parse(req.query);
     const assets = await db.select().from(assetsTable);
     const technicians = await db.select().from(techniciansTable);
+    const sites = await db.select().from(sitesTable);
+    const zones = await db.select().from(zonesTable);
     let workOrders = await db.select().from(workOrdersTable);
 
-    if (params.status) {
-      workOrders = workOrders.filter(wo => wo.status === params.status);
-    }
-    if (params.priority) {
-      workOrders = workOrders.filter(wo => wo.priority === params.priority);
-    }
-    if (params.type) {
-      workOrders = workOrders.filter(wo => wo.type === params.type);
-    }
+    if (params.status) workOrders = workOrders.filter(wo => wo.status === params.status);
+    if (params.priority) workOrders = workOrders.filter(wo => wo.priority === params.priority);
+    if (params.type) workOrders = workOrders.filter(wo => wo.type === params.type);
 
-    const enriched = workOrders.map(wo => ({
-      ...wo,
-      createdAt: wo.createdAt.toISOString(),
-      assetName: assets.find(a => a.id === wo.assetId)?.name,
-      technicianName: technicians.find(t => t.id === wo.technicianId)?.name,
-    }));
-
-    res.json(enriched);
+    res.json(workOrders.map(wo => enrich(wo, assets, technicians, sites, zones)));
   } catch (err) {
     req.log.error({ err }, "Error fetching work orders");
     res.status(500).json({ error: "Internal server error" });
@@ -49,12 +47,9 @@ router.post("/workorders", async (req, res) => {
     const [wo] = await db.insert(workOrdersTable).values(body).returning();
     const assets = await db.select().from(assetsTable);
     const technicians = await db.select().from(techniciansTable);
-    res.status(201).json({
-      ...wo,
-      createdAt: wo.createdAt.toISOString(),
-      assetName: assets.find(a => a.id === wo.assetId)?.name,
-      technicianName: technicians.find(t => t.id === wo.technicianId)?.name,
-    });
+    const sites = await db.select().from(sitesTable);
+    const zones = await db.select().from(zonesTable);
+    res.status(201).json(enrich(wo, assets, technicians, sites, zones));
   } catch (err) {
     req.log.error({ err }, "Error creating work order");
     res.status(400).json({ error: "Invalid request" });
@@ -68,12 +63,9 @@ router.get("/workorders/:id", async (req, res) => {
     if (!wo) return res.status(404).json({ error: "Work order not found" });
     const assets = await db.select().from(assetsTable);
     const technicians = await db.select().from(techniciansTable);
-    res.json({
-      ...wo,
-      createdAt: wo.createdAt.toISOString(),
-      assetName: assets.find(a => a.id === wo.assetId)?.name,
-      technicianName: technicians.find(t => t.id === wo.technicianId)?.name,
-    });
+    const sites = await db.select().from(sitesTable);
+    const zones = await db.select().from(zonesTable);
+    res.json(enrich(wo, assets, technicians, sites, zones));
     return;
   } catch (err) {
     req.log.error({ err }, "Error fetching work order");
@@ -90,12 +82,9 @@ router.put("/workorders/:id", async (req, res) => {
     if (!wo) return res.status(404).json({ error: "Work order not found" });
     const assets = await db.select().from(assetsTable);
     const technicians = await db.select().from(techniciansTable);
-    res.json({
-      ...wo,
-      createdAt: wo.createdAt.toISOString(),
-      assetName: assets.find(a => a.id === wo.assetId)?.name,
-      technicianName: technicians.find(t => t.id === wo.technicianId)?.name,
-    });
+    const sites = await db.select().from(sitesTable);
+    const zones = await db.select().from(zonesTable);
+    res.json(enrich(wo, assets, technicians, sites, zones));
     return;
   } catch (err) {
     req.log.error({ err }, "Error updating work order");

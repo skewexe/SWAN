@@ -5,6 +5,7 @@ import { z } from "zod/v4";
 export const workOrderTypeEnum = pgEnum("work_order_type", ["corrective", "preventive", "predictive", "inspection"]);
 export const workOrderPriorityEnum = pgEnum("work_order_priority", ["low", "medium", "high", "critical"]);
 export const workOrderStatusEnum = pgEnum("work_order_status", ["open", "in_progress", "completed", "cancelled", "on_hold"]);
+export const workOrderAssignmentModeEnum = pgEnum("work_order_assignment_mode", ["by_technician", "by_zone", "by_machine", "by_type"]);
 
 export const workOrdersTable = pgTable("work_orders", {
   id: serial("id").primaryKey(),
@@ -19,6 +20,9 @@ export const workOrdersTable = pgTable("work_orders", {
   actualHours: real("actual_hours"),
   scheduledDate: text("scheduled_date"),
   completedDate: text("completed_date"),
+  siteId: integer("site_id"),
+  zoneId: integer("zone_id"),
+  assignmentMode: workOrderAssignmentModeEnum("assignment_mode").default("by_technician"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

@@ -13,13 +13,15 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Wrench, User, Calendar, Clock, Package, Tag, ArrowRight,
+  Wrench, User, Calendar, Clock, Package, Tag, 
   CheckCircle2, Circle, Loader2, AlertTriangle, Info, Hash,
+  MapPin, Building2, SlidersHorizontal,
 } from "lucide-react";
 
 type WOStatus = "open" | "in_progress" | "completed" | "on_hold" | "cancelled";
 type WOPriority = "critical" | "high" | "medium" | "low";
 type WOType = "corrective" | "preventive" | "predictive" | "inspection";
+type AssignmentMode = "by_technician" | "by_zone" | "by_machine" | "by_type";
 
 const STATUS_FLOW: { key: WOStatus; label: string; color: string; bg: string }[] = [
   { key: "open", label: "Ouvert", color: "#0A6DFF", bg: "bg-blue-500/10 text-blue-400 border-blue-500/30" },
@@ -41,6 +43,13 @@ const TYPE_MAP: Record<WOType, { label: string }> = {
   preventive: { label: "Préventive" },
   predictive: { label: "Prédictive" },
   inspection: { label: "Inspection" },
+};
+
+const ASSIGNMENT_MODE_LABELS: Record<AssignmentMode, string> = {
+  by_technician: "Par technicien",
+  by_zone: "Par zone",
+  by_machine: "Par machine",
+  by_type: "Par type",
 };
 
 function InfoRow({ icon: Icon, label, value, valueClass = "" }: {
@@ -196,6 +205,19 @@ export function WorkOrderDetailSheet({ workOrder, open, onClose }: Props) {
                   <InfoRow icon={Hash} label="ID" value={`#OT-${String(workOrder.id).padStart(4, "0")}`} />
                   <InfoRow icon={Tag} label="Équipement" value={workOrder.assetName} />
                   <InfoRow icon={User} label="Technicien" value={workOrder.technicianName} />
+                  {workOrder.siteName && (
+                    <InfoRow icon={Building2} label="Site" value={workOrder.siteName} />
+                  )}
+                  {workOrder.zoneName && (
+                    <InfoRow icon={MapPin} label="Zone" value={workOrder.zoneName} />
+                  )}
+                  {workOrder.assignmentMode && (
+                    <InfoRow
+                      icon={SlidersHorizontal}
+                      label="Mode d'affectation"
+                      value={ASSIGNMENT_MODE_LABELS[workOrder.assignmentMode as AssignmentMode] || workOrder.assignmentMode}
+                    />
+                  )}
                   <InfoRow icon={Calendar} label="Date planifiée" value={
                     workOrder.scheduledDate
                       ? new Date(workOrder.scheduledDate).toLocaleDateString("fr-DZ")

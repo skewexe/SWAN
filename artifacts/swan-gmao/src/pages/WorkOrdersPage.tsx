@@ -4,6 +4,7 @@ import {
   useGetWorkOrders, useCreateWorkOrder, useUpdateWorkOrder, useDeleteWorkOrder,
   useGetAssets, useGetTechnicians, useGetInventoryItems,
   useGetWorkOrderParts, useAddWorkOrderPart, useRemoveWorkOrderPart,
+  useGetSites, useGetZones,
   getGetWorkOrdersQueryKey, getGetWorkOrderPartsQueryKey, getGetInventoryItemsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -14,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, AlertTriangle, Package, X, AlertCircle, ExternalLink, Lock } from "lucide-react";
+import { Plus, Pencil, Trash2, AlertTriangle, Package, X, AlertCircle, ExternalLink, Lock, MapPin, Building2, SlidersHorizontal } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { WorkOrderDetailSheet } from "@/components/WorkOrderDetailSheet";
@@ -23,6 +24,7 @@ import { useRBAC } from "@/context/RBACContext";
 type WOType = "corrective" | "preventive" | "predictive" | "inspection";
 type WOPriority = "low" | "medium" | "high" | "critical";
 type WOStatus = "open" | "in_progress" | "completed" | "cancelled" | "on_hold";
+type AssignmentMode = "by_technician" | "by_zone" | "by_machine" | "by_type";
 
 const TYPE_LABELS: Record<WOType, { label: string; className: string }> = {
   corrective: { label: "Corrective", className: "bg-red-500/10 text-red-400 border-red-500/30" },
@@ -46,6 +48,13 @@ const STATUS_LABELS: Record<WOStatus, { label: string; className: string }> = {
   on_hold: { label: "En attente", className: "bg-yellow-500/10 text-yellow-400 border-yellow-500/30" },
 };
 
+const ASSIGNMENT_MODE_LABELS: Record<AssignmentMode, string> = {
+  by_technician: "Par technicien",
+  by_zone: "Par zone",
+  by_machine: "Par machine",
+  by_type: "Par type",
+};
+
 interface WOFormData {
   title: string;
   description?: string;
@@ -56,6 +65,9 @@ interface WOFormData {
   technicianId?: number;
   estimatedHours?: number;
   scheduledDate?: string;
+  siteId?: number;
+  zoneId?: number;
+  assignmentMode?: AssignmentMode;
 }
 
 function PartsDialog({
@@ -142,7 +154,6 @@ function PartsDialog({
         </DialogHeader>
 
         <div className="space-y-5">
-          {/* Add part form */}
           <div className="bg-background/50 border border-border/50 rounded-xl p-4 space-y-3">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ajouter une pièce</p>
             <div className="flex gap-3">
@@ -189,7 +200,6 @@ function PartsDialog({
               </Button>
             </div>
 
-            {/* Stock info for selected item */}
             {selectedItem && (
               <div className="flex items-center gap-2 text-xs">
                 {selectedItem.isLowStock ? (
@@ -215,7 +225,6 @@ function PartsDialog({
             />
           </div>
 
-          {/* Parts list */}
           <div>
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -328,6 +337,8 @@ export default function WorkOrdersPage() {
 
   const { data: assets } = useGetAssets();
   const { data: technicians } = useGetTechnicians();
+  const { data: sites } = useGetSites();
+  const { data: zones } = useGetZones({});
 
   const createWO = useCreateWorkOrder();
   const updateWO = useUpdateWorkOrder();
@@ -336,6 +347,12 @@ export default function WorkOrdersPage() {
   const form = useForm<WOFormData>({
     defaultValues: { title: "", type: "corrective", priority: "medium", status: "open" }
   });
+
+  const watchedSiteId = form.watch("siteId");
+  const filteredZones = useMemo(() =>
+    zones?.filter(z => !watchedSiteId || z.siteId === watchedSiteId) ?? [],
+    [zones, watchedSiteId]
+  );
 
   const openCreate = () => {
     setEditWO(null);
@@ -349,13 +366,21 @@ export default function WorkOrdersPage() {
       title: wo.title, description: wo.description, type: wo.type, priority: wo.priority,
       status: wo.status, assetId: wo.assetId, technicianId: wo.technicianId,
       estimatedHours: wo.estimatedHours, scheduledDate: wo.scheduledDate,
+      siteId: wo.siteId, zoneId: wo.zoneId, assignmentMode: wo.assignmentMode,
     });
     setDialogOpen(true);
   };
 
   const onSubmit = (data: WOFormData) => {
     const invalidate = () => queryClient.invalidateQueries({ queryKey: getGetWorkOrdersQueryKey() });
-    const body = { ...data, assetId: data.assetId || undefined, technicianId: data.technicianId || undefined };
+    const body = {
+      ...data,
+      assetId: data.assetId || undefined,
+      technicianId: data.technicianId || undefined,
+      siteId: data.siteId || undefined,
+      zoneId: data.zoneId || undefined,
+      assignmentMode: data.assignmentMode || undefined,
+    };
     if (editWO) {
       updateWO.mutate({ id: editWO.id, data: body }, {
         onSuccess: () => { toast({ title: "OT mis à jour" }); setDialogOpen(false); invalidate(); },
@@ -457,6 +482,8 @@ export default function WorkOrdersPage() {
                 <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-4">Statut</th>
                 <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-4">Équipement</th>
                 <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-4">Technicien</th>
+                <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-4">Site / Zone</th>
+                <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-4">Mode</th>
                 <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-4">Date prévue</th>
                 <th className="px-6 py-4"></th>
               </tr>
@@ -488,10 +515,36 @@ export default function WorkOrdersPage() {
                     <td className="px-4 py-4">
                       <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${status?.className}`}>{status?.label}</span>
                     </td>
-                    <td className="px-4 py-4 text-muted-foreground text-xs">{wo.assetName || "—"}</td>
-                    <td className="px-4 py-4 text-muted-foreground text-xs">{wo.technicianName || "—"}</td>
+                    <td className="px-4 py-4 text-muted-foreground text-xs">{(wo as any).assetName || "—"}</td>
+                    <td className="px-4 py-4 text-muted-foreground text-xs">{(wo as any).technicianName || "—"}</td>
+                    <td className="px-4 py-4 text-xs">
+                      {(wo as any).siteName || (wo as any).zoneName ? (
+                        <div className="flex flex-col gap-0.5">
+                          {(wo as any).siteName && (
+                            <span className="flex items-center gap-1 text-muted-foreground">
+                              <Building2 className="h-3 w-3 shrink-0" strokeWidth={1.5} />
+                              {(wo as any).siteName}
+                            </span>
+                          )}
+                          {(wo as any).zoneName && (
+                            <span className="flex items-center gap-1 text-muted-foreground/70">
+                              <MapPin className="h-3 w-3 shrink-0" strokeWidth={1.5} />
+                              {(wo as any).zoneName}
+                            </span>
+                          )}
+                        </div>
+                      ) : <span className="text-muted-foreground/40">—</span>}
+                    </td>
+                    <td className="px-4 py-4 text-xs">
+                      {(wo as any).assignmentMode ? (
+                        <span className="flex items-center gap-1 text-muted-foreground">
+                          <SlidersHorizontal className="h-3 w-3 shrink-0" strokeWidth={1.5} />
+                          {ASSIGNMENT_MODE_LABELS[(wo as any).assignmentMode as AssignmentMode] || (wo as any).assignmentMode}
+                        </span>
+                      ) : <span className="text-muted-foreground/40">—</span>}
+                    </td>
                     <td className="px-4 py-4 text-muted-foreground text-xs">
-                      {wo.scheduledDate ? new Date(wo.scheduledDate).toLocaleDateString("fr-DZ") : "—"}
+                      {(wo as any).scheduledDate ? new Date((wo as any).scheduledDate).toLocaleDateString("fr-DZ") : "—"}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1 justify-end" onClick={e => e.stopPropagation()}>
@@ -534,7 +587,7 @@ export default function WorkOrdersPage() {
                   </motion.tr>
                 );
               }) : (
-                <tr><td colSpan={8} className="text-center py-12 text-muted-foreground">Aucun ordre de travail trouvé</td></tr>
+                <tr><td colSpan={10} className="text-center py-12 text-muted-foreground">Aucun ordre de travail trouvé</td></tr>
               )}
             </tbody>
           </table>
@@ -549,7 +602,7 @@ export default function WorkOrdersPage() {
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg bg-card border-border">
+        <DialogContent className="max-w-2xl bg-card border-border max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editWO ? "Modifier l'OT" : "Nouvel ordre de travail"}</DialogTitle>
           </DialogHeader>
@@ -618,6 +671,21 @@ export default function WorkOrdersPage() {
                     <FormControl><Input type="number" step="0.5" data-testid="input-wo-hours" {...field} onChange={e => field.onChange(Number(e.target.value) || undefined)} /></FormControl>
                   </FormItem>
                 )} />
+                <FormField control={form.control} name="assignmentMode" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Mode d'affectation</FormLabel>
+                    <Select value={field.value || "none"} onValueChange={v => field.onChange(v !== "none" ? v : undefined)}>
+                      <SelectTrigger data-testid="select-wo-assignment-mode"><SelectValue placeholder="Non défini" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Non défini</SelectItem>
+                        <SelectItem value="by_technician">Par technicien</SelectItem>
+                        <SelectItem value="by_zone">Par zone</SelectItem>
+                        <SelectItem value="by_machine">Par machine</SelectItem>
+                        <SelectItem value="by_type">Par type</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )} />
                 <FormField control={form.control} name="assetId" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Équipement</FormLabel>
@@ -638,6 +706,33 @@ export default function WorkOrdersPage() {
                       <SelectContent>
                         <SelectItem value="none">Non assigné</SelectItem>
                         {technicians?.map(t => <SelectItem key={t.id} value={t.id.toString()}>{t.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="siteId" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Site</FormLabel>
+                    <Select value={field.value?.toString() || "none"} onValueChange={v => {
+                      field.onChange(v !== "none" ? Number(v) : undefined);
+                      form.setValue("zoneId", undefined);
+                    }}>
+                      <SelectTrigger data-testid="select-wo-site"><SelectValue placeholder="Tous les sites" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Tous les sites</SelectItem>
+                        {sites?.map(s => <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="zoneId" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Zone</FormLabel>
+                    <Select value={field.value?.toString() || "none"} onValueChange={v => field.onChange(v !== "none" ? Number(v) : undefined)}>
+                      <SelectTrigger data-testid="select-wo-zone"><SelectValue placeholder="Aucune zone" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Aucune zone</SelectItem>
+                        {filteredZones.map(z => <SelectItem key={z.id} value={z.id.toString()}>{z.name}{z.siteName ? ` (${z.siteName})` : ""}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </FormItem>

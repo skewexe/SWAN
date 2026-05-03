@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, real, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, real, integer, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -20,6 +20,9 @@ export const assetsTable = pgTable("assets", {
   mttr: real("mttr"),
   availabilityRate: real("availability_rate"),
   criticality: assetCriticalityEnum("criticality").notNull().default("medium"),
+  siteId: integer("site_id"),
+  zoneId: integer("zone_id"),
+  photoUrl: text("photo_url"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

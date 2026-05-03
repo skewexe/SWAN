@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import * as XLSX from "xlsx";
 import {
   useGetAssets, useCreateAsset, useUpdateAsset, useDeleteAsset,
+  useGetSites, useGetZones,
   getGetAssetsQueryKey
 } from "@workspace/api-client-react";
 import { AssetDetailSheet } from "@/components/AssetDetailSheet";
@@ -16,7 +17,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import {
   Plus, Search, Pencil, Trash2, AlertTriangle, Copy, Upload,
-  FileSpreadsheet, Download, CheckCircle2, X, Wrench, Layers, Trash
+  FileSpreadsheet, Download, CheckCircle2, X, Wrench, Layers, Trash,
+  ImageIcon, Building2, MapPin,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
@@ -49,6 +51,9 @@ interface AssetFormData {
   model?: string;
   installDate?: string;
   criticality: AssetCriticality;
+  siteId?: number;
+  zoneId?: number;
+  photoUrl?: string;
 }
 
 const CSV_COLUMNS = [
@@ -704,9 +709,15 @@ export default function AssetsPage() {
   const updateAsset = useUpdateAsset();
   const deleteAsset = useDeleteAsset();
 
+  const { data: sites } = useGetSites();
+  const { data: zones } = useGetZones({});
+
   const form = useForm<AssetFormData>({
     defaultValues: { name: "", category: "", status: "operational", criticality: "medium" }
   });
+
+  const watchedSiteId = form.watch("siteId");
+  const filteredZones = zones?.filter(z => !watchedSiteId || z.siteId === watchedSiteId) ?? [];
 
   const openCreate = () => {
     setEditAsset(null);
@@ -720,6 +731,7 @@ export default function AssetsPage() {
       name: asset.name, category: asset.category, serialNumber: asset.serialNumber,
       location: asset.location, status: asset.status, manufacturer: asset.manufacturer,
       model: asset.model, installDate: asset.installDate, criticality: asset.criticality,
+      siteId: asset.siteId, zoneId: asset.zoneId, photoUrl: asset.photoUrl,
     });
     setDialogOpen(true);
   };
@@ -817,7 +829,7 @@ export default function AssetsPage() {
               <tr className="border-b border-border/60 bg-muted/20">
                 <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-4">Équipement</th>
                 <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-4">Catégorie</th>
-                <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-4">Localisation</th>
+                <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-4">Localisation / Zone</th>
                 <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-4">Statut</th>
                 <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-4">Criticité</th>
                 <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-4">Disponibilité</th>
@@ -843,7 +855,24 @@ export default function AssetsPage() {
                       {asset.serialNumber && <div className="text-xs text-muted-foreground mt-0.5">{asset.serialNumber}</div>}
                     </td>
                     <td className="px-4 py-4 text-muted-foreground">{asset.category}</td>
-                    <td className="px-4 py-4 text-muted-foreground">{asset.location || "—"}</td>
+                    <td className="px-4 py-4 text-xs">
+                      <div className="flex flex-col gap-0.5">
+                        {asset.location && <span className="text-muted-foreground">{asset.location}</span>}
+                        {(asset as any).siteName && (
+                          <span className="flex items-center gap-1 text-muted-foreground/70">
+                            <Building2 className="h-3 w-3 shrink-0" strokeWidth={1.5} />
+                            {(asset as any).siteName}
+                          </span>
+                        )}
+                        {(asset as any).zoneName && (
+                          <span className="flex items-center gap-1 text-muted-foreground/70">
+                            <MapPin className="h-3 w-3 shrink-0" strokeWidth={1.5} />
+                            {(asset as any).zoneName}
+                          </span>
+                        )}
+                        {!asset.location && !(asset as any).siteName && !(asset as any).zoneName && <span className="text-muted-foreground/40">—</span>}
+                      </div>
+                    </td>
                     <td className="px-4 py-4">
                       <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${status.className}`}>
                         {status.label}
@@ -960,7 +989,7 @@ export default function AssetsPage() {
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="criticality" render={({ field }) => (
-                  <FormItem className="col-span-2">
+                  <FormItem>
                     <FormLabel>Criticité</FormLabel>
                     <Select value={field.value} onValueChange={field.onChange}>
                       <SelectTrigger data-testid="select-asset-criticality"><SelectValue /></SelectTrigger>
@@ -971,6 +1000,81 @@ export default function AssetsPage() {
                         <SelectItem value="critical">Critique</SelectItem>
                       </SelectContent>
                     </Select>
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="siteId" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Site</FormLabel>
+                    <Select value={field.value?.toString() || "none"} onValueChange={v => {
+                      field.onChange(v !== "none" ? Number(v) : undefined);
+                      form.setValue("zoneId", undefined);
+                    }}>
+                      <SelectTrigger data-testid="select-asset-site"><SelectValue placeholder="Tous les sites" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Aucun site</SelectItem>
+                        {sites?.map(s => <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="zoneId" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Zone</FormLabel>
+                    <Select value={field.value?.toString() || "none"} onValueChange={v => field.onChange(v !== "none" ? Number(v) : undefined)}>
+                      <SelectTrigger data-testid="select-asset-zone"><SelectValue placeholder="Aucune zone" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Aucune zone</SelectItem>
+                        {filteredZones.map(z => <SelectItem key={z.id} value={z.id.toString()}>{z.name}{z.siteName ? ` (${z.siteName})` : ""}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="photoUrl" render={({ field }) => (
+                  <FormItem className="col-span-2">
+                    <FormLabel className="flex items-center gap-1.5">
+                      <ImageIcon className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.5} />
+                      Photo (URL ou données)
+                    </FormLabel>
+                    <FormControl>
+                      <div className="space-y-2">
+                        <Input
+                          data-testid="input-asset-photo"
+                          placeholder="https://... ou glisser-déposer une image"
+                          {...field}
+                          value={field.value ?? ""}
+                        />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          id="asset-photo-upload"
+                          onChange={e => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            const reader = new FileReader();
+                            reader.onload = ev => field.onChange(ev.target?.result as string);
+                            reader.readAsDataURL(file);
+                          }}
+                        />
+                        <label htmlFor="asset-photo-upload">
+                          <Button type="button" variant="outline" size="sm" className="gap-1.5 text-xs h-7 cursor-pointer" asChild>
+                            <span><Upload className="h-3.5 w-3.5" strokeWidth={1.5} />Choisir une photo</span>
+                          </Button>
+                        </label>
+                        {field.value && (
+                          <div className="relative w-24 h-24 rounded-lg overflow-hidden border border-border/40">
+                            <img src={field.value} alt="preview" className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                            <button
+                              type="button"
+                              onClick={() => field.onChange("")}
+                              className="absolute top-1 right-1 h-5 w-5 rounded-full bg-background/80 flex items-center justify-center text-muted-foreground hover:text-destructive"
+                            >
+                              <X className="h-3 w-3" strokeWidth={2} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </FormControl>
                   </FormItem>
                 )} />
               </div>

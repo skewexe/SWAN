@@ -105,6 +105,11 @@ export interface Asset {
   mttr?: number;
   availabilityRate?: number;
   criticality: AssetCriticality;
+  siteId?: number;
+  siteName?: string;
+  zoneId?: number;
+  zoneName?: string;
+  photoUrl?: string;
   createdAt: string;
 }
 
@@ -138,6 +143,33 @@ export interface CreateAssetBody {
   model?: string;
   installDate?: string;
   criticality: CreateAssetBodyCriticality;
+  siteId?: number;
+  zoneId?: number;
+  photoUrl?: string;
+}
+
+export interface AssetPart {
+  id: number;
+  assetId: number;
+  inventoryItemId?: number;
+  partName: string;
+  reference?: string;
+  quantity: number;
+  unit?: string;
+  note?: string;
+  createdAt: string;
+  inventoryItemName?: string;
+  inventoryItemQuantity?: number;
+  inventoryItemUnit?: string;
+}
+
+export interface CreateAssetPartBody {
+  inventoryItemId?: number;
+  partName: string;
+  reference?: string;
+  quantity?: number;
+  unit?: string;
+  note?: string;
 }
 
 export type WorkOrderType = (typeof WorkOrderType)[keyof typeof WorkOrderType];
@@ -170,6 +202,16 @@ export const WorkOrderStatus = {
   on_hold: "on_hold",
 } as const;
 
+export type WorkOrderAssignmentMode =
+  (typeof WorkOrderAssignmentMode)[keyof typeof WorkOrderAssignmentMode];
+
+export const WorkOrderAssignmentMode = {
+  by_technician: "by_technician",
+  by_zone: "by_zone",
+  by_machine: "by_machine",
+  by_type: "by_type",
+} as const;
+
 export interface WorkOrder {
   id: number;
   title: string;
@@ -185,6 +227,11 @@ export interface WorkOrder {
   actualHours?: number;
   scheduledDate?: string;
   completedDate?: string;
+  siteId?: number;
+  siteName?: string;
+  zoneId?: number;
+  zoneName?: string;
+  assignmentMode?: WorkOrderAssignmentMode;
   createdAt: string;
 }
 
@@ -219,70 +266,97 @@ export const CreateWorkOrderBodyStatus = {
   on_hold: "on_hold",
 } as const;
 
+export type CreateWorkOrderBodyAssignmentMode =
+  (typeof CreateWorkOrderBodyAssignmentMode)[keyof typeof CreateWorkOrderBodyAssignmentMode];
+
+export const CreateWorkOrderBodyAssignmentMode = {
+  by_technician: "by_technician",
+  by_zone: "by_zone",
+  by_machine: "by_machine",
+  by_type: "by_type",
+} as const;
+
 export interface CreateWorkOrderBody {
   title: string;
   description?: string;
   type: CreateWorkOrderBodyType;
   priority: CreateWorkOrderBodyPriority;
-  status: CreateWorkOrderBodyStatus;
+  status?: CreateWorkOrderBodyStatus;
   assetId?: number;
   technicianId?: number;
   estimatedHours?: number;
   scheduledDate?: string;
+  siteId?: number;
+  zoneId?: number;
+  assignmentMode?: CreateWorkOrderBodyAssignmentMode;
 }
 
-export type PreventivePlanFrequency =
-  (typeof PreventivePlanFrequency)[keyof typeof PreventivePlanFrequency];
+export interface WorkOrderPart {
+  id: number;
+  workOrderId: number;
+  inventoryItemId: number;
+  quantityUsed: number;
+  unitCostAtTime?: number;
+  note?: string;
+  createdAt: string;
+  itemName: string;
+  itemReference?: string;
+  itemUnit?: string;
+  totalCost?: number;
+  newStockLevel?: number;
+}
 
-export const PreventivePlanFrequency = {
-  daily: "daily",
-  weekly: "weekly",
-  monthly: "monthly",
-  quarterly: "quarterly",
-  annually: "annually",
-} as const;
+export interface AddWorkOrderPartBody {
+  inventoryItemId: number;
+  quantityUsed: number;
+  note?: string;
+}
 
 export type PreventivePlanStatus =
   (typeof PreventivePlanStatus)[keyof typeof PreventivePlanStatus];
 
 export const PreventivePlanStatus = {
   active: "active",
-  inactive: "inactive",
   overdue: "overdue",
+  completed: "completed",
+  paused: "paused",
 } as const;
 
 export interface PreventivePlan {
   id: number;
-  name: string;
-  description?: string;
+  title: string;
   assetId?: number;
   assetName?: string;
-  frequency: PreventivePlanFrequency;
-  lastExecuted?: string;
-  nextDue?: string;
+  frequency: string;
+  nextDueDate?: string;
+  lastExecutedDate?: string;
   status: PreventivePlanStatus;
-  estimatedDuration?: number;
+  technicianId?: number;
+  technicianName?: string;
+  estimatedHours?: number;
+  description?: string;
   createdAt: string;
 }
 
-export type CreatePreventivePlanBodyFrequency =
-  (typeof CreatePreventivePlanBodyFrequency)[keyof typeof CreatePreventivePlanBodyFrequency];
+export type CreatePreventivePlanBodyStatus =
+  (typeof CreatePreventivePlanBodyStatus)[keyof typeof CreatePreventivePlanBodyStatus];
 
-export const CreatePreventivePlanBodyFrequency = {
-  daily: "daily",
-  weekly: "weekly",
-  monthly: "monthly",
-  quarterly: "quarterly",
-  annually: "annually",
+export const CreatePreventivePlanBodyStatus = {
+  active: "active",
+  overdue: "overdue",
+  completed: "completed",
+  paused: "paused",
 } as const;
 
 export interface CreatePreventivePlanBody {
-  name: string;
-  description?: string;
+  title: string;
   assetId?: number;
-  frequency: CreatePreventivePlanBodyFrequency;
-  nextDue?: string;
-  estimatedDuration?: number;
+  frequency: string;
+  nextDueDate?: string;
+  technicianId?: number;
+  estimatedHours?: number;
+  description?: string;
+  status?: CreatePreventivePlanBodyStatus;
 }
 
 export interface InventoryItem {
@@ -296,8 +370,7 @@ export interface InventoryItem {
   location?: string;
   supplier?: string;
   unitCost?: number;
-  totalValue?: number;
-  isLowStock: boolean;
+  isLowStock?: boolean;
   createdAt: string;
 }
 
@@ -356,6 +429,38 @@ export interface CreateTechnicianBody {
   status?: CreateTechnicianBodyStatus;
 }
 
+export interface Site {
+  id: number;
+  name: string;
+  location?: string;
+  city?: string;
+  country: string;
+  zoneCount?: number;
+  createdAt: string;
+}
+
+export interface CreateSiteBody {
+  name: string;
+  location?: string;
+  city?: string;
+  country?: string;
+}
+
+export interface Zone {
+  id: number;
+  name: string;
+  siteId?: number;
+  siteName?: string;
+  description?: string;
+  createdAt: string;
+}
+
+export interface CreateZoneBody {
+  name: string;
+  siteId?: number;
+  description?: string;
+}
+
 export type KpiReportTopFailingAssetsItem = {
   assetName: string;
   failures: number;
@@ -383,27 +488,6 @@ export interface CostReport {
   totalDowntimeCost: number;
   totalCost: number;
   byMonth?: CostReportByMonthItem[];
-}
-
-export interface WorkOrderPart {
-  id: number;
-  workOrderId: number;
-  inventoryItemId: number;
-  quantityUsed: number;
-  unitCostAtTime?: number;
-  note?: string;
-  createdAt: string;
-  itemName: string;
-  itemReference?: string;
-  itemUnit?: string;
-  totalCost?: number;
-  newStockLevel?: number;
-}
-
-export interface AddWorkOrderPartBody {
-  inventoryItemId: number;
-  quantityUsed: number;
-  note?: string;
 }
 
 export type NotificationType =
@@ -439,4 +523,8 @@ export type GetWorkOrdersParams = {
 export type GetInventoryItemsParams = {
   lowStock?: boolean;
   search?: string;
+};
+
+export type GetZonesParams = {
+  siteId?: number;
 };

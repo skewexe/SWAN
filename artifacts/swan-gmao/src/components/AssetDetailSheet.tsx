@@ -6,9 +6,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
 import {
   Wrench, MapPin, Calendar, Tag, BarChart2, Clock, AlertTriangle,
-  CheckCircle2, Hash, Factory, Layers,
+  CheckCircle2, Hash, Factory, Layers, Building2, ImageIcon, Package, Plus, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  useGetAssetParts, useCreateAssetPart, useDeleteAssetPart,
+  useGetInventoryItems,
+  getGetAssetPartsQueryKey, getGetInventoryItemsQueryKey,
+} from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 type AssetStatus = "operational" | "maintenance" | "breakdown" | "decommissioned";
 type WOStatus = "open" | "in_progress" | "completed" | "on_hold" | "cancelled";
@@ -60,6 +69,198 @@ function KpiPill({ label, value, color }: { label: string; value: string | numbe
   );
 }
 
+function MachinePartsSection({ assetId }: { assetId: number }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [showAdd, setShowAdd] = useState(false);
+  const [newPartName, setNewPartName] = useState("");
+  const [newReference, setNewReference] = useState("");
+  const [newQty, setNewQty] = useState("1");
+  const [newUnit, setNewUnit] = useState("pce");
+  const [newNote, setNewNote] = useState("");
+  const [newInventoryItemId, setNewInventoryItemId] = useState<string>("");
+
+  const { data: parts, isLoading } = useGetAssetParts(
+    assetId,
+    { query: { queryKey: getGetAssetPartsQueryKey(assetId), enabled: assetId > 0 } }
+  );
+
+  const { data: inventoryItems } = useGetInventoryItems(
+    {},
+    { query: { queryKey: getGetInventoryItemsQueryKey({}) } }
+  );
+
+  const createPart = useCreateAssetPart();
+  const deletePart = useDeleteAssetPart();
+
+  const handleAdd = () => {
+    if (!newPartName.trim()) {
+      toast({ title: "Nom de la pièce requis", variant: "destructive" });
+      return;
+    }
+    createPart.mutate({
+      id: assetId,
+      data: {
+        partName: newPartName.trim(),
+        reference: newReference || undefined,
+        quantity: Number(newQty) || 1,
+        unit: newUnit || undefined,
+        note: newNote || undefined,
+        inventoryItemId: newInventoryItemId ? Number(newInventoryItemId) : undefined,
+      }
+    }, {
+      onSuccess: () => {
+        toast({ title: "Pièce ajoutée au catalogue" });
+        queryClient.invalidateQueries({ queryKey: getGetAssetPartsQueryKey(assetId) });
+        setNewPartName(""); setNewReference(""); setNewQty("1"); setNewNote(""); setNewInventoryItemId("");
+        setShowAdd(false);
+      },
+      onError: () => toast({ title: "Erreur lors de l'ajout", variant: "destructive" }),
+    });
+  };
+
+  const handleDelete = (partId: number) => {
+    deletePart.mutate({ id: assetId, partId }, {
+      onSuccess: () => {
+        toast({ title: "Pièce retirée" });
+        queryClient.invalidateQueries({ queryKey: getGetAssetPartsQueryKey(assetId) });
+      },
+      onError: () => toast({ title: "Erreur", variant: "destructive" }),
+    });
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          Catalogue de pièces {parts ? `(${parts.length})` : ""}
+        </p>
+        <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs text-primary" onClick={() => setShowAdd(v => !v)}>
+          <Plus className="h-3.5 w-3.5" strokeWidth={2} />
+          Ajouter
+        </Button>
+      </div>
+
+      {showAdd && (
+        <div className="bg-background/50 border border-border/40 rounded-xl p-3 space-y-2 mb-3">
+          <div className="grid grid-cols-2 gap-2">
+            <Input
+              placeholder="Nom de la pièce *"
+              value={newPartName}
+              onChange={e => setNewPartName(e.target.value)}
+              className="text-xs h-8 col-span-2"
+            />
+            <Input
+              placeholder="Référence"
+              value={newReference}
+              onChange={e => setNewReference(e.target.value)}
+              className="text-xs h-8"
+            />
+            <div className="flex gap-1">
+              <Input
+                type="number"
+                min="0"
+                step="0.1"
+                placeholder="Qté"
+                value={newQty}
+                onChange={e => setNewQty(e.target.value)}
+                className="text-xs h-8 w-20"
+              />
+              <Input
+                placeholder="Unité"
+                value={newUnit}
+                onChange={e => setNewUnit(e.target.value)}
+                className="text-xs h-8 flex-1"
+              />
+            </div>
+          </div>
+          {inventoryItems && inventoryItems.length > 0 && (
+            <Select value={newInventoryItemId} onValueChange={setNewInventoryItemId}>
+              <SelectTrigger className="text-xs h-8">
+                <SelectValue placeholder="Lier à un article du stock (optionnel)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Aucun article lié</SelectItem>
+                {inventoryItems.map(i => (
+                  <SelectItem key={i.id} value={i.id.toString()}>
+                    {i.name} {i.reference ? `(${i.reference})` : ""} — {i.quantity} {i.unit || "unités"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <Input
+            placeholder="Note"
+            value={newNote}
+            onChange={e => setNewNote(e.target.value)}
+            className="text-xs h-8"
+          />
+          <div className="flex gap-2">
+            <Button size="sm" className="h-7 text-xs gap-1" onClick={handleAdd} disabled={createPart.isPending}>
+              <Plus className="h-3.5 w-3.5" strokeWidth={2} />
+              Confirmer
+            </Button>
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowAdd(false)}>Annuler</Button>
+          </div>
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="space-y-2">
+          {[1, 2].map(i => <Skeleton key={i} className="h-12 rounded-xl" />)}
+        </div>
+      ) : parts && parts.length > 0 ? (
+        <div className="space-y-2">
+          {parts.map((part: any, idx: number) => (
+            <motion.div
+              key={part.id}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.04 }}
+              className="flex items-start gap-3 bg-background/50 border border-border/40 rounded-xl px-4 py-3"
+            >
+              <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                <Package className="h-3.5 w-3.5 text-primary" strokeWidth={1.5} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-foreground">{part.partName}</span>
+                  {part.reference && (
+                    <span className="text-xs text-muted-foreground font-mono">{part.reference}</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                  <span className="text-xs text-muted-foreground">
+                    Qté: <span className="font-semibold text-foreground">{part.quantity} {part.unit || "pce"}</span>
+                  </span>
+                  {part.inventoryItemName && (
+                    <span className="text-xs text-primary/80">
+                      Stock: {part.inventoryItemQuantity ?? "?"} {part.inventoryItemUnit || ""}
+                    </span>
+                  )}
+                  {part.note && <span className="text-xs text-muted-foreground italic">{part.note}</span>}
+                </div>
+              </div>
+              <button
+                onClick={() => handleDelete(part.id)}
+                className="shrink-0 h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors mt-0.5"
+                disabled={deletePart.isPending}
+              >
+                <X className="h-3.5 w-3.5" strokeWidth={1.5} />
+              </button>
+            </motion.div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-5 text-xs text-muted-foreground border border-border/30 rounded-xl bg-background/30">
+          <Package className="h-5 w-5 mx-auto mb-1.5 text-muted-foreground/30" strokeWidth={1} />
+          Aucune pièce dans le catalogue
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface Props {
   asset: any | null;
   open: boolean;
@@ -95,10 +296,22 @@ export function AssetDetailSheet({ asset, open, onClose }: Props) {
           <div className="p-6 border-b border-border/50 shrink-0">
             <SheetHeader>
               <div className="flex items-start gap-3 pr-6">
-                <div className="h-10 w-10 rounded-xl shrink-0 flex items-center justify-center"
-                  style={{ background: `${status?.color}15` }}>
-                  <Wrench className="h-5 w-5" style={{ color: status?.color }} strokeWidth={1.5} />
-                </div>
+                {/* Photo thumbnail if available */}
+                {asset.photoUrl ? (
+                  <div className="h-10 w-10 rounded-xl shrink-0 overflow-hidden border border-border/40">
+                    <img
+                      src={asset.photoUrl}
+                      alt={asset.name}
+                      className="h-full w-full object-cover"
+                      onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+                    />
+                  </div>
+                ) : (
+                  <div className="h-10 w-10 rounded-xl shrink-0 flex items-center justify-center"
+                    style={{ background: `${status?.color}15` }}>
+                    <Wrench className="h-5 w-5" style={{ color: status?.color }} strokeWidth={1.5} />
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <SheetTitle className="text-base font-semibold leading-tight text-foreground">
                     {asset.name}
@@ -108,6 +321,18 @@ export function AssetDetailSheet({ asset, open, onClose }: Props) {
                       {status?.label}
                     </span>
                     <span className="text-xs text-muted-foreground">{asset.category}</span>
+                    {asset.siteName && (
+                      <span className="flex items-center gap-0.5 text-xs text-muted-foreground/70">
+                        <Building2 className="h-3 w-3" strokeWidth={1.5} />
+                        {asset.siteName}
+                      </span>
+                    )}
+                    {asset.zoneName && (
+                      <span className="flex items-center gap-0.5 text-xs text-muted-foreground/70">
+                        <MapPin className="h-3 w-3" strokeWidth={1.5} />
+                        {asset.zoneName}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -116,6 +341,22 @@ export function AssetDetailSheet({ asset, open, onClose }: Props) {
 
           {/* Body */}
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
+
+            {/* Photo full display */}
+            {asset.photoUrl && (
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Photo</p>
+                <div className="rounded-xl overflow-hidden border border-border/40 bg-background/50">
+                  <img
+                    src={asset.photoUrl}
+                    alt={asset.name}
+                    className="w-full max-h-52 object-cover"
+                    onError={e => { (e.target as HTMLImageElement).parentElement!.style.display = "none"; }}
+                  />
+                </div>
+              </div>
+            )}
+
             {/* KPI row */}
             <div className="flex gap-3">
               <KpiPill
@@ -144,6 +385,8 @@ export function AssetDetailSheet({ asset, open, onClose }: Props) {
               <div className="bg-background/50 border border-border/40 rounded-xl px-4">
                 <InfoRow icon={Hash} label="N° de série" value={asset.serialNumber} />
                 <InfoRow icon={MapPin} label="Localisation" value={asset.location} />
+                {asset.siteName && <InfoRow icon={Building2} label="Site" value={asset.siteName} />}
+                {asset.zoneName && <InfoRow icon={MapPin} label="Zone" value={asset.zoneName} />}
                 <InfoRow icon={Factory} label="Fabricant" value={asset.manufacturer} />
                 <InfoRow icon={Tag} label="Modèle" value={asset.model} />
                 <InfoRow icon={Calendar} label="Date d'installation" value={
@@ -161,6 +404,9 @@ export function AssetDetailSheet({ asset, open, onClose }: Props) {
                 } />
               </div>
             </div>
+
+            {/* Machine parts catalog */}
+            <MachinePartsSection assetId={asset.id} />
 
             {/* Work order history */}
             <div>

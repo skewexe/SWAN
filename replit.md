@@ -45,7 +45,10 @@ SWAN is a professional GMAO (Computerized Maintenance Management System) SaaS pl
 | GET | `/dashboard/activity` | Recent activity feed |
 | GET | `/dashboard/chart-data` | Chart data |
 | GET/POST | `/assets` | Equipment list & create |
-| PUT/DELETE | `/assets/:id` | Update/delete equipment |
+| GET/PUT/DELETE | `/assets/:id` | Get/update/delete equipment |
+| GET | `/assets/:id/workorders` | WOs for a given asset |
+| GET/POST | `/assets/:id/parts` | Machine parts catalog (pièces machine) |
+| PUT/DELETE | `/assets/:id/parts/:partId` | Update/delete machine part |
 | GET/POST | `/workorders` | Work orders list & create |
 | GET/PUT/DELETE | `/workorders/:id` | Work order detail |
 | GET/POST | `/workorders/:id/parts` | Parts for a work order (deducts stock) |
@@ -62,14 +65,32 @@ SWAN is a professional GMAO (Computerized Maintenance Management System) SaaS pl
 | GET | `/notifications` | Live notifications from DB state |
 | PUT | `/notifications/:id/read` | Mark notification read |
 | PUT | `/notifications/read-all` | Mark all notifications read |
+| GET/POST | `/sites` | Multi-site list & create |
+| PUT/DELETE | `/sites/:id` | Update/delete site |
+| GET/POST | `/zones` | Zone list & create (filterable by siteId) |
+| PUT/DELETE | `/zones/:id` | Update/delete zone |
+
+## Database Schema (key tables)
+
+- `assetsTable` — name, category, serialNumber, location, status, criticality, siteId, zoneId, photoUrl, mtbf, mttr, availabilityRate
+- `workOrdersTable` — title, type, priority, status, assetId, technicianId, siteId, zoneId, assignmentMode (by_technician/by_zone/by_machine/by_type)
+- `sitesTable` — name, location, city, country
+- `zonesTable` — name, siteId, description
+- `assetPartsTable` — assetId, inventoryItemId, partName, reference, quantity, unit, note (machine parts catalog)
+- `inventoryItemsTable` — stock management with low-stock alerts
+- `workOrderPartsTable` — parts consumed in a WO (deducts from inventory)
+- `techniciansTable` — tech personnel with skills, specialization, status
+- `preventivePlansTable` — recurring maintenance schedules
 
 ## Important Notes
 
-- **API server uses esbuild** — do NOT import zod directly in routes; use plain JS validation instead (zod is fine in lib/api-zod)
+- **API server uses esbuild** — do NOT import zod/v4 directly in routes; use plain JS validation instead (zod is fine in lib/api-zod)
 - **Generated hooks** live in `lib/api-client-react/src/generated/api.ts` — import from `@workspace/api-client-react`
+- **Generated Zod schemas** live in `lib/api-zod/src/generated/api.ts` — import from `@workspace/api-zod`
 - **Route paths on server**: without `/api` prefix (e.g. `/workorders`, not `/api/workorders`)
 - **Logo asset**: `attached_assets/ChatGPT Image 30 avr. 2026, 11_42_07.png` — used across all surfaces
 - **RBAC context**: `artifacts/swan-gmao/src/context/RBACContext.tsx` — wraps entire app via `RBACProvider` in App.tsx
+- **After schema changes**: run `pnpm --filter @workspace/db run push` then `pnpm --filter @workspace/api-spec run codegen`
 
 ## Pages
 
@@ -81,8 +102,8 @@ SWAN is a professional GMAO (Computerized Maintenance Management System) SaaS pl
 | `/about` | AboutPage | Mission & values |
 | `/faq` | FAQPage | Accordion FAQ |
 | `/dashboard` | DashboardPage | KPI cards, cross-filter charts, activity feed |
-| `/assets` | AssetsPage | Equipment: CRUD + bulk-types creation + CSV/Excel import |
-| `/workorders` | WorkOrdersPage | Work orders + parts (RBAC: techniciens see only assigned OTs) |
+| `/assets` | AssetsPage | Equipment: CRUD + bulk-types + CSV/Excel import + site/zone/photo + machine parts catalog |
+| `/workorders` | WorkOrdersPage | Work orders + parts + site/zone/assignmentMode (RBAC: techniciens see only assigned OTs) |
 | `/preventive` | PreventivePage | Preventive plans + Execute button |
 | `/calendar` | CalendarPage | Month/week calendar: WOs + preventive plans |
 | `/inventory` | InventoryPage | Stock management (CRUD) |
@@ -101,10 +122,23 @@ SWAN is a professional GMAO (Computerized Maintenance Management System) SaaS pl
 - Technician role: work orders filtered to `technicianId` only
 - Role change in Settings → Profil applies live to entire app
 
-## Assets — Bulk & Import Features
+## Assets — All Features
 
-- **"Création par types"**: multi-type batch dialog — define N types (prefix, count, category, location, etc.) each with a color, creates all in one operation with progress bar
-- **"Import CSV / Excel"**: supports `.csv`, `.xlsx`, `.xls` files; drag-and-drop; column auto-mapping (FR/EN headers); preview table; downloadable template; error row reporting
+- **CRUD**: create, edit, delete with full form (name, category, serial, location, manufacturer, model, install date, status, criticality)
+- **Site & Zone**: assign each asset to a site and zone (dropdowns filtered by site)
+- **Photo**: upload or URL-based photo, with preview thumbnail in form and full view in detail sheet
+- **"Création par types"**: multi-type batch dialog — define N types (prefix, count, category, location, etc.), creates all in one operation with progress bar
+- **"Import CSV / Excel"**: supports `.csv`, `.xlsx`, `.xls` files; drag-and-drop; column auto-mapping; preview table; downloadable template
+- **Machine Parts Catalog**: per-asset parts list (AssetPartsDialog in detail sheet) — add/remove parts linked to inventory items
+
+## Work Orders — All Features
+
+- **CRUD**: create, edit, delete, view detail
+- **Assignment modes**: by_technician / by_zone / by_machine / by_type
+- **Site & Zone**: link each WO to a site and zone (zone dropdown filters by selected site)
+- **Parts management**: add/remove inventory items consumed (auto-deducts/restores stock)
+- **Status progression**: interactive flow (open → in_progress → completed → on_hold → cancelled)
+- **RBAC**: technicians see only their assigned OTs
 
 ## Shared Components
 
@@ -112,8 +146,8 @@ SWAN is a professional GMAO (Computerized Maintenance Management System) SaaS pl
 - `PublicLayout` — public nav/footer
 - `RBACProvider` / `useRBAC` — global role/team/permission context
 - `NotificationsDropdown` — real-time bell with polling, dismiss support
-- `WorkOrderDetailSheet` — right-side panel: status progression, parts list, WO details
-- `AssetDetailSheet` — right-side panel: KPI pills, asset info, WO history
+- `WorkOrderDetailSheet` — right-side panel: status progression, parts list, WO details (incl. site/zone/assignmentMode)
+- `AssetDetailSheet` — right-side panel: photo, KPI pills, asset info (incl. site/zone), machine parts catalog, WO history
 
 ## Dashboard Sections
 
@@ -127,6 +161,7 @@ SWAN is a professional GMAO (Computerized Maintenance Management System) SaaS pl
 ## Backend Notes
 
 - `PUT /workorders/:id` uses `.partial()` Zod validation — allows partial status-only updates
-- `GET /assets/:id/workorders` — returns WOs filtered by asset, enriched with technicianName
+- `GET /assets/:id/workorders` — returns WOs filtered by asset, enriched with technicianName, siteName, zoneName
+- Routes for sites/zones/asset_parts use plain JS validation (not Zod) to avoid esbuild bundling issues
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.

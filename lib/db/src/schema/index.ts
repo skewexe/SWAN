@@ -4,3 +4,6 @@ export * from "./workorder_parts";
 export * from "./preventive";
 export * from "./inventory";
 export * from "./technicians";
+export * from "./sites";
+export * from "./zones";
+export * from "./asset_parts";
