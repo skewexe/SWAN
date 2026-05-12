@@ -12,6 +12,9 @@ import notificationsRouter from "./notifications";
 import sitesRouter from "./sites";
 import zonesRouter from "./zones";
 import assetPartsRouter from "./asset_parts";
+import assetDocumentsRouter from "./asset_documents";
+import subcontractorsRouter from "./subcontractors";
+import telegramRouter from "./telegram";
 
 const router: IRouter = Router();
 
@@ -28,5 +31,8 @@ router.use(notificationsRouter);
 router.use(sitesRouter);
 router.use(zonesRouter);
 router.use(assetPartsRouter);
+router.use(assetDocumentsRouter);
+router.use(subcontractorsRouter);
+router.use(telegramRouter);
 
 export default router;

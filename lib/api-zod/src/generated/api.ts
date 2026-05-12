@@ -102,6 +102,11 @@ export const GetAssetsResponseItem = zod.object({
   zoneId: zod.number().optional(),
   zoneName: zod.string().optional(),
   photoUrl: zod.string().optional(),
+  parentId: zod.number().optional(),
+  parentName: zod.string().optional(),
+  warrantyExpiry: zod.string().optional(),
+  warrantyProvider: zod.string().optional(),
+  warrantyNotes: zod.string().optional(),
   createdAt: zod.string(),
 });
 export const GetAssetsResponse = zod.array(GetAssetsResponseItem);
@@ -126,7 +131,11 @@ export const CreateAssetBody = zod.object({
   criticality: zod.enum(["low", "medium", "high", "critical"]),
   siteId: zod.number().optional(),
   zoneId: zod.number().optional(),
+  parentId: zod.number().optional(),
   photoUrl: zod.string().optional(),
+  warrantyExpiry: zod.string().optional(),
+  warrantyProvider: zod.string().optional(),
+  warrantyNotes: zod.string().optional(),
 });
 
 /**
@@ -161,6 +170,11 @@ export const GetAssetResponse = zod.object({
   zoneId: zod.number().optional(),
   zoneName: zod.string().optional(),
   photoUrl: zod.string().optional(),
+  parentId: zod.number().optional(),
+  parentName: zod.string().optional(),
+  warrantyExpiry: zod.string().optional(),
+  warrantyProvider: zod.string().optional(),
+  warrantyNotes: zod.string().optional(),
   createdAt: zod.string(),
 });
 
@@ -188,7 +202,11 @@ export const UpdateAssetBody = zod.object({
   criticality: zod.enum(["low", "medium", "high", "critical"]),
   siteId: zod.number().optional(),
   zoneId: zod.number().optional(),
+  parentId: zod.number().optional(),
   photoUrl: zod.string().optional(),
+  warrantyExpiry: zod.string().optional(),
+  warrantyProvider: zod.string().optional(),
+  warrantyNotes: zod.string().optional(),
 });
 
 export const UpdateAssetResponse = zod.object({
@@ -216,6 +234,11 @@ export const UpdateAssetResponse = zod.object({
   zoneId: zod.number().optional(),
   zoneName: zod.string().optional(),
   photoUrl: zod.string().optional(),
+  parentId: zod.number().optional(),
+  parentName: zod.string().optional(),
+  warrantyExpiry: zod.string().optional(),
+  warrantyProvider: zod.string().optional(),
+  warrantyNotes: zod.string().optional(),
   createdAt: zod.string(),
 });
 

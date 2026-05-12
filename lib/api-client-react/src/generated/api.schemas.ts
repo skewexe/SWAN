@@ -110,6 +110,11 @@ export interface Asset {
   zoneId?: number;
   zoneName?: string;
   photoUrl?: string;
+  parentId?: number;
+  parentName?: string;
+  warrantyExpiry?: string;
+  warrantyProvider?: string;
+  warrantyNotes?: string;
   createdAt: string;
 }
 
@@ -145,7 +150,11 @@ export interface CreateAssetBody {
   criticality: CreateAssetBodyCriticality;
   siteId?: number;
   zoneId?: number;
+  parentId?: number;
   photoUrl?: string;
+  warrantyExpiry?: string;
+  warrantyProvider?: string;
+  warrantyNotes?: string;
 }
 
 export interface AssetPart {

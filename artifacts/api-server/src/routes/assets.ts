@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, assetsTable, workOrdersTable, techniciansTable, sitesTable, zonesTable } from "@workspace/db";
-import { eq, ilike, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import {
   CreateAssetBody,
   GetAssetsQueryParams,
@@ -12,11 +12,12 @@ import {
 
 const router = Router();
 
-const enrich = (asset: any, sites: any[], zones: any[]) => ({
+const enrich = (asset: any, sites: any[], zones: any[], allAssets?: any[]) => ({
   ...asset,
   createdAt: asset.createdAt.toISOString(),
   siteName: sites.find(s => s.id === asset.siteId)?.name,
   zoneName: zones.find(z => z.id === asset.zoneId)?.name,
+  parentName: allAssets?.find(a => a.id === asset.parentId)?.name,
 });
 
 router.get("/assets", async (req, res) => {
@@ -37,7 +38,8 @@ router.get("/assets", async (req, res) => {
       );
     }
 
-    res.json(assets.map(a => enrich(a, sites, zones)));
+    const allAssets = await db.select().from(assetsTable);
+    res.json(assets.map(a => enrich(a, sites, zones, allAssets)));
   } catch (err) {
     req.log.error({ err }, "Error fetching assets");
     res.status(500).json({ error: "Internal server error" });
@@ -50,7 +52,8 @@ router.post("/assets", async (req, res) => {
     const [asset] = await db.insert(assetsTable).values(body).returning();
     const sites = await db.select().from(sitesTable);
     const zones = await db.select().from(zonesTable);
-    res.status(201).json(enrich(asset, sites, zones));
+    const allAssets = await db.select().from(assetsTable);
+    res.status(201).json(enrich(asset, sites, zones, allAssets));
   } catch (err) {
     req.log.error({ err }, "Error creating asset");
     res.status(400).json({ error: "Invalid request" });
@@ -64,7 +67,8 @@ router.get("/assets/:id", async (req, res) => {
     if (!asset) return res.status(404).json({ error: "Asset not found" });
     const sites = await db.select().from(sitesTable);
     const zones = await db.select().from(zonesTable);
-    res.json(enrich(asset, sites, zones));
+    const allAssets = await db.select().from(assetsTable);
+    res.json(enrich(asset, sites, zones, allAssets));
     return;
   } catch (err) {
     req.log.error({ err }, "Error fetching asset");
@@ -81,7 +85,8 @@ router.put("/assets/:id", async (req, res) => {
     if (!asset) return res.status(404).json({ error: "Asset not found" });
     const sites = await db.select().from(sitesTable);
     const zones = await db.select().from(zonesTable);
-    res.json(enrich(asset, sites, zones));
+    const allAssets = await db.select().from(assetsTable);
+    res.json(enrich(asset, sites, zones, allAssets));
     return;
   } catch (err) {
     req.log.error({ err }, "Error updating asset");

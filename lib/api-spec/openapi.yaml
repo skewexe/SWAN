@@ -1060,6 +1060,16 @@ components:
           type: string
         photoUrl:
           type: string
+        parentId:
+          type: integer
+        parentName:
+          type: string
+        warrantyExpiry:
+          type: string
+        warrantyProvider:
+          type: string
+        warrantyNotes:
+          type: string
         createdAt:
           type: string
       required:
@@ -1097,7 +1107,15 @@ components:
           type: integer
         zoneId:
           type: integer
+        parentId:
+          type: integer
         photoUrl:
+          type: string
+        warrantyExpiry:
+          type: string
+        warrantyProvider:
+          type: string
+        warrantyNotes:
           type: string
       required:
         - name

@@ -21,7 +21,8 @@ import TechniciansPage from "@/pages/TechniciansPage";
 import ReportsPage from "@/pages/ReportsPage";
 import CalendarPage from "@/pages/CalendarPage";
 import SettingsPage from "@/pages/SettingsPage";
-import WhatsAppPage from "@/pages/WhatsAppPage";
+import TelegramPage from "@/pages/TelegramPage";
+import SubcontractorsPage from "@/pages/SubcontractorsPage";
 import SiteMapPage from "@/pages/SiteMapPage";
 
 const queryClient = new QueryClient();
@@ -74,8 +75,11 @@ function Router() {
       <Route path="/sitemaps">
         <DashboardLayout><SiteMapPage /></DashboardLayout>
       </Route>
-      <Route path="/whatsapp-admin">
-        <DashboardLayout><WhatsAppPage /></DashboardLayout>
+      <Route path="/subcontractors">
+        <DashboardLayout><SubcontractorsPage /></DashboardLayout>
+      </Route>
+      <Route path="/telegram-admin">
+        <DashboardLayout><TelegramPage /></DashboardLayout>
       </Route>
       <Route>
         <PublicLayout><NotFound /></PublicLayout>

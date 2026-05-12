@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import * as XLSX from "xlsx";
 import {
   useGetAssets, useCreateAsset, useUpdateAsset, useDeleteAsset,
@@ -18,7 +18,7 @@ import { Progress } from "@/components/ui/progress";
 import {
   Plus, Search, Pencil, Trash2, AlertTriangle, Copy, Upload,
   FileSpreadsheet, Download, CheckCircle2, X, Wrench, Layers, Trash,
-  ImageIcon, Building2, MapPin, QrCode,
+  ImageIcon, Building2, MapPin, QrCode, List, GitBranch, ChevronDown, ChevronRight, ShieldCheck,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
@@ -55,7 +55,11 @@ interface AssetFormData {
   criticality: AssetCriticality;
   siteId?: number;
   zoneId?: number;
+  parentId?: number;
   photoUrl?: string;
+  warrantyExpiry?: string;
+  warrantyProvider?: string;
+  warrantyNotes?: string;
 }
 
 const CSV_COLUMNS = [
@@ -684,10 +688,188 @@ function ImportDialog({ open, onClose }: { open: boolean; onClose: () => void })
   );
 }
 
+// ── Asset Tree View ───────────────────────────────────────────────────────────
+interface TreeNode { asset: any; children: TreeNode[] }
+
+function buildTree(assets: any[]): TreeNode[] {
+  const map = new Map<number, TreeNode>();
+  assets.forEach(a => map.set(a.id, { asset: a, children: [] }));
+  const roots: TreeNode[] = [];
+  assets.forEach(a => {
+    if (a.parentId && map.has(a.parentId)) {
+      map.get(a.parentId)!.children.push(map.get(a.id)!);
+    } else {
+      roots.push(map.get(a.id)!);
+    }
+  });
+  return roots;
+}
+
+const STATUS_DOT: Record<string, string> = {
+  operational: "bg-green-400",
+  maintenance: "bg-amber-400",
+  breakdown: "bg-red-400",
+  decommissioned: "bg-muted-foreground",
+};
+
+function TreeNode({ node, depth = 0, onSelect, isReadOnly, onEdit, onDelete }: {
+  node: TreeNode; depth?: number; onSelect: (a: any) => void;
+  isReadOnly: boolean; onEdit: (a: any) => void; onDelete: (a: any) => void;
+}) {
+  const [expanded, setExpanded] = useState(true);
+  const hasChildren = node.children.length > 0;
+  const asset = node.asset;
+  const isExpiringSoon = asset.warrantyExpiry
+    ? Math.ceil((new Date(asset.warrantyExpiry).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) <= 60
+    : false;
+  const isExpired = asset.warrantyExpiry ? new Date(asset.warrantyExpiry) < new Date() : false;
+
+  return (
+    <div>
+      <motion.div
+        initial={{ opacity: 0, x: -4 }}
+        animate={{ opacity: 1, x: 0 }}
+        className="flex items-center group hover:bg-muted/30 rounded-xl transition-colors"
+        style={{ paddingLeft: `${depth * 24 + 12}px`, paddingRight: "12px", paddingTop: "8px", paddingBottom: "8px" }}
+      >
+        <button
+          type="button"
+          className="shrink-0 w-5 h-5 flex items-center justify-center text-muted-foreground mr-1"
+          onClick={() => hasChildren && setExpanded(e => !e)}
+        >
+          {hasChildren ? (
+            expanded ? <ChevronDown className="h-3.5 w-3.5" strokeWidth={2} /> : <ChevronRight className="h-3.5 w-3.5" strokeWidth={2} />
+          ) : (
+            <span className="w-3.5 h-px block bg-border/40 ml-1" />
+          )}
+        </button>
+
+        {depth > 0 && (
+          <span className="shrink-0 mr-2 text-border/40 text-xs">└</span>
+        )}
+
+        <div
+          className="flex-1 flex items-center gap-3 cursor-pointer min-w-0"
+          onClick={() => onSelect(asset)}
+        >
+          <div className={`h-2 w-2 rounded-full shrink-0 ${STATUS_DOT[asset.status] || "bg-muted-foreground"}`} />
+          {asset.photoUrl ? (
+            <div className="h-7 w-7 rounded-lg overflow-hidden border border-border/40 shrink-0">
+              <img src={asset.photoUrl} alt={asset.name} className="h-full w-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+            </div>
+          ) : (
+            <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <span className="text-[10px] font-bold text-primary">{asset.name.slice(0, 2).toUpperCase()}</span>
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-foreground truncate">{asset.name}</span>
+              {hasChildren && (
+                <span className="text-xs text-muted-foreground/60 shrink-0">{node.children.length} sous-équip.</span>
+              )}
+            </div>
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+              <span className="text-xs text-muted-foreground">{asset.category}</span>
+              {asset.location && <span className="text-xs text-muted-foreground/60">{asset.location}</span>}
+              {(isExpired || isExpiringSoon) && (
+                <span className={`text-xs flex items-center gap-0.5 ${isExpired ? "text-red-400" : "text-amber-400"}`}>
+                  <ShieldCheck className="h-3 w-3" strokeWidth={1.5} />
+                  {isExpired ? "Garantie expirée" : "Garantie bientôt"}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {!isReadOnly && (
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2">
+            <button type="button" onClick={(e) => { e.stopPropagation(); onEdit(asset); }}
+              className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors">
+              <Pencil className="h-3.5 w-3.5" strokeWidth={1.5} />
+            </button>
+            <button type="button" onClick={(e) => { e.stopPropagation(); onDelete(asset); }}
+              className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
+              <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
+            </button>
+          </div>
+        )}
+      </motion.div>
+
+      {hasChildren && (
+        <AnimatePresence>
+          {expanded && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.15 }}
+            >
+              {node.children.map(child => (
+                <TreeNode
+                  key={child.asset.id}
+                  node={child}
+                  depth={depth + 1}
+                  onSelect={onSelect}
+                  isReadOnly={isReadOnly}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                />
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
+    </div>
+  );
+}
+
+function AssetTreeView({ assets, onSelect, isReadOnly, onEdit, onDelete }: {
+  assets: any[]; onSelect: (a: any) => void;
+  isReadOnly: boolean; onEdit: (a: any) => void; onDelete: (a: any) => void;
+}) {
+  const tree = buildTree(assets);
+  const withParent = assets.filter(a => a.parentId).length;
+  const roots = tree.length;
+
+  return (
+    <div className="bg-card border border-border/60 rounded-2xl overflow-hidden">
+      <div className="px-6 py-3 border-b border-border/40 bg-muted/20 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <GitBranch className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Arborescence — {roots} équipements racine, {withParent} sous-équipements
+          </span>
+        </div>
+      </div>
+      <div className="py-2">
+        {tree.length === 0 ? (
+          <div className="text-center py-10 text-sm text-muted-foreground">
+            <GitBranch className="h-8 w-8 mx-auto mb-2 text-muted-foreground/30" strokeWidth={1} />
+            Aucun équipement. Créez des équipements et assignez des parents pour voir l'arborescence.
+          </div>
+        ) : (
+          tree.map(node => (
+            <TreeNode
+              key={node.asset.id}
+              node={node}
+              onSelect={onSelect}
+              isReadOnly={isReadOnly}
+              onEdit={onEdit}
+              onDelete={onDelete}
+            />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function AssetsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [viewTab, setViewTab] = useState<"list" | "tree">("list");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editAsset, setEditAsset] = useState<any>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<any>(null);
@@ -746,6 +928,9 @@ export default function AssetsPage() {
       location: asset.location, status: asset.status, manufacturer: asset.manufacturer,
       model: asset.model, installDate: asset.installDate, criticality: asset.criticality,
       siteId: asset.siteId, zoneId: asset.zoneId, photoUrl: asset.photoUrl,
+      parentId: asset.parentId,
+      warrantyExpiry: asset.warrantyExpiry, warrantyProvider: asset.warrantyProvider,
+      warrantyNotes: asset.warrantyNotes,
     });
     setDialogOpen(true);
   };
@@ -822,8 +1007,8 @@ export default function AssetsPage() {
         </button>
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-3">
+      {/* Filters + View Toggle */}
+      <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
           <Input
@@ -846,9 +1031,47 @@ export default function AssetsPage() {
             <SelectItem value="decommissioned">Hors service</SelectItem>
           </SelectContent>
         </Select>
+        <div className="flex items-center bg-muted/40 border border-border/50 rounded-full p-0.5 gap-0.5 ml-auto">
+          <button
+            type="button"
+            onClick={() => setViewTab("list")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${viewTab === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            <List className="h-3.5 w-3.5" strokeWidth={2} />
+            Liste
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewTab("tree")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${viewTab === "tree" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            <GitBranch className="h-3.5 w-3.5" strokeWidth={2} />
+            Arborescence
+          </button>
+        </div>
       </div>
 
+      {/* Tree View */}
+      {viewTab === "tree" && (
+        <div>
+          {isLoading ? (
+            <div className="bg-card border border-border/60 rounded-2xl p-6 space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10" />)}
+            </div>
+          ) : (
+            <AssetTreeView
+              assets={assets ?? []}
+              onSelect={setDetailAsset}
+              isReadOnly={isReadOnly}
+              onEdit={openEdit}
+              onDelete={setDeleteConfirm}
+            />
+          )}
+        </div>
+      )}
+
       {/* Table */}
+      {viewTab === "list" &&
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-card border border-border/60 rounded-2xl overflow-hidden">
         {isLoading ? (
           <div className="p-6 space-y-3">
@@ -970,7 +1193,7 @@ export default function AssetsPage() {
             </tbody>
           </table>
         )}
-      </motion.div>
+      </motion.div>}
 
       <AssetDetailSheet asset={detailAsset} open={!!detailAsset} onClose={() => setDetailAsset(null)} />
       <QRCodeDialog asset={qrAsset} open={!!qrAsset} onClose={() => setQrAsset(null)} />
@@ -1083,6 +1306,38 @@ export default function AssetsPage() {
                         {filteredZones.map(z => <SelectItem key={z.id} value={z.id.toString()}>{z.name}{z.siteName ? ` (${z.siteName})` : ""}</SelectItem>)}
                       </SelectContent>
                     </Select>
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="parentId" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Équipement parent</FormLabel>
+                    <Select value={field.value?.toString() || "none"} onValueChange={v => field.onChange(v !== "none" ? Number(v) : undefined)}>
+                      <SelectTrigger><SelectValue placeholder="Aucun parent" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Aucun parent</SelectItem>
+                        {assets?.filter(a => !editAsset || a.id !== editAsset.id).map(a => (
+                          <SelectItem key={a.id} value={a.id.toString()}>{a.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="warrantyProvider" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fournisseur garantie</FormLabel>
+                    <FormControl><Input placeholder="Ex: Schneider Electric" {...field} value={field.value ?? ""} /></FormControl>
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="warrantyExpiry" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fin de garantie</FormLabel>
+                    <FormControl><Input type="date" {...field} value={field.value ?? ""} /></FormControl>
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="warrantyNotes" render={({ field }) => (
+                  <FormItem className="col-span-2">
+                    <FormLabel>Notes garantie</FormLabel>
+                    <FormControl><Input placeholder="Conditions, contrat, contact…" {...field} value={field.value ?? ""} /></FormControl>
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="photoUrl" render={({ field }) => (

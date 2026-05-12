@@ -22,7 +22,11 @@ export const assetsTable = pgTable("assets", {
   criticality: assetCriticalityEnum("criticality").notNull().default("medium"),
   siteId: integer("site_id"),
   zoneId: integer("zone_id"),
+  parentId: integer("parent_id"),
   photoUrl: text("photo_url"),
+  warrantyExpiry: text("warranty_expiry"),
+  warrantyProvider: text("warranty_provider"),
+  warrantyNotes: text("warranty_notes"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

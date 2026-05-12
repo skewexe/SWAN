@@ -32,23 +32,24 @@ export const ROLE_META: Record<RBACRole, { label: string; color: string; desc: s
 };
 
 export const ROLE_PERMISSIONS: Record<RBACRole, string[]> = {
-  admin:       ["dashboard", "assets", "workorders", "preventive", "calendar", "inventory", "technicians", "reports", "settings", "whatsapp"],
-  manager:     ["dashboard", "assets", "workorders", "preventive", "calendar", "inventory", "technicians", "reports"],
+  admin:       ["dashboard", "assets", "workorders", "preventive", "calendar", "inventory", "technicians", "reports", "settings", "telegram", "subcontractors"],
+  manager:     ["dashboard", "assets", "workorders", "preventive", "calendar", "inventory", "technicians", "reports", "subcontractors"],
   chef_equipe: ["dashboard", "workorders", "preventive", "calendar", "technicians"],
   technicien:  ["dashboard", "workorders", "technicians"],
   lecteur:     ["dashboard", "reports"],
 };
 
 export const NAV_ITEMS = [
-  { path: "/dashboard",       key: "dashboard",   label: "Tableau de bord",   icon: "LayoutDashboard" },
-  { path: "/assets",          key: "assets",      label: "Équipements",       icon: "Wrench" },
-  { path: "/workorders",      key: "workorders",  label: "Ordres de travail", icon: "ClipboardList" },
-  { path: "/preventive",      key: "preventive",  label: "Préventive",        icon: "CalendarClock" },
-  { path: "/calendar",        key: "calendar",    label: "Calendrier",        icon: "Calendar" },
-  { path: "/inventory",       key: "inventory",   label: "Stock & pièces",    icon: "PackageSearch" },
-  { path: "/technicians",     key: "technicians", label: "Personnel",         icon: "Users" },
-  { path: "/reports",         key: "reports",     label: "Rapports & KPIs",   icon: "LineChart" },
-  { path: "/whatsapp-admin",  key: "whatsapp",    label: "WhatsApp Gateway",  icon: "MessageSquare" },
+  { path: "/dashboard",         key: "dashboard",       label: "Tableau de bord",     icon: "LayoutDashboard" },
+  { path: "/assets",            key: "assets",          label: "Équipements",         icon: "Wrench" },
+  { path: "/workorders",        key: "workorders",      label: "Ordres de travail",   icon: "ClipboardList" },
+  { path: "/preventive",        key: "preventive",      label: "Préventive",          icon: "CalendarClock" },
+  { path: "/calendar",          key: "calendar",        label: "Calendrier",          icon: "Calendar" },
+  { path: "/inventory",         key: "inventory",       label: "Stock & pièces",      icon: "PackageSearch" },
+  { path: "/technicians",       key: "technicians",     label: "Personnel",           icon: "Users" },
+  { path: "/subcontractors",    key: "subcontractors",  label: "Sous-traitance",      icon: "Briefcase" },
+  { path: "/reports",           key: "reports",         label: "Rapports & KPIs",     icon: "LineChart" },
+  { path: "/telegram-admin",    key: "telegram",        label: "Telegram Gateway",    icon: "MessageSquare" },
 ];
 
 const DEFAULT_USER: RBACUser = {
