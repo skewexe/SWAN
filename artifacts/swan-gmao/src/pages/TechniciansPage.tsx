@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Plus, Pencil, Trash2, AlertTriangle, Star, Briefcase, KeyRound, Eye, EyeOff,
   CheckCircle2, UserX, Users, TrendingUp, Award, Activity, BarChart3,
-  ArrowUpRight, ArrowDownRight, Minus, Phone, Mail, ChevronDown, ChevronUp, Upload, X, Camera
+  ArrowUpRight, ArrowDownRight, Minus, Phone, Mail, ChevronDown, ChevronUp, Upload, X, Camera, Send
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
@@ -41,6 +41,7 @@ interface TechFormData {
   skills?: string;
   status: "available" | "busy" | "off" | "leave";
   photoUrl?: string;
+  telegramChatId?: string;
 }
 
 function TechAvatar({ name, photoUrl, size = "md" }: { name: string; photoUrl?: string | null; size?: "sm" | "md" | "lg" }) {
@@ -158,6 +159,7 @@ export default function TechniciansPage() {
     form.reset({
       name: t.name, email: t.email, phone: t.phone, specialization: t.specialization,
       skills: t.skills?.join(", ") || "", status: t.status, photoUrl: t.photoUrl || "",
+      telegramChatId: t.telegramChatId || "",
     });
     setDialogOpen(true);
   };
@@ -168,6 +170,7 @@ export default function TechniciansPage() {
       ...data,
       skills: data.skills ? data.skills.split(",").map(s => s.trim()).filter(Boolean) : [],
       photoUrl: data.photoUrl || undefined,
+      telegramChatId: data.telegramChatId || undefined,
     };
     if (editTech) {
       updateTech.mutate({ id: editTech.id, data: body }, {
@@ -574,6 +577,13 @@ export default function TechniciansPage() {
                             <span>{tech.phone}</span>
                           </div>
                         )}
+                        {(tech as any).telegramChatId && (
+                          <div className="flex items-center gap-2 text-xs">
+                            <Send className="h-3.5 w-3.5 text-[#2AABEE]" strokeWidth={1.5} />
+                            <span className="text-[#2AABEE] font-medium">Telegram configuré</span>
+                            <span className="text-muted-foreground font-mono">{(tech as any).telegramChatId}</span>
+                          </div>
+                        )}
                         {isAdmin && (
                           <div className="flex items-center gap-1 pt-1">
                             {accountExists ? (
@@ -671,6 +681,18 @@ export default function TechniciansPage() {
                   <FormItem className="col-span-2">
                     <FormLabel>Compétences (séparées par des virgules)</FormLabel>
                     <FormControl><Input data-testid="input-tech-skills" placeholder="Ex: Hydraulique, Pneumatique, Soudure" {...field} /></FormControl>
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="telegramChatId" render={({ field }) => (
+                  <FormItem className="col-span-2">
+                    <FormLabel className="flex items-center gap-1.5">
+                      <Send className="h-3.5 w-3.5 text-[#2AABEE]" strokeWidth={1.5} />
+                      Telegram Chat ID
+                    </FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ex: 123456789" {...field} className="font-mono" />
+                    </FormControl>
+                    <p className="text-[11px] text-muted-foreground">Entrez le Chat ID Telegram du technicien pour lui envoyer des notifications OT</p>
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="photoUrl" render={({ field }) => (

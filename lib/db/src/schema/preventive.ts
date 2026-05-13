@@ -10,6 +10,7 @@ export const preventivePlansTable = pgTable("preventive_plans", {
   name: text("name").notNull(),
   description: text("description"),
   assetId: integer("asset_id"),
+  technicianId: integer("technician_id"),
   frequency: preventiveFrequencyEnum("frequency").notNull(),
   lastExecuted: text("last_executed"),
   nextDue: text("next_due"),

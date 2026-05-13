@@ -284,6 +284,8 @@ export const GetAssetWorkOrdersResponseItem = zod.object({
   assignmentMode: zod
     .enum(["by_technician", "by_zone", "by_machine", "by_type"])
     .optional(),
+  extraTechnicianIds: zod.array(zod.number()).optional(),
+  extraTechnicianNames: zod.array(zod.string()).optional(),
   createdAt: zod.string(),
 });
 export const GetAssetWorkOrdersResponse = zod.array(
@@ -406,6 +408,8 @@ export const GetWorkOrdersResponseItem = zod.object({
   assignmentMode: zod
     .enum(["by_technician", "by_zone", "by_machine", "by_type"])
     .optional(),
+  extraTechnicianIds: zod.array(zod.number()).optional(),
+  extraTechnicianNames: zod.array(zod.string()).optional(),
   createdAt: zod.string(),
 });
 export const GetWorkOrdersResponse = zod.array(GetWorkOrdersResponseItem);
@@ -430,6 +434,7 @@ export const CreateWorkOrderBody = zod.object({
   assignmentMode: zod
     .enum(["by_technician", "by_zone", "by_machine", "by_type"])
     .optional(),
+  extraTechnicianIds: zod.array(zod.number()).optional(),
 });
 
 /**
@@ -467,6 +472,8 @@ export const GetWorkOrderResponse = zod.object({
   assignmentMode: zod
     .enum(["by_technician", "by_zone", "by_machine", "by_type"])
     .optional(),
+  extraTechnicianIds: zod.array(zod.number()).optional(),
+  extraTechnicianNames: zod.array(zod.string()).optional(),
   createdAt: zod.string(),
 });
 
@@ -494,6 +501,7 @@ export const UpdateWorkOrderBody = zod.object({
   assignmentMode: zod
     .enum(["by_technician", "by_zone", "by_machine", "by_type"])
     .optional(),
+  extraTechnicianIds: zod.array(zod.number()).optional(),
 });
 
 export const UpdateWorkOrderResponse = zod.object({
@@ -524,6 +532,8 @@ export const UpdateWorkOrderResponse = zod.object({
   assignmentMode: zod
     .enum(["by_technician", "by_zone", "by_machine", "by_type"])
     .optional(),
+  extraTechnicianIds: zod.array(zod.number()).optional(),
+  extraTechnicianNames: zod.array(zod.string()).optional(),
   createdAt: zod.string(),
 });
 
@@ -617,12 +627,16 @@ export const GetPreventivePlansResponseItem = zod.object({
   name: zod.string(),
   assetId: zod.number().optional(),
   assetName: zod.string().optional(),
+  technicianId: zod.number().optional(),
+  technicianName: zod.string().optional(),
   frequency: zod.enum(["daily", "weekly", "monthly", "quarterly", "annually"]),
   nextDue: zod.string().optional(),
   lastExecuted: zod.string().optional(),
   status: zod.enum(["active", "inactive", "overdue"]),
   estimatedDuration: zod.number().optional(),
   description: zod.string().optional(),
+  extraTechnicianIds: zod.array(zod.number()).optional(),
+  extraTechnicianNames: zod.array(zod.string()).optional(),
   createdAt: zod.string(),
 });
 export const GetPreventivePlansResponse = zod.array(
@@ -635,11 +649,13 @@ export const GetPreventivePlansResponse = zod.array(
 export const CreatePreventivePlanBody = zod.object({
   name: zod.string(),
   assetId: zod.number().optional(),
+  technicianId: zod.number().optional(),
   frequency: zod.enum(["daily", "weekly", "monthly", "quarterly", "annually"]),
   nextDue: zod.string().optional(),
   estimatedDuration: zod.number().optional(),
   description: zod.string().optional(),
   status: zod.enum(["active", "inactive", "overdue"]).optional(),
+  extraTechnicianIds: zod.array(zod.number()).optional(),
 });
 
 /**
@@ -652,11 +668,13 @@ export const UpdatePreventivePlanParams = zod.object({
 export const UpdatePreventivePlanBody = zod.object({
   name: zod.string(),
   assetId: zod.number().optional(),
+  technicianId: zod.number().optional(),
   frequency: zod.enum(["daily", "weekly", "monthly", "quarterly", "annually"]),
   nextDue: zod.string().optional(),
   estimatedDuration: zod.number().optional(),
   description: zod.string().optional(),
   status: zod.enum(["active", "inactive", "overdue"]).optional(),
+  extraTechnicianIds: zod.array(zod.number()).optional(),
 });
 
 export const UpdatePreventivePlanResponse = zod.object({
@@ -664,12 +682,16 @@ export const UpdatePreventivePlanResponse = zod.object({
   name: zod.string(),
   assetId: zod.number().optional(),
   assetName: zod.string().optional(),
+  technicianId: zod.number().optional(),
+  technicianName: zod.string().optional(),
   frequency: zod.enum(["daily", "weekly", "monthly", "quarterly", "annually"]),
   nextDue: zod.string().optional(),
   lastExecuted: zod.string().optional(),
   status: zod.enum(["active", "inactive", "overdue"]),
   estimatedDuration: zod.number().optional(),
   description: zod.string().optional(),
+  extraTechnicianIds: zod.array(zod.number()).optional(),
+  extraTechnicianNames: zod.array(zod.string()).optional(),
   createdAt: zod.string(),
 });
 
@@ -786,6 +808,7 @@ export const GetTechniciansResponseItem = zod.object({
   completedThisMonth: zod.number().optional(),
   avgRating: zod.number().optional(),
   photoUrl: zod.string().optional(),
+  telegramChatId: zod.string().optional(),
   createdAt: zod.string(),
 });
 export const GetTechniciansResponse = zod.array(GetTechniciansResponseItem);
@@ -801,6 +824,7 @@ export const CreateTechnicianBody = zod.object({
   skills: zod.array(zod.string()).optional(),
   status: zod.enum(["available", "busy", "off", "leave"]).optional(),
   photoUrl: zod.string().optional(),
+  telegramChatId: zod.string().optional(),
 });
 
 /**
@@ -818,6 +842,7 @@ export const UpdateTechnicianBody = zod.object({
   skills: zod.array(zod.string()).optional(),
   status: zod.enum(["available", "busy", "off", "leave"]).optional(),
   photoUrl: zod.string().optional(),
+  telegramChatId: zod.string().optional(),
 });
 
 export const UpdateTechnicianResponse = zod.object({
@@ -832,6 +857,7 @@ export const UpdateTechnicianResponse = zod.object({
   completedThisMonth: zod.number().optional(),
   avgRating: zod.number().optional(),
   photoUrl: zod.string().optional(),
+  telegramChatId: zod.string().optional(),
   createdAt: zod.string(),
 });
 

@@ -1220,6 +1220,14 @@ components:
         assignmentMode:
           type: string
           enum: [by_technician, by_zone, by_machine, by_type]
+        extraTechnicianIds:
+          type: array
+          items:
+            type: integer
+        extraTechnicianNames:
+          type: array
+          items:
+            type: string
         createdAt:
           type: string
       required:
@@ -1261,6 +1269,10 @@ components:
         assignmentMode:
           type: string
           enum: [by_technician, by_zone, by_machine, by_type]
+        extraTechnicianIds:
+          type: array
+          items:
+            type: integer
       required:
         - title
         - type
@@ -1325,6 +1337,10 @@ components:
           type: integer
         assetName:
           type: string
+        technicianId:
+          type: integer
+        technicianName:
+          type: string
         frequency:
           type: string
           enum: [daily, weekly, monthly, quarterly, annually]
@@ -1339,6 +1355,14 @@ components:
           type: number
         description:
           type: string
+        extraTechnicianIds:
+          type: array
+          items:
+            type: integer
+        extraTechnicianNames:
+          type: array
+          items:
+            type: string
         createdAt:
           type: string
       required:
@@ -1355,6 +1379,8 @@ components:
           type: string
         assetId:
           type: integer
+        technicianId:
+          type: integer
         frequency:
           type: string
           enum: [daily, weekly, monthly, quarterly, annually]
@@ -1367,6 +1393,10 @@ components:
         status:
           type: string
           enum: [active, inactive, overdue]
+        extraTechnicianIds:
+          type: array
+          items:
+            type: integer
       required:
         - name
         - frequency
@@ -1461,6 +1491,8 @@ components:
           type: number
         photoUrl:
           type: string
+        telegramChatId:
+          type: string
         createdAt:
           type: string
       required:
@@ -1490,6 +1522,8 @@ components:
           type: string
           enum: [available, busy, off, leave]
         photoUrl:
+          type: string
+        telegramChatId:
           type: string
       required:
         - name

@@ -4,7 +4,6 @@ import { eq } from "drizzle-orm";
 import {
   CreateTechnicianBody,
   UpdateTechnicianParams,
-  UpdateTechnicianBody,
   DeleteTechnicianParams,
 } from "@workspace/api-zod";
 
@@ -26,7 +25,7 @@ router.get("/technicians", async (req, res) => {
 router.post("/technicians", async (req, res) => {
   try {
     const body = CreateTechnicianBody.parse(req.body);
-    const [technician] = await db.insert(techniciansTable).values(body).returning();
+    const [technician] = await db.insert(techniciansTable).values(body as any).returning();
     res.status(201).json({ ...technician, createdAt: technician.createdAt.toISOString() });
   } catch (err) {
     req.log.error({ err }, "Error creating technician");
@@ -37,8 +36,19 @@ router.post("/technicians", async (req, res) => {
 router.put("/technicians/:id", async (req, res) => {
   try {
     const { id } = UpdateTechnicianParams.parse({ id: Number(req.params.id) });
-    const body = UpdateTechnicianBody.parse(req.body);
-    const [technician] = await db.update(techniciansTable).set(body).where(eq(techniciansTable.id, id)).returning();
+    const body = req.body as Record<string, any>;
+
+    // Build update payload — telegramChatId is stored directly on the technician record
+    const updateData: any = {};
+    const allowed = ["name", "email", "phone", "specialization", "skills", "status", "photoUrl",
+      "activeWorkOrders", "completedThisMonth", "avgRating", "telegramChatId"];
+    for (const key of allowed) {
+      if (key in body) {
+        updateData[key] = body[key] === "" ? null : body[key];
+      }
+    }
+
+    const [technician] = await db.update(techniciansTable).set(updateData).where(eq(techniciansTable.id, id)).returning();
     if (!technician) return res.status(404).json({ error: "Technician not found" });
     res.json({ ...technician, createdAt: technician.createdAt.toISOString() });
     return;

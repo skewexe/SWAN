@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   useGetPreventivePlans, useCreatePreventivePlan, useUpdatePreventivePlan, useDeletePreventivePlan,
-  useGetAssets, getGetPreventivePlansQueryKey, getGetWorkOrdersQueryKey
+  useGetAssets, useGetTechnicians, getGetPreventivePlansQueryKey, getGetWorkOrdersQueryKey
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, AlertTriangle, CalendarClock, Play } from "lucide-react";
+import { Plus, Pencil, Trash2, AlertTriangle, CalendarClock, Play, Send, Users } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 
@@ -36,10 +36,12 @@ interface PlanFormData {
   name: string;
   description?: string;
   assetId?: number;
+  technicianId?: number;
   frequency: PlanFrequency;
   nextDue?: string;
   estimatedDuration?: number;
   status?: "active" | "inactive" | "overdue";
+  extraTechnicianIds?: number[];
 }
 
 export default function PreventivePage() {
@@ -47,22 +49,24 @@ export default function PreventivePage() {
   const [editPlan, setEditPlan] = useState<any>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<any>(null);
   const [executingId, setExecutingId] = useState<number | null>(null);
+  const [sendingTelegramId, setSendingTelegramId] = useState<number | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: plans, isLoading } = useGetPreventivePlans();
   const { data: assets } = useGetAssets();
+  const { data: technicians } = useGetTechnicians();
   const createPlan = useCreatePreventivePlan();
   const updatePlan = useUpdatePreventivePlan();
   const deletePlan = useDeletePreventivePlan();
 
   const form = useForm<PlanFormData>({
-    defaultValues: { name: "", frequency: "monthly" }
+    defaultValues: { name: "", frequency: "monthly", extraTechnicianIds: [] }
   });
 
   const openCreate = () => {
     setEditPlan(null);
-    form.reset({ name: "", frequency: "monthly" });
+    form.reset({ name: "", frequency: "monthly", extraTechnicianIds: [] });
     setDialogOpen(true);
   };
 
@@ -70,7 +74,9 @@ export default function PreventivePage() {
     setEditPlan(plan);
     form.reset({
       name: plan.name, description: plan.description, assetId: plan.assetId,
+      technicianId: plan.technicianId,
       frequency: plan.frequency, nextDue: plan.nextDue, estimatedDuration: plan.estimatedDuration,
+      extraTechnicianIds: plan.extraTechnicianIds || [],
     });
     setDialogOpen(true);
   };
@@ -81,10 +87,7 @@ export default function PreventivePage() {
       const res = await fetch(`/api/preventive/${plan.id}/execute`, { method: "POST" });
       if (!res.ok) throw new Error("Failed");
       const data = await res.json();
-      toast({
-        title: "Intervention planifiée",
-        description: data.message,
-      });
+      toast({ title: "Intervention planifiée", description: data.message });
       queryClient.invalidateQueries({ queryKey: getGetPreventivePlansQueryKey() });
       queryClient.invalidateQueries({ queryKey: getGetWorkOrdersQueryKey() });
     } catch {
@@ -94,9 +97,31 @@ export default function PreventivePage() {
     }
   };
 
+  const handleSendTelegram = async (plan: any) => {
+    setSendingTelegramId(plan.id);
+    try {
+      const res = await fetch(`/api/preventive/${plan.id}/send-telegram`, { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        toast({ title: `Telegram envoyé à ${data.sent} technicien(s)` });
+      } else {
+        toast({ title: data.error || "Erreur Telegram", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Erreur réseau", variant: "destructive" });
+    } finally {
+      setSendingTelegramId(null);
+    }
+  };
+
   const onSubmit = (data: PlanFormData) => {
     const invalidate = () => queryClient.invalidateQueries({ queryKey: getGetPreventivePlansQueryKey() });
-    const body = { ...data, assetId: data.assetId || undefined };
+    const body: any = {
+      ...data,
+      assetId: data.assetId || undefined,
+      technicianId: data.technicianId || undefined,
+      extraTechnicianIds: data.extraTechnicianIds || [],
+    };
     if (editPlan) {
       updatePlan.mutate({ id: editPlan.id, data: body }, {
         onSuccess: () => { toast({ title: "Plan mis à jour" }); setDialogOpen(false); invalidate(); },
@@ -160,6 +185,7 @@ export default function PreventivePage() {
               <tr className="border-b border-border/60">
                 <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-4">Plan</th>
                 <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-4">Équipement</th>
+                <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-4">Technicien(s)</th>
                 <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-4">Fréquence</th>
                 <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-4">Prochaine date</th>
                 <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-4">Durée est.</th>
@@ -171,6 +197,12 @@ export default function PreventivePage() {
               {plans && plans.length > 0 ? plans.map((plan, idx) => {
                 const status = STATUS_MAP[plan.status] || STATUS_MAP.inactive;
                 const isExecuting = executingId === plan.id;
+                const isSendingTg = sendingTelegramId === plan.id;
+                const planAny = plan as any;
+                const allTechs = [
+                  planAny.technicianName,
+                  ...(planAny.extraTechnicianNames || []),
+                ].filter(Boolean);
                 return (
                   <motion.tr
                     key={plan.id}
@@ -191,7 +223,19 @@ export default function PreventivePage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-muted-foreground text-xs">{plan.assetName || "—"}</td>
+                    <td className="px-4 py-4 text-muted-foreground text-xs">{planAny.assetName || "—"}</td>
+                    <td className="px-4 py-4 text-xs">
+                      {allTechs.length > 0 ? (
+                        <div className="flex flex-col gap-0.5">
+                          {allTechs.map((name: string, i: number) => (
+                            <span key={i} className={`flex items-center gap-1 ${i === 0 ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                              {i > 0 && <span className="text-muted-foreground/40">+</span>}
+                              {name}
+                            </span>
+                          ))}
+                        </div>
+                      ) : <span className="text-muted-foreground/40">—</span>}
+                    </td>
                     <td className="px-4 py-4">
                       <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/30">
                         {FREQUENCY_LABELS[plan.frequency] || plan.frequency}
@@ -225,6 +269,18 @@ export default function PreventivePage() {
                           <Play className="h-3.5 w-3.5" strokeWidth={1.5} />
                           {isExecuting ? "..." : "Exécuter"}
                         </Button>
+                        <Button
+                          variant="ghost" size="icon"
+                          className="h-8 w-8 text-[#2AABEE] hover:text-[#2AABEE] hover:bg-[#2AABEE]/10"
+                          onClick={() => handleSendTelegram(plan)}
+                          disabled={isSendingTg}
+                          title="Envoyer via Telegram"
+                          data-testid={`button-telegram-plan-${plan.id}`}
+                        >
+                          {isSendingTg
+                            ? <div className="h-3.5 w-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                            : <Send className="h-3.5 w-3.5" strokeWidth={1.5} />}
+                        </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => openEdit(plan)} data-testid={`button-edit-plan-${plan.id}`}>
                           <Pencil className="h-4 w-4" strokeWidth={1.5} />
                         </Button>
@@ -236,7 +292,7 @@ export default function PreventivePage() {
                   </motion.tr>
                 );
               }) : (
-                <tr><td colSpan={7} className="text-center py-12 text-muted-foreground">Aucun plan trouvé</td></tr>
+                <tr><td colSpan={8} className="text-center py-12 text-muted-foreground">Aucun plan trouvé</td></tr>
               )}
             </tbody>
           </table>
@@ -244,7 +300,7 @@ export default function PreventivePage() {
       </motion.div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg bg-card border-border">
+        <DialogContent className="max-w-xl bg-card border-border max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editPlan ? "Modifier le plan" : "Nouveau plan préventif"}</DialogTitle>
           </DialogHeader>
@@ -305,6 +361,63 @@ export default function PreventivePage() {
                   </FormItem>
                 )} />
               </div>
+
+              {/* Technician assignment */}
+              <div className="space-y-3 border border-border/40 rounded-xl p-3 bg-background/20">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-[0.15em]">Affectation des techniciens</p>
+                <FormField control={form.control} name="technicianId" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Technicien principal</FormLabel>
+                    <Select value={field.value?.toString() || "none"} onValueChange={v => field.onChange(v !== "none" ? Number(v) : undefined)}>
+                      <SelectTrigger data-testid="select-plan-technician"><SelectValue placeholder="Non assigné" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Non assigné</SelectItem>
+                        {technicians?.map(t => <SelectItem key={t.id} value={t.id.toString()}>{t.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )} />
+
+                <FormField control={form.control} name="extraTechnicianIds" render={({ field }) => {
+                  const watchedPrimary = form.watch("technicianId");
+                  const available = technicians?.filter(t => t.id !== watchedPrimary) ?? [];
+                  const selected: number[] = field.value ?? [];
+                  return (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-1.5">
+                        <Users className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.5} />
+                        Autres techniciens
+                      </FormLabel>
+                      {available.length === 0 ? (
+                        <p className="text-xs text-muted-foreground/60 italic">Aucun autre technicien disponible</p>
+                      ) : (
+                        <div className="flex flex-wrap gap-2 p-3 rounded-xl border border-border/60 bg-background/30 max-h-28 overflow-y-auto">
+                          {available.map(t => {
+                            const checked = selected.includes(t.id);
+                            const hasTelegram = !!(t as any).telegramChatId;
+                            return (
+                              <label key={t.id} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border cursor-pointer transition-colors text-xs select-none ${checked ? "border-primary/60 bg-primary/10 text-primary" : "border-border/40 hover:border-primary/30 text-muted-foreground"}`}>
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={e => {
+                                    if (e.target.checked) field.onChange([...selected, t.id]);
+                                    else field.onChange(selected.filter(id => id !== t.id));
+                                  }}
+                                  className="h-3.5 w-3.5 accent-primary"
+                                />
+                                <span className="font-medium">{t.name}</span>
+                                {hasTelegram && <Send className="h-3 w-3 text-[#2AABEE]" strokeWidth={1.5} aria-label="Telegram configuré" />}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </FormItem>
+                  );
+                }} />
+              </div>
+
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Annuler</Button>
                 <Button type="submit" disabled={createPlan.isPending || updatePlan.isPending} data-testid="button-submit-plan">

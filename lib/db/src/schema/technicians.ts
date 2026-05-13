@@ -16,6 +16,7 @@ export const techniciansTable = pgTable("technicians", {
   completedThisMonth: integer("completed_this_month").notNull().default(0),
   avgRating: real("avg_rating"),
   photoUrl: text("photo_url"),
+  telegramChatId: text("telegram_chat_id"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

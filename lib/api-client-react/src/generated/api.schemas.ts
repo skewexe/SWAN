@@ -241,6 +241,8 @@ export interface WorkOrder {
   zoneId?: number;
   zoneName?: string;
   assignmentMode?: WorkOrderAssignmentMode;
+  extraTechnicianIds?: number[];
+  extraTechnicianNames?: string[];
   createdAt: string;
 }
 
@@ -298,6 +300,7 @@ export interface CreateWorkOrderBody {
   siteId?: number;
   zoneId?: number;
   assignmentMode?: CreateWorkOrderBodyAssignmentMode;
+  extraTechnicianIds?: number[];
 }
 
 export interface WorkOrderPart {
@@ -346,12 +349,16 @@ export interface PreventivePlan {
   name: string;
   assetId?: number;
   assetName?: string;
+  technicianId?: number;
+  technicianName?: string;
   frequency: PreventivePlanFrequency;
   nextDue?: string;
   lastExecuted?: string;
   status: PreventivePlanStatus;
   estimatedDuration?: number;
   description?: string;
+  extraTechnicianIds?: number[];
+  extraTechnicianNames?: string[];
   createdAt: string;
 }
 
@@ -378,11 +385,13 @@ export const CreatePreventivePlanBodyStatus = {
 export interface CreatePreventivePlanBody {
   name: string;
   assetId?: number;
+  technicianId?: number;
   frequency: CreatePreventivePlanBodyFrequency;
   nextDue?: string;
   estimatedDuration?: number;
   description?: string;
   status?: CreatePreventivePlanBodyStatus;
+  extraTechnicianIds?: number[];
 }
 
 export interface InventoryItem {
@@ -435,6 +444,7 @@ export interface Technician {
   completedThisMonth?: number;
   avgRating?: number;
   photoUrl?: string;
+  telegramChatId?: string;
   createdAt: string;
 }
 
@@ -456,6 +466,7 @@ export interface CreateTechnicianBody {
   skills?: string[];
   status?: CreateTechnicianBodyStatus;
   photoUrl?: string;
+  telegramChatId?: string;
 }
 
 export interface Site {

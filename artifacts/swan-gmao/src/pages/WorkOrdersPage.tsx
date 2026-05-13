@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, AlertTriangle, Package, X, AlertCircle, ExternalLink, Lock, MapPin, Building2, SlidersHorizontal } from "lucide-react";
+import { Plus, Pencil, Trash2, AlertTriangle, Package, X, AlertCircle, ExternalLink, Lock, MapPin, Building2, SlidersHorizontal, Send, Users } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { WorkOrderDetailSheet } from "@/components/WorkOrderDetailSheet";
@@ -68,6 +68,7 @@ interface WOFormData {
   siteId?: number;
   zoneId?: number;
   assignmentMode?: AssignmentMode;
+  extraTechnicianIds?: number[];
 }
 
 function PartsDialog({
@@ -315,6 +316,7 @@ export default function WorkOrdersPage() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkStatusTarget, setBulkStatusTarget] = useState<WOStatus>("completed");
   const [showBulkDialog, setShowBulkDialog] = useState(false);
+  const [sendingTelegramId, setSendingTelegramId] = useState<number | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user, isReadOnly } = useRBAC();
@@ -359,7 +361,7 @@ export default function WorkOrdersPage() {
 
   const openCreate = () => {
     setEditWO(null);
-    form.reset({ title: "", type: "corrective", priority: "medium", status: "open" });
+    form.reset({ title: "", type: "corrective", priority: "medium", status: "open", extraTechnicianIds: [] });
     setDialogOpen(true);
   };
 
@@ -370,6 +372,7 @@ export default function WorkOrdersPage() {
       status: wo.status, assetId: wo.assetId, technicianId: wo.technicianId,
       estimatedHours: wo.estimatedHours, scheduledDate: wo.scheduledDate,
       siteId: wo.siteId, zoneId: wo.zoneId, assignmentMode: wo.assignmentMode,
+      extraTechnicianIds: wo.extraTechnicianIds || [],
     });
     setDialogOpen(true);
   };
@@ -383,6 +386,7 @@ export default function WorkOrdersPage() {
       siteId: data.siteId || undefined,
       zoneId: data.zoneId || undefined,
       assignmentMode: data.assignmentMode || undefined,
+      extraTechnicianIds: data.extraTechnicianIds || [],
     };
     if (editWO) {
       updateWO.mutate({ id: editWO.id, data: body }, {
@@ -394,6 +398,23 @@ export default function WorkOrdersPage() {
         onSuccess: () => { toast({ title: "OT créé" }); setDialogOpen(false); invalidate(); },
         onError: () => toast({ title: "Erreur", variant: "destructive" }),
       });
+    }
+  };
+
+  const handleSendTelegram = async (wo: any) => {
+    setSendingTelegramId(wo.id);
+    try {
+      const res = await fetch(`/api/workorders/${wo.id}/send-telegram`, { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        toast({ title: `Telegram envoyé à ${data.sent} technicien(s)` });
+      } else {
+        toast({ title: data.error || "Erreur Telegram", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Erreur réseau", variant: "destructive" });
+    } finally {
+      setSendingTelegramId(null);
     }
   };
 
@@ -639,6 +660,18 @@ export default function WorkOrdersPage() {
                       <div className="flex items-center gap-1 justify-end" onClick={e => e.stopPropagation()}>
                         <Button
                           variant="ghost" size="icon"
+                          className="h-8 w-8 text-[#2AABEE] hover:text-[#2AABEE] hover:bg-[#2AABEE]/10"
+                          onClick={() => handleSendTelegram(wo)}
+                          disabled={sendingTelegramId === wo.id}
+                          title="Envoyer via Telegram"
+                          data-testid={`button-telegram-wo-${wo.id}`}
+                        >
+                          {sendingTelegramId === wo.id
+                            ? <div className="h-3.5 w-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                            : <Send className="h-3.5 w-3.5" strokeWidth={1.5} />}
+                        </Button>
+                        <Button
+                          variant="ghost" size="icon"
                           className="h-8 w-8 text-muted-foreground hover:text-primary"
                           onClick={() => setDetailWO(wo)}
                           title="Voir le détail"
@@ -789,7 +822,7 @@ export default function WorkOrdersPage() {
                 )} />
                 <FormField control={form.control} name="technicianId" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Technicien</FormLabel>
+                    <FormLabel>Technicien principal</FormLabel>
                     <Select value={field.value?.toString() || "none"} onValueChange={v => field.onChange(v !== "none" ? Number(v) : undefined)}>
                       <SelectTrigger data-testid="select-wo-technician"><SelectValue placeholder="Non assigné" /></SelectTrigger>
                       <SelectContent>
@@ -799,6 +832,44 @@ export default function WorkOrdersPage() {
                     </Select>
                   </FormItem>
                 )} />
+                <FormField control={form.control} name="extraTechnicianIds" render={({ field }) => {
+                  const watchedPrimary = form.watch("technicianId");
+                  const available = technicians?.filter(t => t.id !== watchedPrimary) ?? [];
+                  const selected: number[] = field.value ?? [];
+                  return (
+                    <FormItem className="col-span-2">
+                      <FormLabel className="flex items-center gap-1.5">
+                        <Users className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.5} />
+                        Autres techniciens
+                      </FormLabel>
+                      {available.length === 0 ? (
+                        <p className="text-xs text-muted-foreground/60 italic">Aucun autre technicien disponible</p>
+                      ) : (
+                        <div className="flex flex-wrap gap-2 p-3 rounded-xl border border-border/60 bg-background/30 max-h-32 overflow-y-auto">
+                          {available.map(t => {
+                            const checked = selected.includes(t.id);
+                            const hasTelegram = !!(t as any).telegramChatId;
+                            return (
+                              <label key={t.id} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border cursor-pointer transition-colors text-xs select-none ${checked ? "border-primary/60 bg-primary/10 text-primary" : "border-border/40 hover:border-primary/30 text-muted-foreground"}`}>
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={e => {
+                                    if (e.target.checked) field.onChange([...selected, t.id]);
+                                    else field.onChange(selected.filter(id => id !== t.id));
+                                  }}
+                                  className="h-3.5 w-3.5 accent-primary"
+                                />
+                                <span className="font-medium">{t.name}</span>
+                                {hasTelegram && <Send className="h-3 w-3 text-[#2AABEE]" strokeWidth={1.5} aria-label="Telegram configuré" />}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </FormItem>
+                  );
+                }} />
                 <FormField control={form.control} name="siteId" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Site</FormLabel>
