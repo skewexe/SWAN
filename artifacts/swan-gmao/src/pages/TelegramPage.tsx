@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import {
   MessageSquare, WifiOff, Settings, Plus, Trash2, Send,
   RefreshCw, Users, ScrollText, CheckCircle, AlertTriangle,
-  Bot, ChevronRight, ArrowUpRight, ArrowDownLeft, Eye, EyeOff,
+  Bot, ChevronRight, ArrowUpRight, ArrowDownLeft, Eye, EyeOff, Link, Webhook,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +40,8 @@ export default function TelegramPage() {
   const [sendChatId, setSendChatId] = useState("");
   const [sendMsg, setSendMsg] = useState("");
   const [sending, setSending] = useState(false);
+  const [webhookInfo, setWebhookInfo] = useState<any>(null);
+  const [registeringWebhook, setRegisteringWebhook] = useState(false);
   const { toast } = useToast();
 
   const fetchConfig = useCallback(async () => {
@@ -66,7 +68,32 @@ export default function TelegramPage() {
     } catch {}
   }, []);
 
-  useEffect(() => { fetchConfig(); fetchChats(); fetchLogs(); }, [fetchConfig, fetchChats, fetchLogs]);
+  const fetchWebhookInfo = useCallback(async () => {
+    try {
+      const res = await api("/telegram/webhook-info");
+      if (res.ok) setWebhookInfo(await res.json());
+    } catch {}
+  }, []);
+
+  const handleRegisterWebhook = async () => {
+    setRegisteringWebhook(true);
+    try {
+      const res = await api("/telegram/register-webhook", { method: "POST" });
+      const d = await res.json();
+      if (res.ok) {
+        toast({ title: "Webhook enregistré", description: d.url });
+        fetchWebhookInfo();
+      } else {
+        toast({ title: d.error || "Erreur d'enregistrement", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Erreur réseau", variant: "destructive" });
+    } finally {
+      setRegisteringWebhook(false);
+    }
+  };
+
+  useEffect(() => { fetchConfig(); fetchChats(); fetchLogs(); fetchWebhookInfo(); }, [fetchConfig, fetchChats, fetchLogs, fetchWebhookInfo]);
 
   const handleSaveToken = async () => {
     if (!tokenInput.trim()) return;
@@ -237,6 +264,81 @@ export default function TelegramPage() {
                 Bot actif : @{botUsername}
               </div>
             )}
+          </div>
+
+          {/* Webhook status */}
+          <div className="bg-card border border-border/50 rounded-2xl p-5 space-y-4">
+            <div className="flex items-center gap-2">
+              <Webhook className="h-4 w-4 text-primary" strokeWidth={1.5} />
+              <h3 className="text-sm font-semibold text-foreground">Webhook — Réception des réponses boutons</h3>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Pour que les techniciens puissent répondre aux boutons Telegram (Commencer, Terminer…), le webhook doit être enregistré auprès de Telegram.
+            </p>
+
+            {webhookInfo?.configured ? (
+              <div className="space-y-3">
+                {/* Status row */}
+                <div className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-medium ${
+                  webhookInfo.url === webhookInfo.expectedUrl
+                    ? "bg-green-500/10 border-green-500/30 text-green-400"
+                    : webhookInfo.url
+                    ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                    : "bg-red-500/10 border-red-500/30 text-red-400"
+                }`}>
+                  {webhookInfo.url === webhookInfo.expectedUrl ? (
+                    <><CheckCircle className="h-3.5 w-3.5 shrink-0" strokeWidth={2} /> Webhook actif — les réponses des boutons seront bien reçues</>
+                  ) : webhookInfo.url ? (
+                    <><AlertTriangle className="h-3.5 w-3.5 shrink-0" strokeWidth={2} /> URL incorrecte — cliquez "Enregistrer" pour corriger</>
+                  ) : (
+                    <><AlertTriangle className="h-3.5 w-3.5 shrink-0" strokeWidth={2} /> Aucun webhook enregistré — les boutons ne fonctionneront pas</>
+                  )}
+                </div>
+
+                {/* Current URL */}
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground font-medium">URL cible :</p>
+                  <div className="flex items-center gap-2 bg-background/50 border border-border/40 rounded-lg px-3 py-2">
+                    <Link className="h-3.5 w-3.5 text-muted-foreground shrink-0" strokeWidth={1.5} />
+                    <code className="text-xs text-foreground font-mono truncate flex-1">{webhookInfo.expectedUrl}</code>
+                  </div>
+                </div>
+
+                {/* Last error */}
+                {webhookInfo.last_error_message && (
+                  <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-red-500/5 border border-red-500/20 text-xs text-red-400">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" strokeWidth={1.5} />
+                    <span>Dernière erreur Telegram : {webhookInfo.last_error_message}</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border bg-muted/30 border-border text-xs text-muted-foreground">
+                <WifiOff className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
+                {webhookInfo ? "Bot non configuré — enregistrez d'abord le token" : "Chargement…"}
+              </div>
+            )}
+
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={handleRegisterWebhook}
+                disabled={registeringWebhook || status !== "connected"}
+                className="rounded-full gap-1.5"
+                size="sm"
+              >
+                {registeringWebhook
+                  ? <><RefreshCw className="h-3.5 w-3.5 animate-spin" /> Enregistrement…</>
+                  : <><Webhook className="h-3.5 w-3.5" strokeWidth={1.5} /> Enregistrer le webhook</>}
+              </Button>
+              <Button
+                variant="ghost" size="sm"
+                onClick={fetchWebhookInfo}
+                className="rounded-full gap-1.5 text-muted-foreground"
+              >
+                <RefreshCw className="h-3.5 w-3.5" strokeWidth={1.5} />
+                Vérifier
+              </Button>
+            </div>
           </div>
 
           <div className="bg-card border border-border/50 rounded-2xl p-5">

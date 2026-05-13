@@ -44,6 +44,11 @@ router.get("/telegram/config", async (req, res) => {
   }
 });
 
+function getWebhookUrl(): string {
+  const domain = (process.env.REPLIT_DOMAINS || process.env.REPLIT_DEV_DOMAIN || "").split(",")[0].trim();
+  return domain ? `https://${domain}/api/telegram/webhook` : "";
+}
+
 router.put("/telegram/config", async (req, res) => {
   try {
     const { botToken } = req.body;
@@ -59,10 +64,65 @@ router.put("/telegram/config", async (req, res) => {
     } else {
       await db.update(telegramConfigTable).set({ botToken, botUsername });
     }
-    res.json({ ok: true, botUsername });
+
+    // Automatically register the webhook so button callbacks are received
+    const webhookUrl = getWebhookUrl();
+    let webhookRegistered = false;
+    if (webhookUrl) {
+      const wh = await callTelegramAPI(botToken, "setWebhook", {
+        url: webhookUrl,
+        allowed_updates: ["message", "callback_query"],
+        drop_pending_updates: true,
+      });
+      webhookRegistered = wh.ok;
+    }
+
+    res.json({ ok: true, botUsername, webhookRegistered, webhookUrl });
     return;
   } catch (err) {
     req.log.error({ err }, "Error updating telegram config");
+    res.status(500).json({ error: "Internal server error" });
+    return;
+  }
+});
+
+// Get current webhook info from Telegram
+router.get("/telegram/webhook-info", async (req, res) => {
+  try {
+    const [cfg] = await db.select().from(telegramConfigTable);
+    if (!cfg?.botToken) return res.json({ configured: false });
+    const info = await callTelegramAPI(cfg.botToken, "getWebhookInfo");
+    res.json({ configured: true, ...info.result, expectedUrl: getWebhookUrl() });
+    return;
+  } catch (err) {
+    req.log.error({ err }, "Error fetching webhook info");
+    res.status(500).json({ error: "Internal server error" });
+    return;
+  }
+});
+
+// Manually register / re-register the webhook
+router.post("/telegram/register-webhook", async (req, res) => {
+  try {
+    const [cfg] = await db.select().from(telegramConfigTable);
+    if (!cfg?.botToken) return res.status(400).json({ error: "Bot not configured" });
+    const webhookUrl = getWebhookUrl();
+    if (!webhookUrl) return res.status(400).json({ error: "Cannot determine public domain" });
+
+    const result = await callTelegramAPI(cfg.botToken, "setWebhook", {
+      url: webhookUrl,
+      allowed_updates: ["message", "callback_query"],
+      drop_pending_updates: true,
+    });
+
+    if (result.ok) {
+      res.json({ ok: true, url: webhookUrl });
+    } else {
+      res.status(400).json({ error: result.description || "setWebhook failed" });
+    }
+    return;
+  } catch (err) {
+    req.log.error({ err }, "Error registering webhook");
     res.status(500).json({ error: "Internal server error" });
     return;
   }
