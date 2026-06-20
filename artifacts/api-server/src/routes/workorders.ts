@@ -175,6 +175,61 @@ router.delete("/workorders/:id", async (req, res) => {
   }
 });
 
+// Build inline keyboard for a work order based on its current status
+function buildWoKeyboard(woId: number, currentStatus: string): any[][] {
+  if (currentStatus === "open") {
+    return [
+      [
+        { text: "▶️ Commencer", callback_data: `wo_status:${woId}:in_progress` },
+        { text: "⏸ En attente", callback_data: `wo_status:${woId}:on_hold` },
+      ],
+      [
+        { text: "❌ Annuler", callback_data: `wo_status:${woId}:cancelled` },
+        { text: "💬 Commenter", callback_data: `wo_comment:${woId}` },
+      ],
+    ];
+  } else if (currentStatus === "in_progress") {
+    return [
+      [
+        { text: "✅ Terminer", callback_data: `wo_status:${woId}:completed` },
+        { text: "⏸ En attente", callback_data: `wo_status:${woId}:on_hold` },
+      ],
+      [
+        { text: "🔵 Rouvrir", callback_data: `wo_status:${woId}:open` },
+        { text: "💬 Commenter", callback_data: `wo_comment:${woId}` },
+      ],
+      [{ text: "❌ Annuler", callback_data: `wo_status:${woId}:cancelled` }],
+    ];
+  } else if (currentStatus === "on_hold") {
+    return [
+      [
+        { text: "▶️ Reprendre", callback_data: `wo_status:${woId}:in_progress` },
+        { text: "✅ Terminer", callback_data: `wo_status:${woId}:completed` },
+      ],
+      [
+        { text: "🔵 Rouvrir", callback_data: `wo_status:${woId}:open` },
+        { text: "💬 Commenter", callback_data: `wo_comment:${woId}` },
+      ],
+      [{ text: "❌ Annuler", callback_data: `wo_status:${woId}:cancelled` }],
+    ];
+  } else {
+    // completed / cancelled
+    return [
+      [
+        { text: "🔄 Rouvrir l'OT", callback_data: `wo_status:${woId}:open` },
+        { text: "💬 Commenter", callback_data: `wo_comment:${woId}` },
+      ],
+    ];
+  }
+}
+
+const PRIORITY_EMOJI_WO: Record<string, string> = { critical: "🔴", high: "🟠", medium: "🟡", low: "🟢" };
+const TYPE_LABEL_WO: Record<string, string> = { corrective: "Corrective", preventive: "Préventive", predictive: "Prédictive", inspection: "Inspection" };
+const STATUS_LABELS_WO: Record<string, string> = {
+  open: "🔵 Ouvert", in_progress: "▶️ En cours", completed: "✅ Terminé",
+  on_hold: "⏸ En attente", cancelled: "❌ Annulé",
+};
+
 // Send WO notification to technicians via Telegram
 router.post("/workorders/:id/send-telegram", async (req, res) => {
   try {
@@ -197,40 +252,32 @@ router.post("/workorders/:id/send-telegram", async (req, res) => {
     if (targets.length === 0) return res.status(400).json({ error: "Aucun technicien avec Telegram ID configuré" });
 
     const asset = assets.find(a => a.id === wo.assetId);
-    const priorityEmoji: Record<string, string> = { critical: "🔴", high: "🟠", medium: "🟡", low: "🟢" };
-    const typeLabel: Record<string, string> = { corrective: "Corrective", preventive: "Préventive", predictive: "Prédictive", inspection: "Inspection" };
+    const assignedTech = technicians.find(t => t.id === wo.technicianId);
 
-    const text = [
-      `🔧 *Ordre de Travail #${wo.id}*`,
+    const lines = [
+      `🔧 <b>Ordre de Travail #${wo.id}</b>`,
       ``,
-      `📋 *${wo.title}*`,
-      wo.description ? `${wo.description}` : null,
+      `📋 <b>${wo.title}</b>`,
+      wo.description ? `📝 ${wo.description}` : null,
       ``,
-      `${priorityEmoji[wo.priority] || "⚪"} Priorité: *${wo.priority.toUpperCase()}*`,
-      `📁 Type: ${typeLabel[wo.type] || wo.type}`,
-      asset ? `🏭 Équipement: ${asset.name}` : null,
-      wo.scheduledDate ? `📅 Date: ${new Date(wo.scheduledDate).toLocaleDateString("fr-DZ")}` : null,
-      wo.estimatedHours ? `⏱ Durée estimée: ${wo.estimatedHours}h` : null,
-    ].filter(Boolean).join("\n");
-
-    const inline_keyboard = [
-      [
-        { text: "▶️ Commencer", callback_data: `wo_status:${id}:in_progress` },
-        { text: "✅ Terminer", callback_data: `wo_status:${id}:completed` },
-      ],
-      [
-        { text: "⏸ En attente", callback_data: `wo_status:${id}:on_hold` },
-        { text: "❌ Annuler", callback_data: `wo_status:${id}:cancelled` },
-      ],
+      `${PRIORITY_EMOJI_WO[wo.priority] || "⚪"} Priorité : <b>${wo.priority.toUpperCase()}</b>`,
+      `📁 Type : ${TYPE_LABEL_WO[wo.type] || wo.type}`,
+      `📊 Statut : ${STATUS_LABELS_WO[wo.status] || wo.status}`,
+      asset ? `🏭 Équipement : ${asset.name}` : null,
+      assignedTech ? `👤 Technicien : ${assignedTech.name}` : null,
+      wo.scheduledDate ? `📅 Date planifiée : ${new Date(wo.scheduledDate).toLocaleDateString("fr-DZ")}` : null,
+      wo.estimatedHours ? `⏱ Durée estimée : ${wo.estimatedHours}h` : null,
+      wo.notes ? `\n💬 <b>Notes :</b>\n${wo.notes}` : null,
     ];
+    const text = lines.filter(Boolean).join("\n");
 
     const results: any[] = [];
     for (const tech of targets) {
       const r = await callTelegramAPI(token, "sendMessage", {
         chat_id: tech.telegramChatId,
         text,
-        parse_mode: "Markdown",
-        reply_markup: { inline_keyboard },
+        parse_mode: "HTML",
+        reply_markup: { inline_keyboard: buildWoKeyboard(id, wo.status) },
       });
       results.push({ technicianId: tech.id, name: tech.name, ok: r.ok });
     }

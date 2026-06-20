@@ -23,6 +23,7 @@ export const workOrdersTable = pgTable("work_orders", {
   siteId: integer("site_id"),
   zoneId: integer("zone_id"),
   assignmentMode: workOrderAssignmentModeEnum("assignment_mode").default("by_technician"),
+  notes: text("notes"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

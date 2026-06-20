@@ -58,6 +58,7 @@ const ASSIGNMENT_MODE_LABELS: Record<AssignmentMode, string> = {
 interface WOFormData {
   title: string;
   description?: string;
+  notes?: string;
   type: WOType;
   priority: WOPriority;
   status: WOStatus;
@@ -368,7 +369,8 @@ export default function WorkOrdersPage() {
   const openEdit = (wo: any) => {
     setEditWO(wo);
     form.reset({
-      title: wo.title, description: wo.description, type: wo.type, priority: wo.priority,
+      title: wo.title, description: wo.description, notes: wo.notes,
+      type: wo.type, priority: wo.priority,
       status: wo.status, assetId: wo.assetId, technicianId: wo.technicianId,
       estimatedHours: wo.estimatedHours, scheduledDate: wo.scheduledDate,
       siteId: wo.siteId, zoneId: wo.zoneId, assignmentMode: wo.assignmentMode,
@@ -743,6 +745,12 @@ export default function WorkOrdersPage() {
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl><Textarea data-testid="input-wo-description" placeholder="Détails de l'intervention..." rows={3} {...field} /></FormControl>
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="notes" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notes & commentaires</FormLabel>
+                  <FormControl><Textarea placeholder="Notes internes, commentaires techniciens..." rows={2} {...field} /></FormControl>
                 </FormItem>
               )} />
               <div className="grid grid-cols-2 gap-4">

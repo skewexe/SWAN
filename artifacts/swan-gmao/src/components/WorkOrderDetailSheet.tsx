@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Wrench, User, Calendar, Clock, Package, Tag, 
   CheckCircle2, Circle, Loader2, AlertTriangle, Info, Hash,
-  MapPin, Building2, SlidersHorizontal,
+  MapPin, Building2, SlidersHorizontal, MessageSquare,
 } from "lucide-react";
 
 type WOStatus = "open" | "in_progress" | "completed" | "on_hold" | "cancelled";
@@ -322,6 +322,24 @@ export function WorkOrderDetailSheet({ workOrder, open, onClose }: Props) {
                   } />
                 </div>
               </div>
+
+              {/* Notes Telegram */}
+              {workOrder.notes && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                    Notes &amp; commentaires
+                  </p>
+                  <div className="bg-background/50 border border-primary/20 rounded-xl p-4">
+                    <div className="flex items-start gap-2 mb-2">
+                      <MessageSquare className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" strokeWidth={1.5} />
+                      <span className="text-xs text-primary font-medium">Via Telegram</span>
+                    </div>
+                    <pre className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap font-sans">
+                      {workOrder.notes}
+                    </pre>
+                  </div>
+                </div>
+              )}
 
               {/* Parts */}
               <div>

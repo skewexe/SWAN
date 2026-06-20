@@ -1,10 +1,15 @@
 import { Router } from "express";
-import { db, telegramConfigTable, telegramChatsTable, telegramLogsTable, workOrdersTable, preventivePlansTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, telegramConfigTable, telegramChatsTable, telegramLogsTable, workOrdersTable, preventivePlansTable, techniciansTable, assetsTable } from "@workspace/db";
+import { eq, and } from "drizzle-orm";
 import https from "https";
 
 const router = Router();
 
+// ─── In-memory pending action state (multi-step conversations) ────────────────
+// Maps chatId → { action: "comment", woId: number }
+const pendingActions = new Map<string, { action: "comment"; woId: number }>();
+
+// ─── Telegram API helper ──────────────────────────────────────────────────────
 async function callTelegramAPI(token: string, method: string, body?: object): Promise<any> {
   return new Promise((resolve, reject) => {
     const data = body ? JSON.stringify(body) : null;
@@ -30,6 +35,139 @@ async function callTelegramAPI(token: string, method: string, body?: object): Pr
     req.end();
   });
 }
+
+// ─── Status helpers ───────────────────────────────────────────────────────────
+const STATUS_LABELS: Record<string, string> = {
+  open: "🔵 Ouvert",
+  in_progress: "▶️ En cours",
+  completed: "✅ Terminé",
+  on_hold: "⏸ En attente",
+  cancelled: "❌ Annulé",
+};
+
+const PRIORITY_EMOJI: Record<string, string> = {
+  critical: "🔴", high: "🟠", medium: "🟡", low: "🟢",
+};
+
+const TYPE_LABEL: Record<string, string> = {
+  corrective: "Corrective", preventive: "Préventive",
+  predictive: "Prédictive", inspection: "Inspection",
+};
+
+/** Build inline keyboard buttons for a given work order (based on current status). */
+function buildWoKeyboard(woId: number, currentStatus: string): any[][] {
+  const rows: any[][] = [];
+
+  if (currentStatus === "open") {
+    rows.push([
+      { text: "▶️ Commencer", callback_data: `wo_status:${woId}:in_progress` },
+      { text: "⏸ En attente", callback_data: `wo_status:${woId}:on_hold` },
+    ]);
+    rows.push([
+      { text: "❌ Annuler", callback_data: `wo_status:${woId}:cancelled` },
+      { text: "💬 Commenter", callback_data: `wo_comment:${woId}` },
+    ]);
+  } else if (currentStatus === "in_progress") {
+    rows.push([
+      { text: "✅ Terminer", callback_data: `wo_status:${woId}:completed` },
+      { text: "⏸ En attente", callback_data: `wo_status:${woId}:on_hold` },
+    ]);
+    rows.push([
+      { text: "🔵 Rouvrir", callback_data: `wo_status:${woId}:open` },
+      { text: "💬 Commenter", callback_data: `wo_comment:${woId}` },
+    ]);
+    rows.push([
+      { text: "❌ Annuler", callback_data: `wo_status:${woId}:cancelled` },
+    ]);
+  } else if (currentStatus === "on_hold") {
+    rows.push([
+      { text: "▶️ Reprendre", callback_data: `wo_status:${woId}:in_progress` },
+      { text: "✅ Terminer", callback_data: `wo_status:${woId}:completed` },
+    ]);
+    rows.push([
+      { text: "🔵 Rouvrir", callback_data: `wo_status:${woId}:open` },
+      { text: "💬 Commenter", callback_data: `wo_comment:${woId}` },
+    ]);
+    rows.push([
+      { text: "❌ Annuler", callback_data: `wo_status:${woId}:cancelled` },
+    ]);
+  } else if (currentStatus === "completed" || currentStatus === "cancelled") {
+    rows.push([
+      { text: "🔄 Rouvrir l'OT", callback_data: `wo_status:${woId}:open` },
+      { text: "💬 Commenter", callback_data: `wo_comment:${woId}` },
+    ]);
+  } else {
+    // fallback
+    rows.push([
+      { text: "▶️ Commencer", callback_data: `wo_status:${woId}:in_progress` },
+      { text: "✅ Terminer", callback_data: `wo_status:${woId}:completed` },
+    ]);
+    rows.push([
+      { text: "⏸ En attente", callback_data: `wo_status:${woId}:on_hold` },
+      { text: "💬 Commenter", callback_data: `wo_comment:${woId}` },
+    ]);
+  }
+
+  return rows;
+}
+
+/** Build a full OT message text for a work order. */
+async function buildWoText(wo: any): Promise<string> {
+  const assets = await db.select().from(assetsTable).where(eq(assetsTable.id, wo.assetId || -1));
+  const asset = assets[0];
+  const techs = wo.technicianId
+    ? await db.select().from(techniciansTable).where(eq(techniciansTable.id, wo.technicianId))
+    : [];
+  const tech = techs[0];
+
+  const lines = [
+    `🔧 <b>Ordre de Travail #${wo.id}</b>`,
+    ``,
+    `📋 <b>${wo.title}</b>`,
+    wo.description ? `📝 ${wo.description}` : null,
+    ``,
+    `${PRIORITY_EMOJI[wo.priority] || "⚪"} Priorité : <b>${wo.priority.toUpperCase()}</b>`,
+    `📁 Type : ${TYPE_LABEL[wo.type] || wo.type}`,
+    `📊 Statut : ${STATUS_LABELS[wo.status] || wo.status}`,
+    asset ? `🏭 Équipement : ${asset.name}` : null,
+    tech ? `👤 Technicien : ${tech.name}` : null,
+    wo.scheduledDate ? `📅 Date planifiée : ${new Date(wo.scheduledDate).toLocaleDateString("fr-DZ")}` : null,
+    wo.estimatedHours ? `⏱ Durée estimée : ${wo.estimatedHours}h` : null,
+    wo.notes ? `\n💬 <b>Notes :</b>\n${wo.notes}` : null,
+  ];
+  return lines.filter(Boolean).join("\n");
+}
+
+/** Send a work order card with fresh status buttons to a chat. */
+async function sendWoCard(token: string, chatId: string, wo: any): Promise<void> {
+  const text = await buildWoText(wo);
+  await callTelegramAPI(token, "sendMessage", {
+    chat_id: chatId,
+    text,
+    parse_mode: "HTML",
+    reply_markup: { inline_keyboard: buildWoKeyboard(wo.id, wo.status) },
+  });
+}
+
+/** Help message */
+const HELP_TEXT = `🤖 <b>SWAN GMAO — Commandes disponibles</b>
+
+<b>Ordres de travail :</b>
+/ot <code>{id}</code> — Voir un OT et changer son statut
+/mes_ot — Voir vos OTs assignés
+/commentaire <code>{id}</code> <code>{texte}</code> — Ajouter un commentaire
+
+<b>Signalement :</b>
+/signaler <code>{titre}</code> — Créer un ticket correctif
+/signaler <code>{titre}</code> | <code>{description}</code> — Avec description
+
+<b>Navigation :</b>
+/aide — Afficher ce message d'aide
+
+<b>Boutons interactifs :</b>
+Utilisez les boutons sous chaque OT pour changer le statut ou commenter. Vous pouvez changer le statut autant de fois que nécessaire.`;
+
+// ─── Routes de configuration ──────────────────────────────────────────────────
 
 router.get("/telegram/config", async (req, res) => {
   try {
@@ -65,7 +203,6 @@ router.put("/telegram/config", async (req, res) => {
       await db.update(telegramConfigTable).set({ botToken, botUsername });
     }
 
-    // Automatically register the webhook so button callbacks are received
     const webhookUrl = getWebhookUrl();
     let webhookRegistered = false;
     if (webhookUrl) {
@@ -86,7 +223,6 @@ router.put("/telegram/config", async (req, res) => {
   }
 });
 
-// Get current webhook info from Telegram
 router.get("/telegram/webhook-info", async (req, res) => {
   try {
     const [cfg] = await db.select().from(telegramConfigTable);
@@ -101,7 +237,6 @@ router.get("/telegram/webhook-info", async (req, res) => {
   }
 });
 
-// Manually register / re-register the webhook
 router.post("/telegram/register-webhook", async (req, res) => {
   try {
     const [cfg] = await db.select().from(telegramConfigTable);
@@ -207,26 +342,43 @@ router.get("/telegram/logs", async (req, res) => {
   }
 });
 
-// Webhook for Telegram button callbacks (inline keyboard actions)
+// ─── Webhook principal ────────────────────────────────────────────────────────
 router.post("/telegram/webhook", async (req, res) => {
+  // Always respond 200 immediately to avoid Telegram retry storms
+  res.json({ ok: true });
+
   try {
     const update = req.body;
     const [cfg] = await db.select().from(telegramConfigTable);
     const token = cfg?.botToken;
+    if (!token) return;
 
-    // Handle inline keyboard callback
+    // ── Inline keyboard callback ──────────────────────────────────────────────
     if (update.callback_query) {
       const cb = update.callback_query;
-      const chatId = cb.message?.chat?.id;
+      const chatId = String(cb.message?.chat?.id || "");
       const data: string = cb.data || "";
-      let replyText = "✅ Action enregistrée";
 
-      // wo_status:{woId}:{status}
+      // Acknowledge button press immediately
+      await callTelegramAPI(token, "answerCallbackQuery", {
+        callback_query_id: cb.id,
+        show_alert: false,
+      }).catch(() => {});
+
+      // Remove buttons from original message so it's clear it was acted on
+      if (cb.message?.message_id && chatId) {
+        await callTelegramAPI(token, "editMessageReplyMarkup", {
+          chat_id: chatId,
+          message_id: cb.message.message_id,
+          reply_markup: { inline_keyboard: [] },
+        }).catch(() => {});
+      }
+
+      // ── wo_status:{woId}:{status} ─────────────────────────────────────────
       if (data.startsWith("wo_status:")) {
-        const parts = data.split(":");
-        const woId = Number(parts[1]);
-        const newStatus = parts[2];
-        const validStatuses = ["in_progress", "completed", "on_hold", "cancelled", "open"];
+        const [, rawId, newStatus] = data.split(":");
+        const woId = Number(rawId);
+        const validStatuses = ["open", "in_progress", "completed", "on_hold", "cancelled"];
 
         if (validStatuses.includes(newStatus) && !isNaN(woId)) {
           const updateData: any = { status: newStatus };
@@ -238,90 +390,302 @@ router.post("/telegram/webhook", async (req, res) => {
             .returning();
 
           if (updated) {
-            const statusLabels: Record<string, string> = {
-              in_progress: "▶️ En cours", completed: "✅ Terminé",
-              on_hold: "⏸ En attente", cancelled: "❌ Annulé", open: "🔵 Ouvert",
-            };
-            replyText = `${statusLabels[newStatus] || newStatus} — OT #${woId} mis à jour`;
+            await db.insert(telegramLogsTable).values({
+              chatId, direction: "in", text: data,
+              eventType: "callback",
+              reply: `Statut OT #${woId} → ${STATUS_LABELS[newStatus]}`,
+            });
+            // Send fresh OT card with NEW buttons for the updated status
+            await sendWoCard(token, chatId, updated);
           } else {
-            replyText = `❌ OT #${woId} introuvable`;
+            await callTelegramAPI(token, "sendMessage", {
+              chat_id: chatId,
+              text: `❌ OT #${woId} introuvable.`,
+            });
           }
         }
       }
 
-      // prev_status:{planId}:{status}
-      if (data.startsWith("prev_status:")) {
-        const parts = data.split(":");
-        const planId = Number(parts[1]);
-        const newStatus = parts[2];
-        if (["active", "inactive"].includes(newStatus) && !isNaN(planId)) {
-          await db.update(preventivePlansTable).set({ status: newStatus as any }).where(eq(preventivePlansTable.id, planId));
-          replyText = `⏸ Plan #${planId} reporté`;
+      // ── wo_comment:{woId} ─────────────────────────────────────────────────
+      else if (data.startsWith("wo_comment:")) {
+        const woId = Number(data.split(":")[1]);
+        if (!isNaN(woId)) {
+          pendingActions.set(chatId, { action: "comment", woId });
+          await callTelegramAPI(token, "sendMessage", {
+            chat_id: chatId,
+            text: `💬 Envoyez votre commentaire pour l'OT #${woId} :`,
+          });
+          await db.insert(telegramLogsTable).values({
+            chatId, direction: "in", text: data,
+            eventType: "callback", reply: `Mode commentaire OT #${woId}`,
+          });
         }
       }
 
-      // prev_execute:{planId} — handled externally, just confirm
-      if (data.startsWith("prev_execute:") || data.startsWith("prev_done:")) {
+      // ── prev_status:{planId}:{status} ────────────────────────────────────
+      else if (data.startsWith("prev_status:")) {
+        const [, rawId, newStatus] = data.split(":");
+        const planId = Number(rawId);
+        if (["active", "inactive"].includes(newStatus) && !isNaN(planId)) {
+          await db.update(preventivePlansTable)
+            .set({ status: newStatus as any })
+            .where(eq(preventivePlansTable.id, planId));
+          const label = newStatus === "inactive" ? "⏸ Reporté" : "✅ Activé";
+          await callTelegramAPI(token, "sendMessage", {
+            chat_id: chatId,
+            text: `${label} — Plan préventif #${planId} mis à jour.`,
+          });
+          await db.insert(telegramLogsTable).values({
+            chatId, direction: "in", text: data,
+            eventType: "callback", reply: `Plan #${planId} → ${newStatus}`,
+          });
+        }
+      }
+
+      // ── prev_done:{planId} ────────────────────────────────────────────────
+      else if (data.startsWith("prev_done:")) {
         const planId = Number(data.split(":")[1]);
-        if (data.startsWith("prev_done:")) {
+        if (!isNaN(planId)) {
           await db.update(preventivePlansTable).set({
             lastExecuted: new Date().toISOString().split("T")[0],
             status: "active",
           }).where(eq(preventivePlansTable.id, planId));
-          replyText = `✅ Plan #${planId} marqué comme exécuté`;
-        } else {
-          replyText = `▶️ Pour exécuter le plan #${planId}, utilisez l'application SWAN GMAO`;
-        }
-      }
-
-      // Log incoming callback
-      await db.insert(telegramLogsTable).values({
-        chatId: String(chatId || "unknown"),
-        direction: "in",
-        text: data,
-        eventType: "callback",
-        reply: replyText,
-      });
-
-      // Answer callback query (removes loading state on button)
-      if (token) {
-        await callTelegramAPI(token, "answerCallbackQuery", {
-          callback_query_id: cb.id,
-          text: replyText,
-          show_alert: false,
-        });
-        // Edit the original message to show updated status
-        if (cb.message?.message_id && chatId) {
-          await callTelegramAPI(token, "editMessageReplyMarkup", {
-            chat_id: chatId,
-            message_id: cb.message.message_id,
-            reply_markup: { inline_keyboard: [] },
-          }).catch(() => {});
           await callTelegramAPI(token, "sendMessage", {
             chat_id: chatId,
-            text: replyText,
-          }).catch(() => {});
+            text: `✅ Plan préventif #${planId} marqué comme exécuté.`,
+          });
+          await db.insert(telegramLogsTable).values({
+            chatId, direction: "in", text: data,
+            eventType: "callback", reply: `Plan #${planId} exécuté`,
+          });
         }
       }
+
+      else if (data.startsWith("prev_execute:")) {
+        const planId = Number(data.split(":")[1]);
+        await callTelegramAPI(token, "sendMessage", {
+          chat_id: chatId,
+          text: `▶️ Pour exécuter le plan #${planId}, rendez-vous dans l'application SWAN GMAO.`,
+        });
+      }
+
+      return;
     }
 
-    // Handle regular messages (log them)
+    // ── Regular text message ──────────────────────────────────────────────────
     if (update.message?.text) {
       const msg = update.message;
       const chatId = String(msg.chat?.id || "");
-      const text = msg.text || "";
+      const text: string = (msg.text || "").trim();
 
       await db.insert(telegramLogsTable).values({
         chatId, direction: "in", text, eventType: "message", reply: null,
       }).catch(() => {});
+
+      // ── Pending comment mode ──────────────────────────────────────────────
+      const pending = pendingActions.get(chatId);
+      if (pending?.action === "comment") {
+        pendingActions.delete(chatId);
+        const { woId } = pending;
+        const timestamp = new Date().toLocaleString("fr-DZ", { dateStyle: "short", timeStyle: "short" });
+        const commentLine = `[${timestamp}] ${text}`;
+
+        const [wo] = await db.select().from(workOrdersTable).where(eq(workOrdersTable.id, woId));
+        if (wo) {
+          const newNotes = wo.notes ? `${wo.notes}\n${commentLine}` : commentLine;
+          const [updated] = await db.update(workOrdersTable)
+            .set({ notes: newNotes })
+            .where(eq(workOrdersTable.id, woId))
+            .returning();
+
+          await callTelegramAPI(token, "sendMessage", {
+            chat_id: chatId,
+            text: `✅ Commentaire ajouté à l'OT #${woId}.\n\nVoulez-vous changer le statut ?`,
+            parse_mode: "HTML",
+            reply_markup: { inline_keyboard: buildWoKeyboard(woId, updated.status) },
+          });
+          await db.insert(telegramLogsTable).values({
+            chatId, direction: "out", text: `Commentaire OT #${woId}`,
+            eventType: "comment", reply: text,
+          });
+        } else {
+          await callTelegramAPI(token, "sendMessage", {
+            chat_id: chatId, text: `❌ OT #${woId} introuvable.`,
+          });
+        }
+        return;
+      }
+
+      // ── Command parser ────────────────────────────────────────────────────
+      const lower = text.toLowerCase();
+
+      // /aide or /help or /start
+      if (lower === "/aide" || lower === "/help" || lower === "/start") {
+        await callTelegramAPI(token, "sendMessage", {
+          chat_id: chatId, text: HELP_TEXT, parse_mode: "HTML",
+        });
+        return;
+      }
+
+      // /ot {id}
+      if (lower.startsWith("/ot ") || lower.startsWith("/ot@")) {
+        const woId = Number(text.replace(/\D+/g, "").slice(0, 8));
+        if (!isNaN(woId) && woId > 0) {
+          const [wo] = await db.select().from(workOrdersTable).where(eq(workOrdersTable.id, woId));
+          if (wo) {
+            await sendWoCard(token, chatId, wo);
+          } else {
+            await callTelegramAPI(token, "sendMessage", {
+              chat_id: chatId, text: `❌ OT #${woId} introuvable.`,
+            });
+          }
+        } else {
+          await callTelegramAPI(token, "sendMessage", {
+            chat_id: chatId, text: `⚠️ Usage : <code>/ot 42</code>`, parse_mode: "HTML",
+          });
+        }
+        return;
+      }
+
+      // /mes_ot — list OTs assigned to this technician (lookup by telegramChatId)
+      if (lower === "/mes_ot" || lower === "/mesot") {
+        const techs = await db.select().from(techniciansTable)
+          .where(eq(techniciansTable.telegramChatId, chatId));
+        const tech = techs[0];
+        if (!tech) {
+          await callTelegramAPI(token, "sendMessage", {
+            chat_id: chatId,
+            text: `⚠️ Votre ID Telegram (<code>${chatId}</code>) n'est associé à aucun technicien.\nDemandez à votre administrateur de le configurer dans SWAN GMAO.`,
+            parse_mode: "HTML",
+          });
+          return;
+        }
+        const wos = await db.select().from(workOrdersTable)
+          .where(and(
+            eq(workOrdersTable.technicianId, tech.id),
+          ));
+        const active = wos.filter(w => w.status !== "completed" && w.status !== "cancelled");
+        if (active.length === 0) {
+          await callTelegramAPI(token, "sendMessage", {
+            chat_id: chatId, text: `✅ Aucun OT actif assigné à <b>${tech.name}</b>.`, parse_mode: "HTML",
+          });
+          return;
+        }
+        const lines = active.map(w =>
+          `${PRIORITY_EMOJI[w.priority] || "⚪"} <b>OT #${w.id}</b> — ${w.title}\n   ${STATUS_LABELS[w.status] || w.status} | /ot ${w.id}`
+        );
+        await callTelegramAPI(token, "sendMessage", {
+          chat_id: chatId,
+          text: `📋 <b>Vos OTs actifs — ${tech.name}</b>\n\n${lines.join("\n\n")}`,
+          parse_mode: "HTML",
+        });
+        return;
+      }
+
+      // /commentaire {id} {texte}
+      if (lower.startsWith("/commentaire ")) {
+        const rest = text.slice("/commentaire ".length).trim();
+        const match = rest.match(/^(\d+)\s+(.+)$/s);
+        if (!match) {
+          await callTelegramAPI(token, "sendMessage", {
+            chat_id: chatId,
+            text: `⚠️ Usage : <code>/commentaire 42 Votre commentaire ici</code>`,
+            parse_mode: "HTML",
+          });
+          return;
+        }
+        const woId = Number(match[1]);
+        const comment = match[2].trim();
+        const [wo] = await db.select().from(workOrdersTable).where(eq(workOrdersTable.id, woId));
+        if (!wo) {
+          await callTelegramAPI(token, "sendMessage", {
+            chat_id: chatId, text: `❌ OT #${woId} introuvable.`,
+          });
+          return;
+        }
+        const timestamp = new Date().toLocaleString("fr-DZ", { dateStyle: "short", timeStyle: "short" });
+        const commentLine = `[${timestamp}] ${comment}`;
+        const newNotes = wo.notes ? `${wo.notes}\n${commentLine}` : commentLine;
+        const [updated] = await db.update(workOrdersTable)
+          .set({ notes: newNotes })
+          .where(eq(workOrdersTable.id, woId))
+          .returning();
+        await callTelegramAPI(token, "sendMessage", {
+          chat_id: chatId,
+          text: `✅ Commentaire ajouté à l'OT #${woId}.`,
+          parse_mode: "HTML",
+          reply_markup: { inline_keyboard: buildWoKeyboard(woId, updated.status) },
+        });
+        await db.insert(telegramLogsTable).values({
+          chatId, direction: "out", text: `Commentaire OT #${woId}`,
+          eventType: "comment", reply: comment,
+        });
+        return;
+      }
+
+      // /signaler {titre} or /signaler {titre} | {description}
+      if (lower.startsWith("/signaler ")) {
+        const rest = text.slice("/signaler ".length).trim();
+        if (!rest) {
+          await callTelegramAPI(token, "sendMessage", {
+            chat_id: chatId,
+            text: `⚠️ Usage : <code>/signaler Titre du problème</code>\nou avec description :\n<code>/signaler Compresseur C1 | Vibrations anormales détectées</code>`,
+            parse_mode: "HTML",
+          });
+          return;
+        }
+
+        const parts = rest.split("|");
+        const title = parts[0].trim();
+        const description = parts[1]?.trim() || null;
+
+        // Find technician by chatId to auto-assign
+        const techs = await db.select().from(techniciansTable)
+          .where(eq(techniciansTable.telegramChatId, chatId));
+        const tech = techs[0];
+
+        const [wo] = await db.insert(workOrdersTable).values({
+          title,
+          description: description || `Signalement via Telegram par ${tech?.name || "Technicien"} (chat: ${chatId})`,
+          type: "corrective",
+          priority: "medium",
+          status: "open",
+          technicianId: tech?.id || null,
+          scheduledDate: new Date().toISOString().split("T")[0],
+        }).returning();
+
+        await callTelegramAPI(token, "sendMessage", {
+          chat_id: chatId,
+          text: `✅ <b>Ticket créé — OT #${wo.id}</b>\n\n📋 <b>${wo.title}</b>\n${description ? `📝 ${description}\n` : ""}🟡 Priorité : MEDIUM\n📁 Type : Corrective\n📊 Statut : 🔵 Ouvert\n\nVous pouvez changer le statut ou ajouter des détails :`,
+          parse_mode: "HTML",
+          reply_markup: { inline_keyboard: buildWoKeyboard(wo.id, wo.status) },
+        });
+        await db.insert(telegramLogsTable).values({
+          chatId, direction: "out", text: `/signaler → OT #${wo.id}`,
+          eventType: "ticket_created", reply: `Titre: ${title}`,
+        });
+        return;
+      }
+
+      // /nouveau — guided ticket creation
+      if (lower === "/nouveau") {
+        await callTelegramAPI(token, "sendMessage", {
+          chat_id: chatId,
+          text: `📝 <b>Créer un ticket de signalement</b>\n\nUtilisez la commande :\n<code>/signaler Titre du problème</code>\n\nOu avec une description :\n<code>/signaler Compresseur A3 | Fuite d'huile au niveau du joint</code>\n\nLe ticket sera créé immédiatement avec le statut <b>Ouvert</b> et vous sera assigné.`,
+          parse_mode: "HTML",
+        });
+        return;
+      }
+
+      // Unrecognized message — gentle hint
+      await callTelegramAPI(token, "sendMessage", {
+        chat_id: chatId,
+        text: `Tapez /aide pour voir les commandes disponibles.`,
+      });
     }
 
-    res.json({ ok: true });
-    return;
   } catch (err) {
-    req.log.error({ err }, "Webhook error");
-    res.json({ ok: true }); // Always return 200 to Telegram
-    return;
+    req.log.error({ err }, "Telegram webhook error");
   }
 });
 
