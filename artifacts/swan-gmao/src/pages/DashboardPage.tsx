@@ -356,13 +356,13 @@ export default function DashboardPage() {
   return (
     <div className="space-y-5">
       {/* ── Header ────────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary">Pilotage opérationnel</p>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Tableau de bord</h1>
           <p className="text-xs text-muted-foreground capitalize">{todayLabel}</p>
         </div>
-        <div className="flex items-center gap-2 shrink-0 pt-1">
+        <div className="flex items-center gap-2 pt-1">
           <AnimatePresence>
             {activeFilterCount > 0 && (
               <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}>

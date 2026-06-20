@@ -133,23 +133,25 @@ export default function SettingsPage() {
         <p className="text-sm text-muted-foreground mt-0.5">Configuration de la plateforme SWAN</p>
       </div>
 
-      <div className="flex gap-6">
+      <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
         {/* Sidebar Tabs */}
-        <aside className="w-56 shrink-0 space-y-1">
+        <aside className="sm:w-56 shrink-0">
+          <div className="flex sm:flex-col gap-1 overflow-x-auto sm:overflow-x-visible pb-1 sm:pb-0">
           {TABS.map(({ key, label, icon: Icon }) => (
             <button
               key={key}
               onClick={() => setActiveTab(key)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium transition-colors text-left ${
+              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-2xl text-sm font-medium transition-colors whitespace-nowrap shrink-0 sm:w-full sm:shrink text-left ${
                 activeTab === key
                   ? "bg-primary/10 text-primary"
                   : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
               }`}
             >
-              <Icon className="h-4 w-4" strokeWidth={1.5} />
+              <Icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
               {label}
             </button>
           ))}
+          </div>
         </aside>
 
         <div className="flex-1 min-w-0">

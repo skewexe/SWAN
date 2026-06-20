@@ -151,13 +151,13 @@ export default function PreventivePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary mb-1">Planification</p>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Maintenance préventive</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Plans de maintenance périodique</p>
         </div>
-        <Button onClick={openCreate} className="gap-2 rounded-full" data-testid="button-create-plan">
+        <Button onClick={openCreate} className="gap-2 rounded-full shrink-0" data-testid="button-create-plan">
           <Plus className="h-4 w-4" strokeWidth={1.5} />
           Nouveau plan
         </Button>
@@ -174,13 +174,14 @@ export default function PreventivePage() {
         </motion.div>
       )}
 
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-card border border-border/60 rounded-3xl overflow-x-auto">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-card border border-border/60 rounded-3xl overflow-hidden">
+        <div className="overflow-x-auto">
         {isLoading ? (
           <div className="p-6 space-y-3">
             {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14" />)}
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[760px]">
             <thead>
               <tr className="border-b border-border/60">
                 <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-4">Plan</th>
@@ -297,6 +298,7 @@ export default function PreventivePage() {
             </tbody>
           </table>
         )}
+        </div>
       </motion.div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

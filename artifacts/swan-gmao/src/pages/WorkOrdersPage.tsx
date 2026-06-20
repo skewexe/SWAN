@@ -465,7 +465,7 @@ export default function WorkOrdersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary mb-1">Maintenance</p>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Ordres de travail</h1>
@@ -563,7 +563,8 @@ export default function WorkOrdersPage() {
             {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14" />)}
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[900px]">
             <thead>
               <tr className="border-b border-border/60">
                 {!isReadOnly && !isTechnicien && (
@@ -713,6 +714,7 @@ export default function WorkOrdersPage() {
               )}
             </tbody>
           </table>
+          </div>
         )}
       </motion.div>
 

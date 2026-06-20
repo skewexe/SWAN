@@ -181,13 +181,13 @@ export default function CalendarPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary mb-1">Planification</p>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Calendrier de maintenance</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Suivi et planification des interventions</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <div className="flex rounded-lg border border-border/60 overflow-hidden">
             {(["all","wo","preventive"] as const).map(f => (
               <button
@@ -218,7 +218,7 @@ export default function CalendarPage() {
       </div>
 
       {/* Stats Bar */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: "Total ce mois", value: monthStats.total, color: "#0A6DFF", icon: CalendarDays },
           { label: "Ordres de travail", value: monthStats.woCount, color: "#38BDF8", icon: Wrench },

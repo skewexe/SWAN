@@ -260,13 +260,13 @@ export default function TechniciansPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary mb-1">Ressources humaines</p>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Personnel</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Évaluation & charge de l'équipe de maintenance</p>
         </div>
-        <Button onClick={openCreate} className="gap-2 rounded-full" data-testid="button-create-tech">
+        <Button onClick={openCreate} className="gap-2 rounded-full shrink-0" data-testid="button-create-tech">
           <Plus className="h-4 w-4" strokeWidth={1.5} />
           Nouveau technicien
         </Button>
@@ -399,7 +399,8 @@ export default function TechniciansPage() {
             <h3 className="text-sm font-semibold text-foreground">Charge opérationnelle</h3>
             <span className="text-xs text-muted-foreground ml-1">— OT actifs par technicien</span>
           </div>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[540px]">
             <thead>
               <tr className="border-b border-border/30">
                 <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-3">Technicien</th>
@@ -464,6 +465,7 @@ export default function TechniciansPage() {
               })}
             </tbody>
           </table>
+          </div>
         </motion.div>
       )}
 

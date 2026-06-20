@@ -974,18 +974,21 @@ export default function AssetsPage() {
           </p>
         </div>
         {!isReadOnly && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => setImportOpen(true)} className="gap-1.5 text-xs rounded-full">
               <FileSpreadsheet className="h-3.5 w-3.5" strokeWidth={1.5} />
-              Import CSV / Excel
+              <span className="hidden sm:inline">Import CSV / Excel</span>
+              <span className="sm:hidden">Import</span>
             </Button>
             <Button variant="outline" size="sm" onClick={() => setBulkOpen(true)} className="gap-1.5 text-xs rounded-full">
               <Layers className="h-3.5 w-3.5" strokeWidth={1.5} />
-              Création par types
+              <span className="hidden sm:inline">Création par types</span>
+              <span className="sm:hidden">Types</span>
             </Button>
             <Button onClick={openCreate} className="gap-2 rounded-full" size="sm" data-testid="button-create-asset">
               <Plus className="h-4 w-4" strokeWidth={1.5} />
-              Nouvel équipement
+              <span className="hidden sm:inline">Nouvel équipement</span>
+              <span className="sm:hidden">Nouveau</span>
             </Button>
           </div>
         )}
@@ -1008,8 +1011,8 @@ export default function AssetsPage() {
       </div>
 
       {/* Filters + View Toggle */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[180px] max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
           <Input
             data-testid="input-search-assets"
@@ -1078,7 +1081,8 @@ export default function AssetsPage() {
             {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14" />)}
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[720px]">
             <thead>
               <tr className="border-b border-border/60 bg-muted/20">
                 <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-6 py-4">Équipement</th>
@@ -1192,6 +1196,7 @@ export default function AssetsPage() {
               )}
             </tbody>
           </table>
+          </div>
         )}
       </motion.div>}
 
