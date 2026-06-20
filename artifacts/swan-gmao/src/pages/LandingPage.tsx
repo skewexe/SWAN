@@ -624,13 +624,8 @@ export default function LandingPage() {
                       strokeWidth={1.5}
                     />
                   </div>
-                  <div>
-                    <div className="font-semibold text-foreground">
-                      {plan.name}
-                    </div>
-                    <div className="text-[11px] text-muted-foreground">
-                      {plan.price}
-                    </div>
+                  <div className="font-semibold text-foreground">
+                    {plan.name}
                   </div>
                 </div>
 
@@ -732,12 +727,12 @@ export default function LandingPage() {
               production. Premier déploiement en 48h, sans engagement.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <Link href="/register">
+              <Link href="/demander-acces">
                 <Button
                   size="lg"
                   className="h-12 rounded-full px-8 text-[0.95rem] font-medium"
                 >
-                  Demander un accès gratuit
+                  Demander un accès
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
@@ -747,7 +742,7 @@ export default function LandingPage() {
                   variant="outline"
                   className="h-12 rounded-full px-8 text-[0.95rem] font-medium"
                 >
-                  Explorer la démo
+                  Se connecter
                 </Button>
               </Link>
             </div>
@@ -808,19 +803,14 @@ export default function LandingPage() {
               </div>
               <ul className="space-y-2.5 text-[0.875rem] text-muted-foreground">
                 {[
-                  "Fonctionnalités",
-                  "Modules",
-                  "Offres",
-                  "Sécurité",
-                  "Mises à jour",
-                ].map((l) => (
-                  <li key={l}>
-                    <Link
-                      href="/"
-                      className="hover:text-foreground transition-colors"
-                    >
-                      {l}
-                    </Link>
+                  { label: "Fonctionnalités", href: "/fonctionnalites" },
+                  { label: "Modules",          href: "/modules" },
+                  { label: "Offres",           href: "/offres" },
+                  { label: "Sécurité",         href: "/securite" },
+                  { label: "Mises à jour",     href: "/mises-a-jour" },
+                ].map(({ label, href }) => (
+                  <li key={href}>
+                    <Link href={href} className="hover:text-foreground transition-colors">{label}</Link>
                   </li>
                 ))}
               </ul>
@@ -833,19 +823,15 @@ export default function LandingPage() {
               </div>
               <ul className="space-y-2.5 text-[0.875rem] text-muted-foreground">
                 {[
-                  { label: "Documentation", href: "/faq" },
-                  { label: "FAQ", href: "/faq" },
-                  { label: "À propos", href: "/about" },
-                  { label: "Connexion", href: "/login" },
-                  { label: "Demander un accès", href: "/register" },
+                  { label: "Documentation",     href: "/documentation" },
+                  { label: "Ressources",         href: "/ressources" },
+                  { label: "FAQ",                href: "/faq" },
+                  { label: "À propos",           href: "/about" },
+                  { label: "Connexion",          href: "/login" },
+                  { label: "Demander un accès",  href: "/demander-acces" },
                 ].map(({ label, href }) => (
-                  <li key={label}>
-                    <Link
-                      href={href}
-                      className="hover:text-foreground transition-colors"
-                    >
-                      {label}
-                    </Link>
+                  <li key={href}>
+                    <Link href={href} className="hover:text-foreground transition-colors">{label}</Link>
                   </li>
                 ))}
               </ul>
@@ -858,18 +844,13 @@ export default function LandingPage() {
               </div>
               <ul className="space-y-2.5 text-[0.875rem] text-muted-foreground">
                 {[
-                  "Mentions légales",
-                  "Politique de confidentialité",
-                  "CGU",
-                  "RGPD",
-                ].map((l) => (
-                  <li key={l}>
-                    <Link
-                      href="/"
-                      className="hover:text-foreground transition-colors"
-                    >
-                      {l}
-                    </Link>
+                  { label: "Mentions légales",           href: "/legal/mentions-legales" },
+                  { label: "Politique de confidentialité", href: "/legal/confidentialite" },
+                  { label: "CGU",                        href: "/legal/cgu" },
+                  { label: "RGPD",                       href: "/legal/rgpd" },
+                ].map(({ label, href }) => (
+                  <li key={href}>
+                    <Link href={href} className="hover:text-foreground transition-colors">{label}</Link>
                   </li>
                 ))}
               </ul>
