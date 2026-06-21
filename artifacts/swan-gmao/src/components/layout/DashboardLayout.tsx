@@ -10,6 +10,8 @@ import { useRBAC, NAV_ITEMS, ROLE_META } from "@/context/RBACContext";
 import { useAuth } from "@/context/AuthContext";
 import { FloatingHeaderShell } from "@/components/layout/FloatingHeaderShell";
 import { motion, AnimatePresence } from "framer-motion";
+import { useCompany } from "@/context/CompanyContext";
+import { OnboardingFlow } from "@/components/OnboardingFlow";
 
 const ICON_MAP: Record<string, React.ComponentType<any>> = {
   LayoutDashboard, Wrench, ClipboardList, CalendarClock,
@@ -20,8 +22,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
   const { user, visibleNav } = useRBAC();
   const { isAuthenticated, logout } = useAuth();
+  const { profile } = useCompany();
   const roleMeta = ROLE_META[user.role];
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const showOnboarding = !profile.onboardingDone;
 
   // Close sidebar on route change (mobile)
   useEffect(() => {
@@ -44,12 +48,30 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   const SidebarContent = () => (
     <>
-      <div className="h-16 flex items-center px-6 border-b border-border/50 shrink-0">
-        <Link href="/dashboard" className="flex items-center gap-3 transition-opacity hover:opacity-80">
-          <img src={swanLogo} alt="SWAN Logo" className="h-10 w-auto" />
-          <div>
-            <div className="text-[11px] font-semibold tracking-[0.2em] uppercase">SWAN</div>
-            <div className="text-[10px] text-muted-foreground">Industrial maintenance platform</div>
+      <div className="h-16 flex items-center px-4 border-b border-border/50 shrink-0">
+        <Link href="/dashboard" className="flex items-center gap-3 transition-opacity hover:opacity-80 min-w-0">
+          {profile.logoUrl ? (
+            <img
+              src={profile.logoUrl}
+              alt="Logo"
+              className="h-9 w-9 rounded-xl object-contain bg-background/60 border border-border/30 p-1 shrink-0"
+              onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+            />
+          ) : (
+            <img src={swanLogo} alt="SWAN Logo" className="h-9 w-auto shrink-0" />
+          )}
+          <div className="min-w-0">
+            {profile.name ? (
+              <>
+                <div className="text-[11px] font-bold tracking-wide truncate text-foreground leading-tight">{profile.name}</div>
+                <div className="text-[10px] text-muted-foreground">via SWAN GMAO</div>
+              </>
+            ) : (
+              <>
+                <div className="text-[11px] font-semibold tracking-[0.2em] uppercase">SWAN</div>
+                <div className="text-[10px] text-muted-foreground">Industrial maintenance platform</div>
+              </>
+            )}
           </div>
         </Link>
       </div>
@@ -103,6 +125,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex font-sans">
+      {/* Onboarding overlay — shown on first sign-in */}
+      <AnimatePresence>
+        {showOnboarding && <OnboardingFlow />}
+      </AnimatePresence>
       {/* Desktop sidebar — always visible on lg+ */}
       <aside className="hidden lg:flex w-64 xl:w-72 border-r border-border/50 bg-card/70 flex-col shrink-0 sticky top-0 h-screen backdrop-blur-md">
         <SidebarContent />

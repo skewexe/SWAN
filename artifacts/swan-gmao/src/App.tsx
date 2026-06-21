@@ -7,6 +7,7 @@ import { PublicLayout } from "@/components/layout/PublicLayout";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { AuthProvider } from "@/context/AuthContext";
 import { RBACProvider } from "@/context/RBACContext";
+import { CompanyProvider } from "@/context/CompanyContext";
 
 import LandingPage from "@/pages/LandingPage";
 import LoginPage from "@/pages/LoginPage";
@@ -95,13 +96,15 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <AuthProvider>
-          <RBACProvider>
-            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-              <Router />
-            </WouterRouter>
-          </RBACProvider>
-        </AuthProvider>
+        <CompanyProvider>
+          <AuthProvider>
+            <RBACProvider>
+              <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+                <Router />
+              </WouterRouter>
+            </RBACProvider>
+          </AuthProvider>
+        </CompanyProvider>
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
