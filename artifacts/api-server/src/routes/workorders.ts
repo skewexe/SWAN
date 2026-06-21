@@ -164,6 +164,36 @@ router.put("/workorders/:id", async (req, res) => {
   }
 });
 
+// POST /workorders/:id/add-comment — append a comment to the notes field
+router.post("/workorders/:id/add-comment", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+    const text = String(req.body?.text || "").trim();
+    const author = String(req.body?.author || "Administrateur").trim() || "Administrateur";
+    if (!text) { res.status(400).json({ error: "text is required" }); return; }
+
+    const [wo] = await db.select().from(workOrdersTable).where(eq(workOrdersTable.id, id));
+    if (!wo) { res.status(404).json({ error: "Work order not found" }); return; }
+
+    const timestamp = new Date().toLocaleString("fr-DZ", { dateStyle: "short", timeStyle: "short" });
+    const commentLine = `[${timestamp}][${author}] ${text}`;
+    const newNotes = wo.notes ? `${wo.notes}\n${commentLine}` : commentLine;
+
+    const [updated] = await db.update(workOrdersTable)
+      .set({ notes: newNotes })
+      .where(eq(workOrdersTable.id, id))
+      .returning();
+
+    res.json({ ok: true, notes: updated.notes });
+    return;
+  } catch (err) {
+    req.log.error({ err }, "Error adding comment to work order");
+    res.status(500).json({ error: "Internal server error" });
+    return;
+  }
+});
+
 router.delete("/workorders/:id", async (req, res) => {
   try {
     const { id } = DeleteWorkOrderParams.parse({ id: Number(req.params.id) });

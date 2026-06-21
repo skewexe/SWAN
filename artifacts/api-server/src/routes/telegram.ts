@@ -6,8 +6,13 @@ import https from "https";
 const router = Router();
 
 // ─── In-memory pending action state (multi-step conversations) ────────────────
-// Maps chatId → { action: "comment", woId: number }
-const pendingActions = new Map<string, { action: "comment"; woId: number }>();
+type PendingAction =
+  | { action: "comment"; woId: number }
+  | { action: "create_ot_title" }
+  | { action: "create_ot_priority"; title: string }
+  | { action: "create_ot_description"; title: string; priority: string };
+
+const pendingActions = new Map<string, PendingAction>();
 
 // ─── Telegram API helper ──────────────────────────────────────────────────────
 async function callTelegramAPI(token: string, method: string, body?: object): Promise<any> {
@@ -157,8 +162,9 @@ const HELP_TEXT = `🤖 <b>SWAN GMAO — Commandes disponibles</b>
 /mes_ot — Voir vos OTs assignés
 /commentaire <code>{id}</code> <code>{texte}</code> — Ajouter un commentaire
 
-<b>Signalement :</b>
-/signaler <code>{titre}</code> — Créer un ticket correctif
+<b>Création d'OT :</b>
+/creer_ot — Créer un OT guidé (3 étapes)
+/signaler <code>{titre}</code> — Ticket correctif rapide
 /signaler <code>{titre}</code> | <code>{description}</code> — Avec description
 
 <b>Navigation :</b>
@@ -461,6 +467,29 @@ router.post("/telegram/webhook", async (req, res) => {
         }
       }
 
+      // ── create_prio:{priority} ─────────────────────────────────────────────
+      else if (data.startsWith("create_prio:")) {
+        const priority = data.split(":")[1];
+        const pending = pendingActions.get(chatId);
+        if (pending?.action === "create_ot_priority") {
+          const { title } = pending;
+          pendingActions.set(chatId, { action: "create_ot_description", title, priority });
+          const PRIORITY_LABELS: Record<string, string> = {
+            low: "🟢 Faible", medium: "🟡 Moyenne", high: "🟠 Élevée", critical: "🔴 Critique",
+          };
+          await callTelegramAPI(token, "sendMessage", {
+            chat_id: chatId,
+            text: `✅ Priorité : <b>${PRIORITY_LABELS[priority] || priority}</b>\n\n📝 <b>Étape 3/3</b> — Envoyez une description pour l'OT :\n\n<i>Ou envoyez</i> <code>/ignorer</code> <i>pour créer l'OT sans description.</i>`,
+            parse_mode: "HTML",
+          });
+        } else {
+          await callTelegramAPI(token, "sendMessage", {
+            chat_id: chatId,
+            text: `⚠️ Session expirée. Recommencez avec /creer_ot`,
+          });
+        }
+      }
+
       else if (data.startsWith("prev_execute:")) {
         const planId = Number(data.split(":")[1]);
         await callTelegramAPI(token, "sendMessage", {
@@ -482,13 +511,22 @@ router.post("/telegram/webhook", async (req, res) => {
         chatId, direction: "in", text, eventType: "message", reply: null,
       }).catch(() => {});
 
-      // ── Pending comment mode ──────────────────────────────────────────────
+      // ── Pending multi-step actions ────────────────────────────────────────
       const pending = pendingActions.get(chatId);
+
+      // ─ Step: waiting for comment text ─
       if (pending?.action === "comment") {
         pendingActions.delete(chatId);
         const { woId } = pending;
+
+        // Resolve technician name for attribution
+        const techs = await db.select().from(techniciansTable)
+          .where(eq(techniciansTable.telegramChatId, chatId));
+        const tech = techs[0];
+        const authorName = tech?.name || "Telegram";
+
         const timestamp = new Date().toLocaleString("fr-DZ", { dateStyle: "short", timeStyle: "short" });
-        const commentLine = `[${timestamp}] ${text}`;
+        const commentLine = `[${timestamp}][${authorName}] ${text}`;
 
         const [wo] = await db.select().from(workOrdersTable).where(eq(workOrdersTable.id, woId));
         if (wo) {
@@ -513,6 +551,77 @@ router.post("/telegram/webhook", async (req, res) => {
             chat_id: chatId, text: `❌ OT #${woId} introuvable.`,
           });
         }
+        return;
+      }
+
+      // ─ Step 1: waiting for OT title ─
+      if (pending?.action === "create_ot_title") {
+        const title = text.trim();
+        if (!title || title.startsWith("/")) {
+          await callTelegramAPI(token, "sendMessage", {
+            chat_id: chatId,
+            text: `⚠️ Titre invalide. Envoyez simplement le titre de l'OT (ex: <code>Pompe A3 — fuite d'huile</code>)`,
+            parse_mode: "HTML",
+          });
+          return;
+        }
+        pendingActions.set(chatId, { action: "create_ot_priority", title });
+        await callTelegramAPI(token, "sendMessage", {
+          chat_id: chatId,
+          text: `📋 <b>Titre :</b> ${title}\n\n🎯 <b>Étape 2/3</b> — Choisissez la priorité :`,
+          parse_mode: "HTML",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: "🟢 Faible", callback_data: "create_prio:low" },
+                { text: "🟡 Moyenne", callback_data: "create_prio:medium" },
+              ],
+              [
+                { text: "🟠 Élevée", callback_data: "create_prio:high" },
+                { text: "🔴 Critique", callback_data: "create_prio:critical" },
+              ],
+            ],
+          },
+        });
+        return;
+      }
+
+      // ─ Step 3: waiting for OT description (or /ignorer) ─
+      if (pending?.action === "create_ot_description") {
+        pendingActions.delete(chatId);
+        const { title, priority } = pending;
+        const description = (text.trim().toLowerCase() === "/ignorer" || text.trim().toLowerCase() === "/skip")
+          ? null
+          : text.trim();
+
+        const techs = await db.select().from(techniciansTable)
+          .where(eq(techniciansTable.telegramChatId, chatId));
+        const tech = techs[0];
+
+        const PRIORITY_LABELS: Record<string, string> = {
+          low: "🟢 Faible", medium: "🟡 Moyenne", high: "🟠 Élevée", critical: "🔴 Critique",
+        };
+
+        const [wo] = await db.insert(workOrdersTable).values({
+          title,
+          description: description || `OT créé via Telegram par ${tech?.name || "Technicien"} (chat: ${chatId})`,
+          type: "corrective",
+          priority: priority as any,
+          status: "open",
+          technicianId: tech?.id || null,
+          scheduledDate: new Date().toISOString().split("T")[0],
+        }).returning();
+
+        await callTelegramAPI(token, "sendMessage", {
+          chat_id: chatId,
+          text: `✅ <b>OT créé — #${wo.id}</b>\n\n📋 <b>${wo.title}</b>\n${description ? `📝 ${description}\n` : ""}${PRIORITY_LABELS[priority] || priority} | 📁 Corrective | 🔵 Ouvert${tech ? `\n👤 Assigné à : ${tech.name}` : ""}\n\nVous pouvez maintenant gérer le statut :`,
+          parse_mode: "HTML",
+          reply_markup: { inline_keyboard: buildWoKeyboard(wo.id, wo.status) },
+        });
+        await db.insert(telegramLogsTable).values({
+          chatId, direction: "out", text: `/creer_ot → OT #${wo.id}`,
+          eventType: "ticket_created", reply: `Titre: ${title} | Priorité: ${priority}`,
+        });
         return;
       }
 
@@ -664,6 +773,21 @@ router.post("/telegram/webhook", async (req, res) => {
           chatId, direction: "out", text: `/signaler → OT #${wo.id}`,
           eventType: "ticket_created", reply: `Titre: ${title}`,
         });
+        return;
+      }
+
+      // /creer_ot — guided multi-step OT creation
+      if (lower === "/creer_ot" || lower === "/creer_ot@swangmaibot" || lower === "/creer") {
+        pendingActions.set(chatId, { action: "create_ot_title" });
+        await callTelegramAPI(token, "sendMessage", {
+          chat_id: chatId,
+          text: `📝 <b>Créer un OT — Étape 1/3</b>\n\nEnvoyez le <b>titre</b> de l'ordre de travail :\n\n<i>Exemple : Pompe centrifuge A3 — fuite d'huile détectée</i>`,
+          parse_mode: "HTML",
+        });
+        await db.insert(telegramLogsTable).values({
+          chatId, direction: "out", text: "/creer_ot démarré",
+          eventType: "create_ot", reply: "Étape 1 — attente titre",
+        }).catch(() => {});
         return;
       }
 

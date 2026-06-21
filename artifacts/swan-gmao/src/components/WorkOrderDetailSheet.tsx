@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   useGetWorkOrderParts,
   useUpdateWorkOrder,
@@ -12,12 +12,14 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Wrench, User, Calendar, Clock, Package, Tag, 
+  Wrench, User, Calendar, Clock, Package, Tag,
   CheckCircle2, Circle, Loader2, AlertTriangle, Info, Hash,
-  MapPin, Building2, SlidersHorizontal, MessageSquare,
+  MapPin, Building2, SlidersHorizontal, MessageSquare, Send,
+  Bot, UserCircle2,
 } from "lucide-react";
 
 type WOStatus = "open" | "in_progress" | "completed" | "on_hold" | "cancelled";
@@ -54,6 +56,94 @@ const ASSIGNMENT_MODE_LABELS: Record<AssignmentMode, string> = {
   by_type: "Par type",
 };
 
+// ─── Comment parsing ──────────────────────────────────────────────────────────
+interface ParsedComment {
+  timestamp: string;
+  author: string;
+  text: string;
+  source: "telegram" | "web" | "unknown";
+}
+
+function parseComments(notes: string | null | undefined): ParsedComment[] {
+  if (!notes?.trim()) return [];
+  return notes
+    .split("\n")
+    .map(line => line.trim())
+    .filter(Boolean)
+    .map(line => {
+      // Format: [timestamp][author] text  OR  [timestamp] text
+      const full = line.match(/^\[([^\]]+)\]\[([^\]]+)\]\s*(.+)$/s);
+      if (full) {
+        const source: ParsedComment["source"] =
+          full[2] === "Telegram" ? "telegram"
+          : full[2] === "Administrateur" || full[2] === "Web" ? "web"
+          : "telegram";
+        return { timestamp: full[1], author: full[2], text: full[3], source };
+      }
+      const simple = line.match(/^\[([^\]]+)\]\s*(.+)$/s);
+      if (simple) {
+        return { timestamp: simple[1], author: "Telegram", text: simple[2], source: "telegram" as const };
+      }
+      return { timestamp: "", author: "Système", text: line, source: "unknown" as const };
+    });
+}
+
+// ─── Comment bubble component ─────────────────────────────────────────────────
+function CommentBubble({ comment, index }: { comment: ParsedComment; index: number }) {
+  const isTelegram = comment.source === "telegram";
+  const isWeb = comment.source === "web";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.04 }}
+      className="flex items-start gap-2.5"
+    >
+      {/* Avatar */}
+      <div className={`h-7 w-7 rounded-full shrink-0 flex items-center justify-center mt-0.5 ${
+        isTelegram ? "bg-[#2AABEE]/15 text-[#2AABEE]"
+        : isWeb ? "bg-primary/10 text-primary"
+        : "bg-muted text-muted-foreground"
+      }`}>
+        {isTelegram
+          ? <Bot className="h-3.5 w-3.5" strokeWidth={1.5} />
+          : <UserCircle2 className="h-3.5 w-3.5" strokeWidth={1.5} />
+        }
+      </div>
+
+      {/* Bubble */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1">
+          <span className={`text-xs font-semibold ${
+            isTelegram ? "text-[#2AABEE]" : isWeb ? "text-primary" : "text-muted-foreground"
+          }`}>
+            {comment.author}
+          </span>
+          {isTelegram && (
+            <span className="text-[10px] bg-[#2AABEE]/10 text-[#2AABEE] px-1.5 py-0.5 rounded-full font-medium">
+              Telegram
+            </span>
+          )}
+          {comment.timestamp && (
+            <span className="text-[10px] text-muted-foreground/60 ml-auto">{comment.timestamp}</span>
+          )}
+        </div>
+        <div className={`text-xs leading-relaxed text-foreground/90 rounded-xl rounded-tl-sm px-3 py-2 ${
+          isTelegram
+            ? "bg-[#2AABEE]/8 border border-[#2AABEE]/15"
+            : isWeb
+            ? "bg-primary/8 border border-primary/15"
+            : "bg-muted/50 border border-border/40"
+        }`}>
+          {comment.text}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── InfoRow ──────────────────────────────────────────────────────────────────
 function InfoRow({ icon: Icon, label, value, valueClass = "" }: {
   icon: any; label: string; value: React.ReactNode; valueClass?: string;
 }) {
@@ -68,6 +158,7 @@ function InfoRow({ icon: Icon, label, value, valueClass = "" }: {
   );
 }
 
+// ─── Main component ───────────────────────────────────────────────────────────
 interface Props {
   workOrder: any | null;
   open: boolean;
@@ -81,6 +172,10 @@ export function WorkOrderDetailSheet({ workOrder, open, onClose }: Props) {
   const [showCompletePrompt, setShowCompletePrompt] = useState(false);
   const [actualHoursInput, setActualHoursInput] = useState("");
   const [completionNoteInput, setCompletionNoteInput] = useState("");
+  const [commentInput, setCommentInput] = useState("");
+  const [commentAuthor, setCommentAuthor] = useState("Administrateur");
+  const [addingComment, setAddingComment] = useState(false);
+  const commentsEndRef = useRef<HTMLDivElement>(null);
 
   const woId = workOrder?.id ?? 0;
   const { data: parts, isLoading: partsLoading } = useGetWorkOrderParts(
@@ -92,6 +187,13 @@ export function WorkOrderDetailSheet({ workOrder, open, onClose }: Props) {
   const priority = PRIORITY_MAP[workOrder?.priority as WOPriority];
   const type = TYPE_MAP[workOrder?.type as WOType];
   const totalPartsCost = parts?.reduce((s, p) => s + (p.totalCost ?? 0), 0) ?? 0;
+  const comments = parseComments(workOrder?.notes);
+
+  useEffect(() => {
+    if (commentsEndRef.current) {
+      commentsEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [comments.length]);
 
   const changeStatus = (newStatus: WOStatus) => {
     if (!workOrder || newStatus === workOrder.status) return;
@@ -134,6 +236,36 @@ export function WorkOrderDetailSheet({ workOrder, open, onClose }: Props) {
         onError: () => toast({ title: "Erreur", variant: "destructive" }),
       }
     );
+  };
+
+  const submitComment = async () => {
+    if (!workOrder || !commentInput.trim()) return;
+    setAddingComment(true);
+    try {
+      const res = await fetch(`/api/workorders/${workOrder.id}/add-comment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: commentInput.trim(), author: commentAuthor }),
+      });
+      if (res.ok) {
+        setCommentInput("");
+        queryClient.invalidateQueries({ queryKey: getGetWorkOrdersQueryKey() });
+        toast({ title: "Commentaire ajouté" });
+      } else {
+        toast({ title: "Erreur", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Erreur réseau", variant: "destructive" });
+    } finally {
+      setAddingComment(false);
+    }
+  };
+
+  const handleCommentKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      submitComment();
+    }
   };
 
   return (
@@ -182,8 +314,6 @@ export function WorkOrderDetailSheet({ workOrder, open, onClose }: Props) {
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                   Changer le statut
                 </p>
-
-                {/* Completion prompt (shown when clicking Terminé) */}
                 {showCompletePrompt ? (
                   <div className="bg-green-500/5 border border-green-500/30 rounded-xl p-4 space-y-3">
                     <div className="flex items-center gap-2">
@@ -221,12 +351,7 @@ export function WorkOrderDetailSheet({ workOrder, open, onClose }: Props) {
                         <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={2} />
                         Confirmer la clôture
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setShowCompletePrompt(false)}
-                        disabled={updateWO.isPending}
-                      >
+                      <Button size="sm" variant="outline" onClick={() => setShowCompletePrompt(false)} disabled={updateWO.isPending}>
                         Annuler
                       </Button>
                     </div>
@@ -235,23 +360,21 @@ export function WorkOrderDetailSheet({ workOrder, open, onClose }: Props) {
                   <div className="grid grid-cols-2 gap-2">
                     {STATUS_FLOW.filter(s => s.key !== "cancelled").map((s) => {
                       const isCurrent = workOrder.status === s.key;
-                      const isPending = updateWO.isPending;
                       return (
                         <button
                           key={s.key}
                           onClick={() => changeStatus(s.key)}
-                          disabled={isCurrent || isPending}
+                          disabled={isCurrent || updateWO.isPending}
                           className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all ${
                             isCurrent
                               ? `border-current opacity-90 cursor-default ${s.bg}`
                               : "border-border/40 text-muted-foreground hover:border-border bg-background/50 hover:bg-muted/50"
                           }`}
                         >
-                          {isCurrent ? (
-                            <CheckCircle2 className="h-3.5 w-3.5 shrink-0" strokeWidth={2} style={{ color: s.color }} />
-                          ) : (
-                            <Circle className="h-3.5 w-3.5 shrink-0 text-border" strokeWidth={1.5} />
-                          )}
+                          {isCurrent
+                            ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0" strokeWidth={2} style={{ color: s.color }} />
+                            : <Circle className="h-3.5 w-3.5 shrink-0 text-border" strokeWidth={1.5} />
+                          }
                           {s.label}
                         </button>
                       );
@@ -265,11 +388,10 @@ export function WorkOrderDetailSheet({ workOrder, open, onClose }: Props) {
                           : "border-border/40 text-muted-foreground hover:border-destructive/50 hover:text-destructive bg-background/50 hover:bg-destructive/5"
                       }`}
                     >
-                      {workOrder.status === "cancelled" ? (
-                        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={2} />
-                      ) : (
-                        <AlertTriangle className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
-                      )}
+                      {workOrder.status === "cancelled"
+                        ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" strokeWidth={2} />
+                        : <AlertTriangle className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
+                      }
                       Annuler l'OT
                     </button>
                   </div>
@@ -288,12 +410,8 @@ export function WorkOrderDetailSheet({ workOrder, open, onClose }: Props) {
                   <InfoRow icon={Hash} label="ID" value={`#OT-${String(workOrder.id).padStart(4, "0")}`} />
                   <InfoRow icon={Tag} label="Équipement" value={workOrder.assetName} />
                   <InfoRow icon={User} label="Technicien" value={workOrder.technicianName} />
-                  {workOrder.siteName && (
-                    <InfoRow icon={Building2} label="Site" value={workOrder.siteName} />
-                  )}
-                  {workOrder.zoneName && (
-                    <InfoRow icon={MapPin} label="Zone" value={workOrder.zoneName} />
-                  )}
+                  {workOrder.siteName && <InfoRow icon={Building2} label="Site" value={workOrder.siteName} />}
+                  {workOrder.zoneName && <InfoRow icon={MapPin} label="Zone" value={workOrder.zoneName} />}
                   {workOrder.assignmentMode && (
                     <InfoRow
                       icon={SlidersHorizontal}
@@ -302,9 +420,7 @@ export function WorkOrderDetailSheet({ workOrder, open, onClose }: Props) {
                     />
                   )}
                   <InfoRow icon={Calendar} label="Date planifiée" value={
-                    workOrder.scheduledDate
-                      ? new Date(workOrder.scheduledDate).toLocaleDateString("fr-DZ")
-                      : undefined
+                    workOrder.scheduledDate ? new Date(workOrder.scheduledDate).toLocaleDateString("fr-DZ") : undefined
                   } />
                   {workOrder.completedDate && (
                     <InfoRow icon={CheckCircle2} label="Date clôture" value={
@@ -323,23 +439,77 @@ export function WorkOrderDetailSheet({ workOrder, open, onClose }: Props) {
                 </div>
               </div>
 
-              {/* Notes Telegram */}
-              {workOrder.notes && (
-                <div>
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                    Notes &amp; commentaires
+              {/* ── Comments section ─────────────────────────────────────────── */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Commentaires
+                    {comments.length > 0 && (
+                      <span className="ml-2 text-primary">({comments.length})</span>
+                    )}
                   </p>
-                  <div className="bg-background/50 border border-primary/20 rounded-xl p-4">
-                    <div className="flex items-start gap-2 mb-2">
-                      <MessageSquare className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" strokeWidth={1.5} />
-                      <span className="text-xs text-primary font-medium">Via Telegram</span>
-                    </div>
-                    <pre className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap font-sans">
-                      {workOrder.notes}
-                    </pre>
+                  <div className="flex items-center gap-1">
+                    <Bot className="h-3 w-3 text-[#2AABEE]" strokeWidth={1.5} />
+                    <span className="text-[10px] text-muted-foreground">Telegram</span>
+                    <span className="text-muted-foreground/40 mx-1">·</span>
+                    <UserCircle2 className="h-3 w-3 text-primary" strokeWidth={1.5} />
+                    <span className="text-[10px] text-muted-foreground">Web</span>
                   </div>
                 </div>
-              )}
+
+                {/* Comment list */}
+                <div className="space-y-3 mb-4 max-h-[300px] overflow-y-auto pr-1">
+                  <AnimatePresence>
+                    {comments.length === 0 ? (
+                      <div className="text-center py-8 border border-dashed border-border/40 rounded-xl bg-background/30">
+                        <MessageSquare className="h-6 w-6 mx-auto mb-2 text-muted-foreground/30" strokeWidth={1} />
+                        <p className="text-xs text-muted-foreground">Aucun commentaire</p>
+                        <p className="text-[10px] text-muted-foreground/60 mt-1">
+                          Via Telegram ou le formulaire ci-dessous
+                        </p>
+                      </div>
+                    ) : (
+                      comments.map((c, i) => (
+                        <CommentBubble key={i} comment={c} index={i} />
+                      ))
+                    )}
+                  </AnimatePresence>
+                  <div ref={commentsEndRef} />
+                </div>
+
+                {/* Add comment form */}
+                <div className="bg-background/50 border border-border/40 rounded-xl p-3 space-y-2">
+                  <div className="flex items-center gap-2 mb-2">
+                    <UserCircle2 className="h-3.5 w-3.5 text-primary" strokeWidth={1.5} />
+                    <input
+                      value={commentAuthor}
+                      onChange={e => setCommentAuthor(e.target.value)}
+                      className="text-xs font-medium text-primary bg-transparent border-none outline-none flex-1 min-w-0"
+                      placeholder="Votre nom"
+                    />
+                  </div>
+                  <Textarea
+                    placeholder="Ajouter un commentaire… (Ctrl+Entrée pour envoyer)"
+                    rows={2}
+                    value={commentInput}
+                    onChange={e => setCommentInput(e.target.value)}
+                    onKeyDown={handleCommentKeyDown}
+                    className="text-xs resize-none border-border/40 bg-background/50"
+                  />
+                  <Button
+                    size="sm"
+                    className="w-full gap-1.5 rounded-lg"
+                    onClick={submitComment}
+                    disabled={addingComment || !commentInput.trim()}
+                  >
+                    {addingComment
+                      ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      : <Send className="h-3.5 w-3.5" strokeWidth={1.5} />
+                    }
+                    Envoyer le commentaire
+                  </Button>
+                </div>
+              </div>
 
               {/* Parts */}
               <div>
