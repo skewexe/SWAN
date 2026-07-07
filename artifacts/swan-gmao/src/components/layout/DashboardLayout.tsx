@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import swanLogo from "@assets/ChatGPT Image 30 avr. 2026, 11_42_07.png";
 import {
   LayoutDashboard, Wrench, ClipboardList, CalendarClock,
-  PackageSearch, Users, LineChart, LogOut, Calendar, Settings, MessageSquare, MapPin, Briefcase, Menu, X,
+  PackageSearch, Users, LineChart, LogOut, Calendar, Settings, MessageSquare, MapPin, Briefcase, Menu, X, Wifi,
 } from "lucide-react";
 import { NotificationsDropdown } from "@/components/NotificationsDropdown";
 import { useRBAC, NAV_ITEMS, ROLE_META } from "@/context/RBACContext";
@@ -15,7 +15,7 @@ import { OnboardingFlow } from "@/components/OnboardingFlow";
 
 const ICON_MAP: Record<string, React.ComponentType<any>> = {
   LayoutDashboard, Wrench, ClipboardList, CalendarClock,
-  PackageSearch, Users, LineChart, Calendar, MessageSquare, MapPin, Briefcase,
+  PackageSearch, Users, LineChart, Calendar, MessageSquare, MapPin, Briefcase, Wifi,
 };
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {

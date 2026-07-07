@@ -41,6 +41,7 @@ import SettingsPage from "@/pages/SettingsPage";
 import TelegramPage from "@/pages/TelegramPage";
 import SubcontractorsPage from "@/pages/SubcontractorsPage";
 import SiteMapPage from "@/pages/SiteMapPage";
+import IoTPage from "@/pages/IoTPage";
 
 const queryClient = new QueryClient();
 
@@ -86,6 +87,7 @@ function Router() {
       <Route path="/sitemaps"><DashboardLayout><SiteMapPage /></DashboardLayout></Route>
       <Route path="/subcontractors"><DashboardLayout><SubcontractorsPage /></DashboardLayout></Route>
       <Route path="/telegram-admin"><DashboardLayout><TelegramPage /></DashboardLayout></Route>
+      <Route path="/iot"><DashboardLayout><IoTPage /></DashboardLayout></Route>
 
       <Route><PublicLayout><NotFound /></PublicLayout></Route>
     </Switch>

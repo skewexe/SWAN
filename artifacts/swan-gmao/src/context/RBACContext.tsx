@@ -32,8 +32,8 @@ export const ROLE_META: Record<RBACRole, { label: string; color: string; desc: s
 };
 
 export const ROLE_PERMISSIONS: Record<RBACRole, string[]> = {
-  admin:       ["dashboard", "assets", "workorders", "preventive", "calendar", "inventory", "technicians", "reports", "settings", "telegram", "subcontractors"],
-  manager:     ["dashboard", "assets", "workorders", "preventive", "calendar", "inventory", "technicians", "reports", "subcontractors"],
+  admin:       ["dashboard", "assets", "workorders", "preventive", "calendar", "inventory", "technicians", "reports", "settings", "telegram", "subcontractors", "iot"],
+  manager:     ["dashboard", "assets", "workorders", "preventive", "calendar", "inventory", "technicians", "reports", "subcontractors", "iot"],
   chef_equipe: ["dashboard", "workorders", "preventive", "calendar", "technicians"],
   technicien:  ["dashboard", "workorders", "technicians"],
   lecteur:     ["dashboard", "reports"],
@@ -50,6 +50,7 @@ export const NAV_ITEMS = [
   { path: "/subcontractors",    key: "subcontractors",  label: "Sous-traitance",      icon: "Briefcase" },
   { path: "/reports",           key: "reports",         label: "Rapports & KPIs",     icon: "LineChart" },
   { path: "/telegram-admin",    key: "telegram",        label: "Telegram Gateway",    icon: "MessageSquare" },
+  { path: "/iot",               key: "iot",             label: "IoT & Capteurs",      icon: "Wifi" },
 ];
 
 const DEFAULT_USER: RBACUser = {
