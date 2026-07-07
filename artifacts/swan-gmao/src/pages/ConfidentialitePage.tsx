@@ -28,7 +28,7 @@ export default function ConfidentialitePage() {
           <div className="rounded-2xl border border-border/50 bg-card/60 p-6 sm:p-8">
 
             <Section title="1. Responsable du traitement">
-              <p><strong className="text-foreground">Swan Industrial Intelligence</strong>, Oran, Algérie — <a href="mailto:contact@swan-gmao.dz" className="text-primary hover:underline">contact@swan-gmao.dz</a></p>
+              <p><strong className="text-foreground">Swan Industrial Intelligence</strong>, Oran, Algérie — <a href="mailto:souanekhaledibnelwalid@gmail.com" className="text-primary hover:underline">souanekhaledibnelwalid@gmail.com</a></p>
             </Section>
 
             <Section title="2. Données collectées">
@@ -81,7 +81,7 @@ export default function ConfidentialitePage() {
                 <li><strong className="text-foreground">Droit d'opposition</strong> : vous opposer à certains traitements</li>
                 <li><strong className="text-foreground">Droit à la portabilité</strong> : recevoir vos données dans un format structuré</li>
               </ul>
-              <p>Pour exercer ces droits : <a href="mailto:contact@swan-gmao.dz" className="text-primary hover:underline">contact@swan-gmao.dz</a></p>
+              <p>Pour exercer ces droits : <a href="mailto:souanekhaledibnelwalid@gmail.com" className="text-primary hover:underline">souanekhaledibnelwalid@gmail.com</a></p>
             </Section>
 
             <Section title="8. Sécurité des données">
@@ -93,7 +93,7 @@ export default function ConfidentialitePage() {
             </Section>
 
             <Section title="10. Contact">
-              <p>Délégué à la protection des données : <a href="mailto:contact@swan-gmao.dz" className="text-primary hover:underline">contact@swan-gmao.dz</a></p>
+              <p>Délégué à la protection des données : <a href="mailto:souanekhaledibnelwalid@gmail.com" className="text-primary hover:underline">souanekhaledibnelwalid@gmail.com</a></p>
             </Section>
           </div>
 

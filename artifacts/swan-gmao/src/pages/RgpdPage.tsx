@@ -89,7 +89,7 @@ export default function RgpdPage() {
 
             <Section title="4. Sous-traitants">
               <p>Swan Industrial Intelligence recourt à des sous-traitants techniques (hébergement, infrastructure) sélectionnés sur la base de garanties contractuelles de protection des données.</p>
-              <p>Liste des sous-traitants principaux disponible sur demande à <a href="mailto:contact@swan-gmao.dz" className="text-primary hover:underline">contact@swan-gmao.dz</a>.</p>
+              <p>Liste des sous-traitants principaux disponible sur demande à <a href="mailto:souanekhaledibnelwalid@gmail.com" className="text-primary hover:underline">souanekhaledibnelwalid@gmail.com</a>.</p>
             </Section>
 
             <Section title="5. Violations de données">
@@ -132,7 +132,7 @@ export default function RgpdPage() {
             </div>
             <p className="mt-6 text-sm text-muted-foreground">
               Pour exercer vos droits, contactez notre délégué à la protection des données :{" "}
-              <a href="mailto:contact@swan-gmao.dz" className="text-primary hover:underline">contact@swan-gmao.dz</a>
+              <a href="mailto:souanekhaledibnelwalid@gmail.com" className="text-primary hover:underline">souanekhaledibnelwalid@gmail.com</a>
               <br />Délai de réponse : <strong className="text-foreground">30 jours ouvrés</strong> maximum.
             </p>
           </div>

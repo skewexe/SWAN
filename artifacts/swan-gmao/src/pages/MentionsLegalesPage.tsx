@@ -30,7 +30,7 @@ export default function MentionsLegalesPage() {
             <Section title="1. Éditeur du site">
               <p>Le site <strong className="text-foreground">swan-gmao.dz</strong> et la plateforme SWAN GMAO sont édités par la société <strong className="text-foreground">Swan Industrial Intelligence</strong>, société de droit algérien.</p>
               <p><strong className="text-foreground">Siège social :</strong> Oran, Algérie</p>
-              <p><strong className="text-foreground">Email :</strong> contact@swan-gmao.dz</p>
+              <p><strong className="text-foreground">Email :</strong> souanekhaledibnelwalid@gmail.com</p>
               <p><strong className="text-foreground">Téléphone :</strong> +213 (0) 7 78 62 84 49</p>
             </Section>
 
@@ -66,7 +66,7 @@ export default function MentionsLegalesPage() {
             </Section>
 
             <Section title="8. Contact">
-              <p>Pour toute question relative aux présentes mentions légales : <a href="mailto:contact@swan-gmao.dz" className="text-primary hover:underline">contact@swan-gmao.dz</a></p>
+              <p>Pour toute question relative aux présentes mentions légales : <a href="mailto:souanekhaledibnelwalid@gmail.com" className="text-primary hover:underline">souanekhaledibnelwalid@gmail.com</a></p>
             </Section>
           </div>
 

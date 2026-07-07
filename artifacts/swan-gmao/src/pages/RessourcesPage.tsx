@@ -146,7 +146,7 @@ export default function RessourcesPage() {
           <h2 className="text-2xl font-semibold">Vous ne trouvez pas ce que vous cherchez ?</h2>
           <p className="mt-3 text-muted-foreground">Notre équipe support répond dans les 24h ouvrées.</p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <a href="mailto:contact@swan-gmao.dz">
+            <a href="mailto:souanekhaledibnelwalid@gmail.com">
               <Button size="lg" className="rounded-full px-8 h-12">
                 <Mail className="mr-2 h-4 w-4" /> Contacter le support
               </Button>
