@@ -1,0 +1,104 @@
+version: "3.9"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Swan GMAO — Docker Compose deployment
+# Usage: docker compose up -d
+# Access: http://localhost:3000
+# ──────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ─── PostgreSQL ─────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: swan-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: swan_gmao
+      POSTGRES_USER: swan
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-swan_gmao_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U swan -d swan_gmao"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - swan-net
+
+  # ─── API Server ─────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: swan-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      DATABASE_URL: postgresql://swan:${POSTGRES_PASSWORD:-swan_gmao_password}@postgres:5432/swan_gmao
+      SESSION_SECRET: ${SESSION_SECRET:-change_this_in_production}
+    networks:
+      - swan-net
+
+  # ─── SCADA Gateway (optional) ────────────────────────────────────────────────
+  scada:
+    build:
+      context: .
+      dockerfile: Dockerfile.scada
+    container_name: swan-scada
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NODE_ENV: production
+      PORT: 8100
+      SWAN_API_URL: http://api:8080/api
+      POLL_DEVICES_MS: "30000"
+      LOG_LEVEL: info
+    ports:
+      - "8100:8100"   # expose for MQTT/Modbus/OPC-UA access
+    networks:
+      - swan-net
+    profiles:
+      - scada    # only starts with: docker compose --profile scada up -d
+
+  # ─── Nginx reverse proxy + frontend static files ────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: swan-nginx
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "3000:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - frontend_dist:/usr/share/nginx/html:ro
+    networks:
+      - swan-net
+
+  # ─── Frontend build (init container) ─────────────────────────────────────────
+  frontend-build:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      target: build
+    container_name: swan-frontend-build
+    volumes:
+      - frontend_dist:/app/artifacts/swan-gmao/dist
+    command: ["pnpm", "--filter", "@workspace/swan-gmao", "run", "build"]
+    profiles:
+      - build
+
+networks:
+  swan-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  frontend_dist:

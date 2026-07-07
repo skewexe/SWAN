@@ -66,8 +66,9 @@ export default function CguPage() {
               <p>Swan Industrial Intelligence ne peut être tenue responsable des interruptions causées par des événements de force majeure ou des défaillances d'infrastructure tierces.</p>
             </Section>
 
-            <Section title="7. Tarifs et facturation">
-              <p>Les tarifs sont définis contractuellement entre Swan Industrial Intelligence et chaque client selon l'offre souscrite (Essentiel, Entreprise, Groupe). Les conditions de facturation figurent dans le contrat spécifique signé par les parties.</p>
+            <Section title="7. Licence open source">
+              <p>SWAN GMAO est distribué sous licence MIT. Vous êtes libre d'utiliser, copier, modifier, fusionner, publier, distribuer, sous-licencier et/ou vendre des copies du logiciel, sous réserve d'inclure la notice de copyright ci-dessus dans toutes les copies ou parties substantielles du logiciel.</p>
+              <p>Le logiciel est fourni « tel quel », sans garantie d'aucune sorte, expresse ou implicite. Il n'existe aucun abonnement, aucune facturation ni aucun engagement commercial lié à l'utilisation de ce logiciel open source.</p>
             </Section>
 
             <Section title="8. Résiliation">

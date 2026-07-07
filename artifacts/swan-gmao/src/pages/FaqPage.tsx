@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Book, Settings2, Banknote, ShieldCheck } from "lucide-react";
+import { MessageSquare, Book, Settings2, ShieldCheck, Github } from "lucide-react";
 
 const easeOut = "easeOut" as const;
 
@@ -77,21 +77,21 @@ const FAQ_SECTIONS = [
     ],
   },
   {
-    id: "pricing",
-    icon: Banknote,
-    title: "Tarification & engagement",
+    id: "opensource",
+    icon: Github,
+    title: "Open source & déploiement",
     items: [
       {
-        q: "Quelle est la structure tarifaire de SWAN ?",
-        a: "SWAN propose trois offres adaptées à la taille et aux besoins : Essentiel (TPE, jusqu'à 50 équipements), Entreprise (sites industriels avec multi-sites, RBAC avancé et reporting), et Groupe (déploiement complet, on-premise, SLA dédié). Tous les prix sont en dinars algériens (DZD).",
+        q: "SWAN est-il vraiment gratuit ?",
+        a: "Oui, SWAN GMAO est publié sous licence MIT. Vous pouvez l'utiliser, le modifier et le redistribuer librement, sans aucun frais, pour un usage personnel ou commercial.",
       },
       {
-        q: "Y a-t-il un engagement de durée minimum ?",
-        a: "Non. SWAN est disponible sans engagement sur facturation mensuelle. Un abonnement annuel est proposé avec une remise significative. L'essai gratuit de 30 jours permet de valider la plateforme en conditions réelles avant tout engagement.",
+        q: "Comment déployer SWAN sur mon serveur ?",
+        a: "Trois options : (1) Docker Compose — une commande `docker compose up -d` suffit, (2) installation manuelle Node.js + PostgreSQL, (3) exécutable desktop Electron (.exe pour Windows, .AppImage pour Linux). La documentation complète est disponible sur GitHub.",
       },
       {
-        q: "Que se passe-t-il avec mes données si je résilie ?",
-        a: "En cas de résiliation, vous disposez de 30 jours pour exporter l'intégralité de vos données (équipements, historique, rapports) aux formats CSV et PDF. Aucune donnée n'est supprimée avant la fin de cette période. Pour les clients on-premise, vos données restent dans votre infrastructure.",
+        q: "Mes données restent-elles chez moi ?",
+        a: "Entièrement. SWAN fonctionne on-premise : votre PostgreSQL sur votre serveur, vos données sous votre contrôle total. Aucune télémétrie, aucune connexion externe obligatoire.",
       },
     ],
   },

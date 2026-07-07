@@ -1,0 +1,34 @@
+kind = "api"
+  previewPath = "/scada"
+  title = "SCADA Gateway"
+  version = "1.0.0"
+  id = "artifacts/scada-gateway"
+
+  [[services]]
+  localPort = 8100
+  name = "SCADA Gateway"
+  paths = ["/scada", "/webhook"]
+
+  [services.env]
+  PORT = "8100"
+  SWAN_API_URL = "http://localhost:80/api"
+
+  [services.development]
+  run = "pnpm --filter @workspace/scada-gateway run dev"
+
+  [services.production]
+
+  [services.production.build]
+  args = ["echo", "no-build"]
+
+  [services.production.run]
+  args = ["node", "artifacts/scada-gateway/src/index.js"]
+
+  [services.production.run.env]
+  PORT = "8100"
+  NODE_ENV = "production"
+  SWAN_API_URL = "http://localhost:80/api"
+
+  [services.production.health.startup]
+  path = "/health"
+  

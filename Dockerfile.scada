@@ -1,0 +1,14 @@
+FROM node:24-alpine
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# System deps for node-opcua and modbus-serial
+RUN apk add --no-cache python3 make g++
+
+WORKDIR /app
+COPY package.json pnpm-workspace.yaml ./
+COPY artifacts/scada-gateway/ artifacts/scada-gateway/
+RUN pnpm install --filter @workspace/scada-gateway --no-frozen-lockfile
+
+WORKDIR /app/artifacts/scada-gateway
+EXPOSE 8100
+CMD ["node", "src/index.js"]

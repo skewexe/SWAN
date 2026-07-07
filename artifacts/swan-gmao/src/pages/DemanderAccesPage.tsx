@@ -4,16 +4,16 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, Building2, Mail, Phone, User, Briefcase, MessageSquare, ArrowRight, Factory, Landmark } from "lucide-react";
+import { CheckCircle2, Building2, Mail, Phone, User, Briefcase, MessageSquare, ArrowRight, Terminal, Package, Cpu } from "lucide-react";
 import swanLogo from "@assets/ChatGPT Image 30 avr. 2026, 11_42_07.png";
 import { FloatingHeaderShell } from "@/components/layout/FloatingHeaderShell";
 
 const easeOut = "easeOut" as const;
 
-const PLANS = [
-  { id: "essentiel", label: "Essentiel", desc: "Jusqu'à 50 équipements", icon: Building2, color: "#38BDF8" },
-  { id: "entreprise", label: "Entreprise", desc: "Équipements illimités, multi-sites", icon: Factory, color: "#0A6DFF" },
-  { id: "groupe", label: "Groupe", desc: "On-premise, SLA dédié", icon: Landmark, color: "#8B5CF6" },
+const DEPLOY_MODES = [
+  { id: "docker", label: "Docker Compose", desc: "Déploiement serveur Linux", icon: Terminal, color: "#0A6DFF" },
+  { id: "electron", label: "Electron Desktop", desc: "Application .exe / .AppImage", icon: Package, color: "#8B5CF6" },
+  { id: "onpremise", label: "On-premise Node.js", desc: "Serveur dédié, contrôle total", icon: Cpu, color: "#22C55E" },
   { id: "non-defini", label: "Je ne sais pas encore", desc: "Nous vous conseillerons", icon: MessageSquare, color: "#64748B" },
 ];
 
@@ -93,10 +93,10 @@ export default function DemanderAccesPage() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_900px_400px_at_50%_-80px,rgba(10,109,255,0.1),transparent)]" />
         <div className="mx-auto max-w-4xl px-6 pt-24 pb-20 lg:px-8">
           <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: easeOut }} className="text-center mb-12">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary mb-4">Demander un accès</p>
-            <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight">Démarrez avec SWAN.</h1>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary mb-4">Déployer SWAN</p>
+            <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight">Obtenez de l'aide pour déployer.</h1>
             <p className="mt-4 text-lg text-muted-foreground max-w-xl mx-auto">
-              Remplissez ce formulaire et notre équipe vous contacte dans les 24h ouvrées pour préparer votre déploiement.
+              SWAN est 100% gratuit et open source. Remplissez ce formulaire si vous souhaitez de l'aide pour l'installation ou l'intégration SCADA.
             </p>
           </motion.div>
 
@@ -175,11 +175,11 @@ export default function DemanderAccesPage() {
               </div>
             </div>
 
-            {/* Plan */}
+            {/* Deploy mode */}
             <div>
-              <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground mb-4">Offre souhaitée</h2>
+              <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground mb-4">Mode de déploiement souhaité</h2>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {PLANS.map((p) => (
+                {DEPLOY_MODES.map((p) => (
                   <button
                     key={p.id}
                     type="button"

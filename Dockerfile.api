@@ -1,0 +1,22 @@
+FROM node:24-alpine AS base
+RUN corepack enable && corepack prepare pnpm@latest --activate
+WORKDIR /app
+
+# Install dependencies
+COPY package.json pnpm-workspace.yaml ./
+COPY lib/ lib/
+COPY artifacts/api-server/ artifacts/api-server/
+RUN pnpm install --frozen-lockfile --filter @workspace/api-server...
+
+# Build
+RUN pnpm --filter @workspace/db run push || true
+RUN pnpm --filter @workspace/api-server run build
+
+# Runtime
+FROM node:24-alpine
+WORKDIR /app
+COPY --from=base /app/artifacts/api-server/dist/ ./dist/
+COPY --from=base /app/node_modules/ ./node_modules/
+COPY --from=base /app/artifacts/api-server/node_modules/ ./artifacts/api-server/node_modules/ 2>/dev/null || true
+EXPOSE 8080
+CMD ["node", "--enable-source-maps", "dist/index.mjs"]

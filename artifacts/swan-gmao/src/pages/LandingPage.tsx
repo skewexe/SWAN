@@ -9,9 +9,6 @@ import {
   Users,
   BarChart3,
   Box,
-  Building2,
-  Landmark,
-  Factory,
   Sparkles,
   Workflow,
   Check,
@@ -24,66 +21,43 @@ import {
   Zap,
   Globe,
   Lock,
+  Github,
+  Download,
+  Terminal,
+  Package,
+  Cpu,
 } from "lucide-react";
 import swanLogo from "@assets/ChatGPT Image 30 avr. 2026, 11_42_07.png";
 import { FloatingHeaderShell } from "@/components/layout/FloatingHeaderShell";
 import { useState } from "react";
 
-const PLANS = [
+const DEPLOY_OPTIONS = [
   {
-    name: "Essentiel",
-    price: "Sur demande",
-    description:
-      "Pour les équipes qui veulent structurer l'opérationnel sans complexité inutile.",
-    icon: Building2,
-    features: [
-      "Jusqu'à 50 équipements",
-      "5 techniciens",
-      "Ordres de travail & préventif",
-      "Gestion des pièces de rechange",
-      "Support standard (email)",
-    ],
-    cta: "Parler à un conseiller",
-    highlighted: false,
-    badge: null,
-  },
-  {
-    name: "Entreprise",
-    price: "Sur demande",
-    description:
-      "Le standard SWAN pour les sites industriels qui exigent contrôle et visibilité totale.",
-    icon: Factory,
-    features: [
-      "Équipements illimités",
-      "Multi-sites & multi-zones",
-      "RBAC avancé (rôles & droits)",
-      "Calendrier maintenance",
-      "Rapports & KPI complets",
-      "Import CSV / Excel",
-      "WhatsApp Gateway",
-      "Support prioritaire",
-    ],
-    cta: "Démarrer un projet",
-    highlighted: true,
+    icon: Terminal,
+    title: "Docker Compose",
     badge: "Recommandé",
+    desc: "Déployez en une commande sur n'importe quel serveur Linux.",
+    steps: ["git clone swan-gmao", "docker compose up -d", "Accès immédiat sur :3000"],
+    highlighted: true,
+    color: "#0A6DFF",
   },
   {
-    name: "Groupe",
-    price: "Sur mesure",
-    description:
-      "Déploiement complet pour les organisations à forte maturité industrielle.",
-    icon: Landmark,
-    features: [
-      "On-premise ou cloud dédié",
-      "SLA contractuel dédié",
-      "Accompagnement & formation",
-      "Intégrations SI (ERP, SCADA)",
-      "API & connecteurs custom",
-      "Support 24/7 avec astreinte",
-    ],
-    cta: "Contacter l'équipe",
+    icon: Package,
+    title: "Electron Desktop",
+    badge: ".exe / .AppImage",
+    desc: "Application bureau installable — Windows, Linux, macOS.",
+    steps: ["Télécharger le .exe", "Installer en double-clique", "Base de données embarquée"],
     highlighted: false,
-    badge: null,
+    color: "#8B5CF6",
+  },
+  {
+    icon: Cpu,
+    title: "On-premise",
+    badge: "Serveur dédié",
+    desc: "Node.js + PostgreSQL sur votre infrastructure, données locales.",
+    steps: ["pnpm install", "pnpm run build", "pnpm run start"],
+    highlighted: false,
+    color: "#22C55E",
   },
 ];
 
@@ -173,20 +147,20 @@ const TESTIMONIALS = [
 
 const FAQS = [
   {
-    q: "SWAN est-il adapté à une PME industrielle ou uniquement aux grandes entreprises ?",
-    a: "SWAN est conçu pour s'adapter à toutes les tailles d'organisation. L'offre Essentiel convient parfaitement à une PME avec quelques dizaines d'équipements, tandis que l'offre Groupe couvre les multinationales avec déploiements multi-sites.",
+    q: "SWAN est-il vraiment gratuit pour un usage en entreprise ?",
+    a: "Oui, SWAN est publié sous licence MIT. Vous pouvez l'utiliser dans votre entreprise sans aucun frais, sans limite d'équipements, sans abonnement. La licence MIT autorise aussi les forks commerciaux.",
   },
   {
-    q: "Combien de temps faut-il pour mettre en production SWAN ?",
-    a: "Pour les offres Essentiel et Entreprise, la mise en production initiale prend généralement 48h à 5 jours ouvrés selon le volume de données à importer. Notre équipe accompagne chaque client lors du déploiement.",
+    q: "Combien de temps faut-il pour déployer SWAN ?",
+    a: "Avec Docker Compose : moins de 5 minutes. Installation manuelle Node.js + PostgreSQL : 30 à 60 minutes. L'application Electron desktop s'installe en double-clique, sans aucune configuration serveur.",
   },
   {
-    q: "Les données sont-elles hébergées en Algérie ?",
-    a: "Oui. Pour les clients qui le nécessitent, SWAN propose un hébergement on-premise sur vos propres serveurs ou dans un datacenter algérien certifié. L'offre Groupe inclut ce mode de déploiement par défaut.",
+    q: "Mes données restent-elles sur mon serveur ?",
+    a: "Entièrement. SWAN est conçu pour fonctionner on-premise. Votre PostgreSQL sur votre serveur ou datacenter algérien, vos données sous votre contrôle total. Aucune télémétrie, aucune connexion à un service externe.",
   },
   {
-    q: "Est-il possible d'intégrer SWAN avec notre ERP existant ?",
-    a: "SWAN dispose d'une API REST documentée. Des connecteurs pour les ERP courants (SAP, Oracle, Sage) sont disponibles dans l'offre Groupe. Des intégrations sur mesure peuvent être développées pour tout système existant.",
+    q: "Est-il possible d'intégrer SWAN avec notre ERP ou SCADA existant ?",
+    a: "SWAN dispose d'une API REST documentée et d'un SCADA Gateway intégré supportant MQTT, Modbus TCP, OPC-UA, LoRaWAN et REST webhooks. Des connecteurs ERP (SAP, Oracle, Sage) peuvent être développés via l'API.",
   },
   {
     q: "Y a-t-il une version mobile pour les techniciens terrain ?",
@@ -309,8 +283,8 @@ export default function LandingPage() {
               className="mt-8 flex flex-wrap items-center gap-5 text-[12px] text-muted-foreground"
             >
               {[
-                { icon: Zap, label: "Mise en production en 48h" },
-                { icon: Lock, label: "Données hébergées en Algérie" },
+                { icon: Github, label: "100% Open Source · MIT" },
+                { icon: Lock, label: "Données chez vous, on-premise" },
                 { icon: Globe, label: "Multi-sites & multi-zones" },
               ].map(({ icon: Icon, label }) => (
                 <div key={label} className="flex items-center gap-1.5">
@@ -401,8 +375,8 @@ export default function LandingPage() {
             {[
               ["−34%", "Réduction des arrêts imprévus"],
               ["+500", "Sites industriels déployés"],
-              ["99.9%", "SLA de disponibilité garanti"],
-              ["48h", "Mise en production"],
+              ["MIT", "Licence open source"],
+              ["5 min", "Déploiement Docker"],
             ].map(([val, desc]) => (
               <div key={val} className="text-center">
                 <div className="text-3xl font-semibold tracking-tight">
@@ -569,7 +543,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── PLANS ─── */}
+      {/* ─── OPEN SOURCE / DEPLOY ─── */}
       <section className="bg-card/30 border-y border-border/40">
         <div className="mx-auto max-w-7xl px-6 py-24 lg:px-8">
           <motion.div
@@ -577,93 +551,86 @@ export default function LandingPage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, ease: easeOut }}
-            className="max-w-2xl mb-12"
+            className="text-center mb-14"
           >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary">
-              Offres
-            </p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-              Une structure claire pour passer à l'échelle.
+            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-4 py-1.5 text-emerald-400 text-[12px] font-semibold tracking-wide mb-5">
+              <Github className="h-3.5 w-3.5" />
+              100% Open Source · Licence MIT
+            </div>
+            <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+              Déployez gratuitement,<br />
+              <span className="text-primary">partout, pour toujours.</span>
             </h2>
-            <p className="mt-4 text-[1.05rem] leading-relaxed text-muted-foreground">
-              Chaque offre est calibrée pour un profil d'organisation précis.
-              Nos équipes vous accompagnent dans le choix adapté.
+            <p className="mt-4 text-[1.05rem] leading-relaxed text-muted-foreground max-w-2xl mx-auto">
+              SWAN est entièrement gratuit et open source. Vos données restent chez vous.
+              Aucun abonnement, aucune limite d'équipements, aucun compte cloud obligatoire.
             </p>
           </motion.div>
 
           <div className="grid gap-6 md:grid-cols-3">
-            {PLANS.map((plan, idx) => (
+            {DEPLOY_OPTIONS.map((opt, idx) => (
               <motion.div
-                key={plan.name}
+                key={opt.title}
                 initial={{ opacity: 0, y: 18 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{
-                  duration: 0.45,
-                  delay: idx * 0.07,
-                  ease: easeOut,
-                }}
+                transition={{ duration: 0.45, delay: idx * 0.07, ease: easeOut }}
                 className={`relative rounded-3xl border p-7 flex flex-col ${
-                  plan.highlighted
-                    ? "border-primary/50 bg-primary/5 shadow-[0_0_0_1px_rgba(10,109,255,0.15),0_24px_64px_-12px_rgba(10,109,255,0.15)]"
+                  opt.highlighted
+                    ? "border-primary/50 bg-primary/5 shadow-[0_0_0_1px_rgba(10,109,255,0.15),0_24px_64px_-12px_rgba(10,109,255,0.12)]"
                     : "border-border/60 bg-card/70"
                 }`}
               >
-                {plan.badge && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-1 text-[11px] font-semibold text-primary-foreground tracking-wide">
-                    {plan.badge}
+                {opt.badge && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full border px-3 py-0.5 text-[10px] font-semibold tracking-wide whitespace-nowrap"
+                    style={{ background: opt.color + "20", borderColor: opt.color + "40", color: opt.color }}
+                  >
+                    {opt.badge}
                   </div>
                 )}
-
                 <div className="flex items-center gap-3 mb-5">
-                  <div
-                    className={`flex h-10 w-10 items-center justify-center rounded-2xl border ${plan.highlighted ? "border-primary/30 bg-primary/10" : "border-border/60 bg-background/50"}`}
-                  >
-                    <plan.icon
-                      className={`h-[1.1rem] w-[1.1rem] ${plan.highlighted ? "text-primary" : "text-muted-foreground"}`}
-                      strokeWidth={1.5}
-                    />
+                  <div className="h-11 w-11 rounded-2xl flex items-center justify-center" style={{ background: opt.color + "18", border: `1px solid ${opt.color}40` }}>
+                    <opt.icon className="h-5 w-5" style={{ color: opt.color }} strokeWidth={1.5} />
                   </div>
-                  <div className="font-semibold text-foreground">
-                    {plan.name}
-                  </div>
+                  <div className="font-semibold text-foreground text-lg">{opt.title}</div>
                 </div>
-
-                <p className="text-[0.875rem] leading-relaxed text-muted-foreground mb-6">
-                  {plan.description}
-                </p>
-
+                <p className="text-sm text-muted-foreground leading-relaxed mb-6">{opt.desc}</p>
                 <ul className="space-y-2.5 flex-1 mb-7">
-                  {plan.features.map((f) => (
-                    <li
-                      key={f}
-                      className="flex items-start gap-2.5 text-[0.875rem]"
-                    >
-                      <div
-                        className={`mt-0.5 flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full ${plan.highlighted ? "bg-primary/20" : "bg-muted/60"}`}
-                      >
-                        <Check
-                          className={`h-2.5 w-2.5 ${plan.highlighted ? "text-primary" : "text-muted-foreground"}`}
-                          strokeWidth={2.5}
-                        />
-                      </div>
-                      <span className="text-foreground/80">{f}</span>
+                  {opt.steps.map((s, i) => (
+                    <li key={s} className="flex items-center gap-2.5 text-sm font-mono">
+                      <span className="h-5 w-5 rounded-full text-[10px] font-bold flex items-center justify-center shrink-0"
+                        style={{ background: opt.color + "20", color: opt.color }}>
+                        {i + 1}
+                      </span>
+                      <code className="text-foreground/80 text-xs">{s}</code>
                     </li>
                   ))}
                 </ul>
-
                 <Link href="/register">
                   <Button
-                    className={`w-full rounded-full h-10 text-[0.875rem] font-medium ${!plan.highlighted ? "bg-card border border-border/60 text-foreground hover:bg-muted" : ""}`}
-                    variant={plan.highlighted ? "default" : "outline"}
+                    className={`w-full rounded-full h-10 text-sm font-medium gap-2 ${!opt.highlighted ? "bg-card border border-border/60 text-foreground hover:bg-muted" : ""}`}
+                    variant={opt.highlighted ? "default" : "outline"}
                   >
-                    {plan.cta}
-                    <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                    <Download className="h-3.5 w-3.5" /> Commencer maintenant
                   </Button>
                 </Link>
               </motion.div>
             ))}
           </div>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.3, ease: easeOut }}
+            className="mt-10 text-center"
+          >
+            <a href="https://github.com" target="_blank" rel="noopener noreferrer">
+              <Button variant="outline" className="rounded-full gap-2 h-10">
+                <Github className="h-4 w-4" /> Voir le code source sur GitHub
+              </Button>
+            </a>
+          </motion.div>
         </div>
       </section>
 
@@ -713,29 +680,29 @@ export default function LandingPage() {
             transition={{ duration: 0.5, ease: easeOut }}
           >
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary mb-4">
-              Prêt à démarrer ?
+              Open Source · MIT License
             </p>
             <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl">
-              Passez à la maintenance
+              Installez SWAN gratuitement
               <br />
               <span className="text-muted-foreground">
-                structurée dès aujourd'hui.
+                sur votre infrastructure.
               </span>
             </h2>
             <p className="mt-6 text-[1rem] leading-relaxed text-muted-foreground max-w-xl mx-auto">
-              Nos équipes vous accompagnent de l'onboarding à la mise en
-              production. Premier déploiement en 48h, sans engagement.
+              Aucun abonnement. Aucune limite. Vos données restent chez vous.
+              Docker, Electron ou on-premise — vous choisissez.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <Link href="/demander-acces">
+              <a href="https://github.com" target="_blank" rel="noopener noreferrer">
                 <Button
                   size="lg"
-                  className="h-12 rounded-full px-8 text-[0.95rem] font-medium"
+                  className="h-12 rounded-full px-8 text-[0.95rem] font-medium gap-2"
                 >
-                  Demander un accès
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  <Github className="h-4 w-4" /> GitHub — Clone & Deploy
+                  <ArrowRight className="ml-1 h-4 w-4" />
                 </Button>
-              </Link>
+              </a>
               <Link href="/login">
                 <Button
                   size="lg"
@@ -859,9 +826,10 @@ export default function LandingPage() {
 
           <div className="mt-12 pt-8 border-t border-border/40 flex flex-col sm:flex-row items-center justify-between gap-4 text-[12px] text-muted-foreground">
             <span>
-              © {new Date().getFullYear()} Swan GMAO — Tous droits réservés.
+              © {new Date().getFullYear()} Swan GMAO — Open Source · Licence MIT
             </span>
-            <span>
+            <span className="flex items-center gap-2">
+              <Github className="h-3.5 w-3.5" />
               Conçu pour l'industrie algérienne · Fabriqué avec précision
             </span>
           </div>
