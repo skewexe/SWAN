@@ -12,7 +12,6 @@ import {
   Sparkles,
   Workflow,
   Check,
-  Star,
   Phone,
   Mail,
   MapPin,
@@ -23,9 +22,7 @@ import {
   Lock,
   Github,
   Download,
-  Terminal,
   Package,
-  Cpu,
 } from "lucide-react";
 import swanLogo from "@assets/ChatGPT Image 30 avr. 2026, 11_42_07.png";
 import { FloatingHeaderShell } from "@/components/layout/FloatingHeaderShell";
@@ -33,11 +30,11 @@ import { useState } from "react";
 
 const DEPLOY_OPTIONS = [
   {
-    icon: Terminal,
-    title: "Docker Compose",
-    badge: "Recommandé",
-    desc: "Déployez en une commande sur n'importe quel serveur Linux.",
-    steps: ["git clone swan-gmao", "docker compose up -d", "Accès immédiat sur :3000"],
+    icon: Github,
+    title: "Code Source GitHub",
+    badge: "Open Source MIT",
+    desc: "Clonez le dépôt et déployez sur votre propre infrastructure. Node.js + PostgreSQL. Aucune dépendance cloud.",
+    steps: ["git clone github.com/swan-gmao/swan", "pnpm install && pnpm run build", "pnpm run start → port 3000"],
     highlighted: true,
     color: "#0A6DFF",
   },
@@ -45,19 +42,10 @@ const DEPLOY_OPTIONS = [
     icon: Package,
     title: "Electron Desktop",
     badge: ".exe / .AppImage",
-    desc: "Application bureau installable — Windows, Linux, macOS.",
-    steps: ["Télécharger le .exe", "Installer en double-clique", "Base de données embarquée"],
+    desc: "Application bureau installable — Windows, Linux, macOS. Base de données SQLite embarquée, 100% hors-ligne.",
+    steps: ["Télécharger le .exe depuis GitHub Releases", "Installer en double-clique", "Lancer SWAN sans serveur"],
     highlighted: false,
     color: "#8B5CF6",
-  },
-  {
-    icon: Cpu,
-    title: "On-premise",
-    badge: "Serveur dédié",
-    desc: "Node.js + PostgreSQL sur votre infrastructure, données locales.",
-    steps: ["pnpm install", "pnpm run build", "pnpm run start"],
-    highlighted: false,
-    color: "#22C55E",
   },
 ];
 
@@ -118,32 +106,6 @@ const MODULES = [
   "Classement des équipements par nombre d'interventions",
 ];
 
-const TESTIMONIALS = [
-  {
-    quote:
-      "SWAN a transformé notre approche de la maintenance. Nous avons réduit nos arrêts imprévus de 34% en six mois.",
-    name: "Rachid Bensalem",
-    role: "Responsable Maintenance",
-    company: "Groupe Cevital",
-    initials: "RB",
-  },
-  {
-    quote:
-      "L'interface est d'une clarté remarquable. Nos techniciens ont adopté l'outil en moins d'une semaine sans formation poussée.",
-    name: "Karima Ouali",
-    role: "Directrice Technique",
-    company: "Sonelgaz — Régionale Est",
-    initials: "KO",
-  },
-  {
-    quote:
-      "Le reporting MTBF/MTTR nous donne enfin une vision factuelle pour les arbitrages budgétaires face à la direction générale.",
-    name: "Amar Djelloul",
-    role: "Chef de département maintenance",
-    company: "Sonatrach — Division Production",
-    initials: "AD",
-  },
-];
 
 const FAQS = [
   {
@@ -487,62 +449,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── TESTIMONIALS ─── */}
-      <section className="mx-auto max-w-7xl px-6 py-24 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, ease: easeOut }}
-          className="max-w-2xl mb-12"
-        >
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary">
-            Témoignages
-          </p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-            Ce que disent nos clients.
-          </h2>
-        </motion.div>
-
-        <div className="grid gap-5 md:grid-cols-3">
-          {TESTIMONIALS.map((t, idx) => (
-            <motion.div
-              key={t.name}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: idx * 0.08, ease: easeOut }}
-              className="rounded-3xl border border-border/60 bg-card/70 p-6 flex flex-col"
-            >
-              <div className="flex gap-0.5 mb-4">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star
-                    key={i}
-                    className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400"
-                  />
-                ))}
-              </div>
-              <p className="text-[0.9rem] leading-relaxed text-muted-foreground flex-1">
-                "{t.quote}"
-              </p>
-              <div className="mt-5 flex items-center gap-3">
-                <div className="h-9 w-9 rounded-full bg-primary/15 flex items-center justify-center text-primary text-xs font-bold shrink-0">
-                  {t.initials}
-                </div>
-                <div>
-                  <div className="text-sm font-semibold text-foreground">
-                    {t.name}
-                  </div>
-                  <div className="text-[11px] text-muted-foreground">
-                    {t.role} · {t.company}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
       {/* ─── OPEN SOURCE / DEPLOY ─── */}
       <section className="bg-card/30 border-y border-border/40">
         <div className="mx-auto max-w-7xl px-6 py-24 lg:px-8">
@@ -567,7 +473,7 @@ export default function LandingPage() {
             </p>
           </motion.div>
 
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2">
             {DEPLOY_OPTIONS.map((opt, idx) => (
               <motion.div
                 key={opt.title}
@@ -744,7 +650,7 @@ export default function LandingPage() {
                     className="h-3.5 w-3.5 text-primary/70"
                     strokeWidth={1.5}
                   />
-                  contact@swan-gmao.dz
+                  souanekhaledibnelwalid@gmail.com
                 </div>
                 <div className="flex items-center gap-2">
                   <Phone

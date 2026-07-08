@@ -117,7 +117,7 @@ class OpcUaAdapter {
           const numericValue = typeof raw === 'number' ? raw : parseFloat(String(raw));
 
           this.forwardEvent({
-            deviceId: device.id,
+            deviceId: device.deviceId,
             metric: node.metric || node.nodeId,
             value: isNaN(numericValue) ? raw : numericValue,
             unit: node.unit || '',

@@ -16,6 +16,7 @@ import assetDocumentsRouter from "./asset_documents";
 import subcontractorsRouter from "./subcontractors";
 import telegramRouter from "./telegram";
 import iotRouter from "./iot";
+import erpRouter from "./erp";
 
 const router: IRouter = Router();
 
@@ -36,5 +37,6 @@ router.use(assetDocumentsRouter);
 router.use(subcontractorsRouter);
 router.use(telegramRouter);
 router.use(iotRouter);
+router.use(erpRouter);
 
 export default router;

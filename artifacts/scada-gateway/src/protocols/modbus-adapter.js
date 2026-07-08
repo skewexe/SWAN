@@ -82,7 +82,7 @@ class ModbusAdapter {
           const scaled = (reg.scale || 1) * rawValue + (reg.offset || 0);
 
           this.forwardEvent({
-            deviceId: device.id,
+            deviceId: device.deviceId,
             metric: reg.metric || `reg_${reg.address}`,
             value: parseFloat(scaled.toFixed(4)),
             unit: reg.unit || '',

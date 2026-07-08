@@ -90,7 +90,7 @@ class MqttAdapter {
     const numericValue = typeof value === 'number' ? value : parseFloat(String(value));
 
     this.forwardEvent({
-      deviceId: device.id,
+      deviceId: device.deviceId,
       metric,
       value: isNaN(numericValue) ? value : numericValue,
       unit: data.unit || device.unit || '',

@@ -13,3 +13,4 @@ export * from "./asset_documents";
 export * from "./subcontractors";
 export * from "./telegram";
 export * from "./iot";
+export * from "./erp";

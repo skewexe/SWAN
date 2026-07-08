@@ -590,6 +590,7 @@ export default function IoTPage() {
 
       {/* ── DEVICE FORM DIALOG ───────────────────────────────────────────────── */}
       <DeviceFormDialog
+        key={showDeviceForm ? `form-${editDevice?.id ?? 'new'}` : 'closed'}
         open={showDeviceForm}
         onClose={() => setShowDeviceForm(false)}
         initial={editDevice}
@@ -739,10 +740,57 @@ function DeviceFormDialog({ open, onClose, initial, onSaved }: {
                   <Input className="rounded-xl" placeholder="https://api.device.com/data" value={form.webhookUrl} onChange={e => setForm(f => ({ ...f, webhookUrl: e.target.value }))} />
                 </div>
               )}
+              {form.protocol === "lorawan" && (
+                <>
+                  <div>
+                    <Label>Serveur ChirpStack / TTN</Label>
+                    <Input className="rounded-xl" placeholder="https://chirpstack.example.com" value={form.webhookUrl} onChange={e => setForm(f => ({ ...f, webhookUrl: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>App ID LoRaWAN</Label>
+                    <Input className="rounded-xl" placeholder="my-lorawan-app" value={form.mqttTopic} onChange={e => setForm(f => ({ ...f, mqttTopic: e.target.value }))} />
+                  </div>
+                </>
+              )}
+              {form.protocol === "modbus_rtu" && (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Port série (COM / tty)</Label>
+                      <Input className="rounded-xl" placeholder="/dev/ttyUSB0 ou COM3" value={form.ipAddress} onChange={e => setForm(f => ({ ...f, ipAddress: e.target.value }))} />
+                    </div>
+                    <div>
+                      <Label>Baud rate</Label>
+                      <Input className="rounded-xl" type="number" placeholder="9600" value={form.port} onChange={e => setForm(f => ({ ...f, port: e.target.value }))} />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Slave ID Modbus</Label>
+                    <Input className="rounded-xl" placeholder="1" value={form.modbusSlaveId} onChange={e => setForm(f => ({ ...f, modbusSlaveId: e.target.value }))} />
+                  </div>
+                </>
+              )}
+              {form.protocol === "mqtt" && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>IP Broker <span className="text-muted-foreground text-[10px]">(optionnel)</span></Label>
+                    <Input className="rounded-xl" placeholder="192.168.1.10" value={form.ipAddress} onChange={e => setForm(f => ({ ...f, ipAddress: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label>Port broker</Label>
+                    <Input className="rounded-xl" type="number" placeholder="1883" value={form.port} onChange={e => setForm(f => ({ ...f, port: e.target.value }))} />
+                  </div>
+                </div>
+              )}
               {!isEdit && (
-                <Button className="w-full rounded-xl" onClick={() => setStep(2)}>
-                  Suivant <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" className="flex-1 rounded-xl" onClick={() => setStep(0)}>
+                    ← Retour
+                  </Button>
+                  <Button className="flex-1 rounded-xl" onClick={() => setStep(2)}>
+                    Suivant <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
               )}
             </div>
           )}
@@ -764,13 +812,23 @@ function DeviceFormDialog({ open, onClose, initial, onSaved }: {
                 <Label>Description</Label>
                 <Input className="rounded-xl" placeholder="Capteur de température moteur principal" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
               </div>
-              <Button
-                className="w-full rounded-xl bg-primary hover:bg-primary/90"
-                disabled={!form.name || !form.deviceId || !form.protocol}
-                onClick={save}
-              >
-                {isEdit ? "Enregistrer" : "Créer l'appareil"}
-              </Button>
+              {!isEdit && (
+                <Button variant="outline" className="w-full rounded-xl" onClick={() => setStep(1)}>
+                  ← Retour
+                </Button>
+              )}
+              <div className="flex gap-2">
+                <Button variant="ghost" className="flex-1 rounded-xl" onClick={onClose}>
+                  Annuler
+                </Button>
+                <Button
+                  className="flex-1 rounded-xl bg-primary hover:bg-primary/90"
+                  disabled={!form.name || !form.deviceId || !form.protocol}
+                  onClick={save}
+                >
+                  {isEdit ? "Enregistrer" : "Créer l'appareil"}
+                </Button>
+              </div>
             </div>
           )}
         </div>
